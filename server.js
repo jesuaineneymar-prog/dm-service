@@ -37,6 +37,14 @@ let ig2FA = {
   createdAt: 0
 };
 
+// Pending FB 2FA context
+let fb2FA = {
+  active: false,
+  context: null,
+  page: null,
+  createdAt: 0
+};
+
 // --- Credentials ---
 const CREDS = {
   ig: { user: process.env.IG_USER || 'jesuainecristiano78', pass: process.env.IG_PASS || '9adJpLRGPX#YGx$', email: process.env.IG_EMAIL || '' },
@@ -84,6 +92,15 @@ async function close2FAContext() {
     ig2FA.context = null;
   }
   ig2FA.active = false;
+  if (fb2FA.page) {
+    try { await fb2FA.page.close(); } catch(e) {}
+    fb2FA.page = null;
+  }
+  if (fb2FA.context) {
+    try { await fb2FA.context.close(); } catch(e) {}
+    fb2FA.context = null;
+  }
+  fb2FA.active = false;
 }
 
 // --- Stealth injection script ---
@@ -1341,12 +1358,40 @@ async function fbLogin() {
     const afterText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
     console.log('[FB] After login URL:', afterUrl, 'text:', afterText.substring(0, 200));
 
-    // Check for CAPTCHA
-    if (afterUrl.includes('captcha') || afterUrl.includes('challenge') || afterUrl.includes('checkpoint')) {
-      console.log('[FB] CAPTCHA/challenge detected! Trying to solve...');
-      const pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
-      console.log('[FB] Page text:', pageText.substring(0, 200));
+    // Check for 2FA / checkpoint / CAPTCHA
+    if (afterUrl.includes('captcha') || afterUrl.includes('challenge') || afterUrl.includes('checkpoint') || afterUrl.includes('two_factor')) {
+      const pageTextFull = await page.evaluate(() => document.body?.innerText?.substring(0, 1000) || '');
+      console.log('[FB] Challenge/checkpoint page text:', pageTextFull.substring(0, 300));
 
+      // Check if this is a 2FA code page (not just a CAPTCHA)
+      const isFB2FA = pageTextFull.includes('two-factor') 
+        || pageTextFull.includes('authentication code')
+        || pageTextFull.includes('Enter login code')
+        || pageTextFull.includes('enter the code')
+        || pageTextFull.includes('código de autenticação')
+        || pageTextFull.includes('código de login')
+        || pageTextFull.includes('recuperação')
+        || pageTextFull.includes('recovery code')
+        || pageTextFull.includes('Get a code')
+        || pageTextFull.includes('Obter um código')
+        || pageTextFull.includes('Send code')
+        || pageTextFull.includes('Enviar código')
+        || (afterUrl.includes('checkpoint') && (pageTextFull.includes('Continuar') || pageTextFull.includes('Continue')))
+        || await page.$('input[name="approvals_code"]').catch(() => null)
+        || await page.$('input[inputmode="numeric"]').catch(() => null);
+
+      if (isFB2FA) {
+        console.log('[FB] 2FA page detected! Saving context...');
+        const screenshot2 = await page.screenshot({ encoding: 'base64', fullPage: false });
+        fb2FA.active = true;
+        fb2FA.context = ctx;
+        fb2FA.page = page;
+        fb2FA.createdAt = Date.now();
+        return { success: false, needs2FA: true, message: '2FA do Facebook requerido. Chame /fb/send-2fa para enviar o código ou /fb/verify-2fa {code} se já tem o código.', screenshot: screenshot2, url: afterUrl, pageText: pageTextFull.substring(0, 500) };
+      }
+
+      // Otherwise try CAPTCHA
+      console.log('[FB] CAPTCHA/challenge detected! Trying to solve...');
       const captchaResult = await checkAndSolveCaptcha(page, 'button[name="login"]');
       if (captchaResult.solved) {
         await sleep(5000);
@@ -1377,6 +1422,30 @@ async function fbLogin() {
       const screenshot3 = await page.screenshot({ encoding: 'base64', fullPage: false });
       await ctx.close();
       return { success: false, error: 'CAPTCHA/challenge nao resolvido. URL: ' + afterUrl, checkpoint: true, screenshot: screenshot3 };
+    }
+
+    // Check for 2FA even if not on checkpoint URL (some 2FA pages stay on login URL)
+    const fb2FACheck = await page.evaluate(() => {
+      const text = document.body?.innerText?.substring(0, 2000) || '';
+      return {
+        hasCodeInput: !!(document.querySelector('input[name="approvals_code"]') 
+          || document.querySelector('input[inputmode="numeric"]')
+          || document.querySelector('#approvals_code')),
+        text: text,
+        hasGetCode: text.includes('Get a code') || text.includes('Obter um código') || text.includes('Send code') || text.includes('Enviar código'),
+        hasTwoFactor: text.toLowerCase().includes('two-factor') || text.toLowerCase().includes('2-factor') || text.includes('authentication code'),
+        hasRecovery: text.toLowerCase().includes('recovery code') || text.toLowerCase().includes('código de recuperação')
+      };
+    }).catch(() => ({ hasCodeInput: false, text: '', hasGetCode: false, hasTwoFactor: false, hasRecovery: false }));
+    
+    if (fb2FACheck.hasCodeInput || fb2FACheck.hasTwoFactor || fb2FACheck.hasGetCode || fb2FACheck.hasRecovery) {
+      console.log('[FB] 2FA detected (non-checkpoint URL)! codeInput:', fb2FACheck.hasCodeInput, '2fa:', fb2FACheck.hasTwoFactor, 'getCode:', fb2FACheck.hasGetCode);
+      const screenshot2fa = await page.screenshot({ encoding: 'base64', fullPage: false });
+      fb2FA.active = true;
+      fb2FA.context = ctx;
+      fb2FA.page = page;
+      fb2FA.createdAt = Date.now();
+      return { success: false, needs2FA: true, message: '2FA do Facebook requerido. Chame /fb/send-2fa para enviar o código ou /fb/verify-2fa {code} se já tem o código.', screenshot: screenshot2fa, url: afterUrl, pageText: fb2FACheck.text.substring(0, 500) };
     }
 
     const errorEl = await page.$('#error_box').catch(() => null);
@@ -1520,8 +1589,248 @@ async function fbSendDM(targetUsername, message, useProxy = true) {
 }
 
 // ============================================
-// TIKTOK LOGIN + CAPTCHA
+// FACEBOOK 2FA FUNCTIONS
 // ============================================
+
+async function fbSend2FA() {
+  if (!fb2FA.active || !fb2FA.page) {
+    return { success: false, error: 'Nenhum contexto 2FA ativo para Facebook. Chame /fb/login primeiro.' };
+  }
+  try {
+    const page = fb2FA.page;
+    const currentUrl = page.url();
+    const pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 1500) || '');
+    console.log('[FB send-2fa] URL:', currentUrl);
+    console.log('[FB send-2fa] Text:', pageText.substring(0, 400));
+
+    // Try to click "Get a code" / "Send code" / "Obter um código" / "Enviar código"
+    let clicked = false;
+    const codeLinkTexts = ['Get a code', 'Obter um código', 'Send code', 'Enviar código', 'Resend code', 'Reenviar código'];
+    
+    for (const linkText of codeLinkTexts) {
+      try {
+        const el = page.getByText(linkText, { exact: false }).first();
+        if (await el.isVisible({ timeout: 2000 }).catch(() => false)) {
+          await el.click({ timeout: 5000 });
+          console.log('[FB send-2fa] Clicked:', linkText);
+          clicked = true;
+          break;
+        }
+      } catch(e) {}
+    }
+
+    // Also try clicking links with those texts
+    if (!clicked) {
+      const linkResult = await page.evaluate((texts) => {
+        const links = document.querySelectorAll('a, [role="link"], button, [role="button"]');
+        for (const link of links) {
+          const t = (link.innerText || '').trim().toLowerCase();
+          for (const search of texts) {
+            if (t.includes(search.toLowerCase())) {
+              link.click();
+              return { clicked: true, text: link.innerText.trim().substring(0, 50) };
+            }
+          }
+        }
+        return { clicked: false };
+      }, codeLinkTexts);
+      if (linkResult.clicked) {
+        clicked = true;
+        console.log('[FB send-2fa] Clicked via JS:', linkResult.text);
+      }
+    }
+
+    // Try Continue button if no code link found (checkpoint flow)
+    if (!clicked) {
+      try {
+        const contBtn = page.locator('button[id="checkpointSubmitButton"], button[name="submit"], #login_form button[type="submit"]').first();
+        if (await contBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+          await contBtn.click({ timeout: 5000 });
+          clicked = true;
+          console.log('[FB send-2fa] Clicked submit/continue button');
+        }
+      } catch(e) {}
+    }
+
+    await sleep(6000);
+    const afterUrl = page.url();
+    const afterText = await page.evaluate(() => document.body?.innerText?.substring(0, 1000) || '');
+    const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
+    console.log('[FB send-2fa] After URL:', afterUrl);
+    console.log('[FB send-2fa] After text:', afterText.substring(0, 300));
+
+    // Check if code input appeared
+    const hasCodeInput = await page.$('input[name="approvals_code"]') 
+      || await page.$('input[inputmode="numeric"]')
+      || await page.$('#approvals_code');
+
+    if (hasCodeInput || afterText.includes('Enter login code') || afterText.includes('enter the code') || afterText.includes('código de login')) {
+      return { success: true, message: 'Código 2FA enviado (ou campo de código disponível). Verifica o telefone e chame /fb/verify-2fa {code}.', url: afterUrl, pageText: afterText.substring(0, 500), screenshot: ss };
+    }
+
+    return { success: clicked, message: clicked ? 'Botão clicado mas estado incerto. Verifica o telefone.' : 'Nenhum botão de envio de código encontrado.', url: afterUrl, pageText: afterText.substring(0, 500), screenshot: ss };
+
+  } catch(e) {
+    return { success: false, error: e.message };
+  }
+}
+
+async function fbVerify2FA(code) {
+  if (!fb2FA.active || !fb2FA.page) {
+    return { success: false, error: 'Nenhum contexto 2FA ativo para Facebook. Chame /fb/login primeiro.' };
+  }
+  try {
+    const page = fb2FA.page;
+    const ctx = fb2FA.context;
+    const currentUrl = page.url();
+    console.log('[FB verify-2fa] URL:', currentUrl, 'code:', code);
+
+    // Find code input
+    const codeSelectors = [
+      'input[name="approvals_code"]',
+      '#approvals_code', 
+      'input[inputmode="numeric"]',
+      'input[type="text"][name*="code"]',
+      'input[name="code"]',
+      'input[autocomplete="one-time-code"]'
+    ];
+
+    let filled = false;
+    for (const sel of codeSelectors) {
+      const input = await page.$(sel).catch(() => null);
+      if (input) {
+        // Use nativeInputValueSetter for React compatibility
+        await page.evaluate((sel, code) => {
+          const el = document.querySelector(sel);
+          if (el) {
+            const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+            nativeSetter.call(el, code);
+            el.dispatchEvent(new Event('focus', { bubbles: true }));
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }, sel, code);
+        filled = true;
+        console.log('[FB verify-2fa] Filled code input:', sel);
+        break;
+      }
+    }
+
+    if (!filled) {
+      // Last resort: try any visible input
+      const inputs = await page.$$('input[type="text"], input:not([type])');
+      for (const input of inputs) {
+        try {
+          if (await input.isVisible({ timeout: 1000 }).catch(() => false)) {
+            await input.fill(code);
+            filled = true;
+            console.log('[FB verify-2fa] Filled generic input');
+            break;
+          }
+        } catch(e) {}
+      }
+    }
+
+    if (!filled) {
+      const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
+      return { success: false, error: 'Nenhum campo de código encontrado na página.', url: currentUrl, screenshot: ss };
+    }
+
+    await sleep(1000);
+
+    // Click submit/continue
+    let submitted = false;
+    
+    // Method 1: checkpointSubmitButton
+    try {
+      const submitBtn = page.locator('button#checkpointSubmitButton, button[name="submit"], #login_form button[type="submit"]').first();
+      if (await submitBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await submitBtn.click({ timeout: 5000 });
+        submitted = true;
+        console.log('[FB verify-2fa] Clicked submit button');
+      }
+    } catch(e) {}
+
+    // Method 2: Continue button
+    if (!submitted) {
+      try {
+        await page.getByRole('button', { name: /continue|continuar|enviar|submit/i }).first().click({ timeout: 5000 });
+        submitted = true;
+        console.log('[FB verify-2fa] Clicked Continue button');
+      } catch(e) {}
+    }
+
+    // Method 3: Enter key
+    if (!submitted) {
+      await page.keyboard.press('Enter');
+      submitted = true;
+      console.log('[FB verify-2fa] Pressed Enter');
+    }
+
+    await sleep(8000);
+    await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
+
+    const afterUrl = page.url();
+    const afterText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
+    console.log('[FB verify-2fa] After URL:', afterUrl);
+    console.log('[FB verify-2fa] After text:', afterText.substring(0, 200));
+
+    // Check if we got past 2FA
+    if (!afterUrl.includes('checkpoint') && !afterUrl.includes('two_factor') && !afterUrl.includes('challenge')) {
+      // Check for save device / trusted browser prompt
+      const hasSaveDevice = afterText.includes('Save this device') || afterText.includes('Salvar') || afterText.includes('save browser') || afterText.includes('trusted');
+      if (hasSaveDevice) {
+        try {
+          await page.getByRole('button', { name: /continue|continuar|save|salvar|don't save|nao salvar/i }).first().click({ timeout: 5000 }).catch(() => {});
+          await sleep(5000);
+        } catch(e) {}
+      }
+
+      // Try to finalize login
+      await page.goto('https://www.facebook.com/', { waitUntil: 'load', timeout: 30000 }).catch(() => {});
+      await sleep(3000);
+
+      const fbDtsg = await page.evaluate(() => {
+        try {
+          const el = document.querySelector('[name="fb_dtsg"]');
+          if (el) return el.value;
+          for (const s of document.querySelectorAll('script')) {
+            if (s.textContent.includes('dtsg')) { const m = s.textContent.match(/"token"\s*:\s*"([^"]+)"/); if (m) return m[1]; }
+          }
+          return null;
+        } catch(e) { return null; }
+      });
+
+      const finalCookies = await ctx.cookies();
+      const userId = finalCookies.find(c => c.name === 'c_user');
+      const xsCookie = finalCookies.find(c => c.name === 'xs');
+      
+      if (userId || xsCookie) {
+        sessions.fb = { cookies: finalCookies, loggedIn: true, userId: userId ? userId.value : null, dtsg: fbDtsg, expiresAt: Date.now() + 3600000 };
+        fb2FA.active = false; fb2FA.page = null; fb2FA.context = null;
+        console.log('[FB] 2FA OK! userId=' + (userId ? userId.value : 'null'));
+        await ctx.close();
+        return { success: true, message: 'Login com 2FA bem-sucedido!', method: '2fa_verified' };
+      }
+    }
+
+    // Still on 2FA page - code might be wrong
+    const hasError = afterText.includes('incorrect') || afterText.includes('incorret') || afterText.includes('invalid') || afterText.includes('Wrong code') || afterText.includes('Código incorreto');
+    if (hasError) {
+      const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
+      return { success: false, error: 'Código 2FA incorreto.', url: afterUrl, pageText: afterText.substring(0, 300), screenshot: ss };
+    }
+
+    // Keep context alive for retry
+    const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
+    return { success: false, error: 'Estado incerto após 2FA. Pode tentar novamente com /fb/verify-2fa.', url: afterUrl, pageText: afterText.substring(0, 300), screenshot: ss, needs2FA: true };
+
+  } catch(e) {
+    return { success: false, error: e.message };
+  }
+}
+
+// --- TIKTOK LOGIN + CAPTCHA ---
 
 async function ttLogin() {
   if (sessions.tt.loggedIn && sessions.tt.cookies && Date.now() < sessions.tt.expiresAt) {
@@ -1763,7 +2072,11 @@ app.post('/ig/login', authMiddleware, async (req, res) => {
 });
 
 app.post('/ig/send-2fa', authMiddleware, async (req, res) => {
-  try { const result = await igSend2FA(); res.json(result); }
+  try {
+    const { phone } = req.body;
+    const result = await igSend2FA(phone || '+244925049405');
+    res.json(result);
+  }
   catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
@@ -1796,6 +2109,20 @@ app.post('/fb/send', authMiddleware, async (req, res) => {
     const { username, message, noProxy } = req.body;
     if (!username || !message) return res.status(400).json({ success: false, error: 'username e message obrigatorios' });
     const result = await fbSendDM(username, message, !noProxy);
+    res.json(result);
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+app.post('/fb/send-2fa', authMiddleware, async (req, res) => {
+  try { const result = await fbSend2FA(); res.json(result); }
+  catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+app.post('/fb/verify-2fa', authMiddleware, async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code || !/^\d{4,8}$/.test(code)) return res.status(400).json({ success: false, error: 'Codigo invalido (4-8 digitos)' });
+    const result = await fbVerify2FA(code);
     res.json(result);
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
