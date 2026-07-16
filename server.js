@@ -1679,12 +1679,15 @@ async function fbSend2FA() {
     // Take screenshot for debugging
     const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
 
+    let pageDebug = null;
+    let frameDebug = [];
+
     // Check for and solve CAPTCHA first (FB often puts reCAPTCHA before 2FA code)
     if (pageText.includes('reCAPTCHA') || pageText.includes('recaptcha') || pageText.includes('verificação de segurança')) {
       console.log('[FB send-2fa] CAPTCHA/verification page detected');
       
       // Debug: dump page structure
-      const pageDebug = await page.evaluate(() => {
+      pageDebug = await page.evaluate(() => {
         const allElements = document.querySelectorAll('*');
         const buttons = [];
         const inputs = [];
@@ -1718,7 +1721,7 @@ async function fbSend2FA() {
       console.log('[FB send-2fa] Page debug:', JSON.stringify(pageDebug, null, 2).substring(0, 2000));
 
       // Check frames too
-      const frameDebug = [];
+      frameDebug = [];
       for (const frame of page.frames()) {
         try {
           const fUrl = frame.url();
