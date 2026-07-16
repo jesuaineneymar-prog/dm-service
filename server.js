@@ -240,7 +240,7 @@ async function solveCaptcha(page) {
       return { type: 'recaptcha_v2', sitekey, found: true };
     }
 
-    // reCAPTCHA v3 (invisible, check for grecaptcha in window)
+    // reCAPTCHA v3 / Enterprise (check for grecaptcha in window)
     if (window.grecaptcha) {
       let sitekey = '';
       const el = document.querySelector('[data-sitekey]');
@@ -252,7 +252,38 @@ async function solveCaptcha(page) {
           if (m) sitekey = m[1];
         }
       }
-      return { type: 'recaptcha_v3', sitekey, found: true };
+      // Check for enterprise render params in scripts
+      if (!sitekey) {
+        const scripts = document.querySelectorAll('script');
+        for (const s of scripts) {
+          const m = s.textContent.match(/sitekey['":\s]+['"]([\w-]+)['"]/i);
+          if (m) { sitekey = m[1]; break; }
+        }
+      }
+      const isEnterprise = !!window.grecaptcha.enterprise;
+      return { type: isEnterprise ? 'recaptcha_v3' : 'recaptcha_v3', sitekey, found: true, enterprise: isEnterprise };
+    }
+
+    // reCAPTCHA Enterprise iframe (no grecaptcha object yet, but iframe present)
+    const rcEnterpriseFrames = document.querySelectorAll('iframe[src*="recaptcha"], iframe[title*="reCAPTCHA"], iframe[src*="google.com/recaptcha"]');
+    if (rcEnterpriseFrames.length > 0) {
+      let sitekey = '';
+      for (const f of rcEnterpriseFrames) {
+        const m = f.src.match(/k=([^&]+)/);
+        if (m) { sitekey = m[1]; break; }
+      }
+      if (!sitekey) {
+        const el = document.querySelector('[data-sitekey]');
+        if (el) sitekey = el.getAttribute('data-sitekey');
+      }
+      if (!sitekey) {
+        const rcScript = document.querySelector('script[src*="recaptcha/api.js"], script[src*="recaptcha/enterprise.js"]');
+        if (rcScript) {
+          const m = rcScript.src.match(/render=([^&]+)/);
+          if (m) sitekey = m[1];
+        }
+      }
+      return { type: 'recaptcha_v2', sitekey, found: true, enterprise: true };
     }
 
     // hCaptcha
@@ -1647,6 +1678,51 @@ async function fbSend2FA() {
 
     // Take screenshot for debugging
     const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
+
+    // Check for and solve CAPTCHA first (FB often puts reCAPTCHA before 2FA code)
+    if (pageText.includes('reCAPTCHA') || pageText.includes('recaptcha') || pageText.includes('verificação de segurança')) {
+      console.log('[FB send-2fa] CAPTCHA detected on 2FA page, solving...');
+      const captchaResult = await solveCaptcha(page);
+      if (captchaResult) {
+        console.log('[FB send-2fa] CAPTCHA solved! Waiting for page to progress...');
+        // Try to find and click a continue/submit button after solving
+        await sleep(2000);
+        try {
+          const contBtn = page.locator('button[type="submit"], button[name="submit"], button[id="checkpointSubmitButton"]').first();
+          if (await contBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+            await contBtn.click({ timeout: 5000 });
+            console.log('[FB send-2fa] Clicked submit after CAPTCHA');
+          }
+        } catch(e) {}
+        await sleep(8000);
+        // Re-read page state
+        pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 1500) || '');
+        for (const frame of page.frames()) {
+          try {
+            const ft = await frame.evaluate(() => document.body?.innerText?.substring(0, 1500) || '');
+            if (ft.length > pageText.length) pageText = ft;
+          } catch(e) {}
+        }
+        console.log('[FB send-2fa] After CAPTCHA text:', pageText.substring(0, 300));
+      } else {
+        console.log('[FB send-2fa] CAPTCHA not solved. Trying frames...');
+        // Try solving in frames
+        for (const frame of page.frames()) {
+          try {
+            const frameText = await frame.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
+            if (frameText.includes('recaptcha') || frameText.includes('CAPTCHA')) {
+              console.log('[FB send-2fa] CAPTCHA in frame, solving...');
+              const frameCaptcha = await solveCaptcha(frame);
+              if (frameCaptcha) {
+                console.log('[FB send-2fa] CAPTCHA in frame solved!');
+                await sleep(5000);
+                break;
+              }
+            }
+          } catch(e) {}
+        }
+      }
+    }
 
     // If the code input is already visible, just tell user to verify
     const hasCodeInput = await page.$('input[name="approvals_code"]') 
