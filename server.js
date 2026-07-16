@@ -2420,6 +2420,13 @@ async function ttSendDM(targetUsername, message, useProxy = true) {
     if (existingPages.length > 0) {
       page = existingPages[0]; // Reuse the exact same page used for login
       isLoginPage = true;
+      // DEBUG: Check auth state before navigation
+      const preNavText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
+      const preNavUrl = page.url();
+      console.log('[TT] Pre-nav URL:', preNavUrl);
+      console.log('[TT] Pre-nav has Entrar:', preNavText.includes('Entrar'));
+      console.log('[TT] Pre-nav has Perfil:', preNavText.includes('Perfil'));
+      console.log('[TT] Pre-nav text snippet:', preNavText.substring(0, 200));
     } else {
       page = await ctx.newPage();
       await page.addInitScript(STEALTH_JS);
