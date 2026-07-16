@@ -2441,6 +2441,83 @@ async function ttSendDM(targetUsername, message, useProxy = true) {
   }
 
   try {
+    // === METHOD 0: In-page API (most reliable - uses auth from login page) ===
+    if (isLoginPage) {
+      console.log('[TT] Trying in-page API call from authenticated page...');
+      try {
+        const apiResult = await page.evaluate(async ({targetUsername, message}) => {
+          try {
+            // Step 1: Get userId by fetching profile page
+            const profileResp = await fetch('https://www.tiktok.com/@' + targetUsername, { credentials: 'include' });
+            const html = await profileResp.text();
+            
+            // Extract userId from SSR data
+            let userId = null;
+            const scripts = html.match(/<script[^>]*>([\s\S]*?)<\/script>/gi) || [];
+            for (const script of scripts) {
+              let m = script.match(/"userId"\s*:\s*"(\d+)"/);
+              if (m) { userId = m[1]; break; }
+              m = script.match(/"id"\s*:\s*"(\d+)"/);
+              if (m) { userId = m[1]; break; }
+              m = script.match(/"uid"\s*:\s*(\d+)/);
+              if (m) { userId = m[1]; break; }
+            }
+            if (!userId) return { error: 'userId not found in profile HTML' };
+            
+            // Step 2: Create or get chat room
+            const createParams = new URLSearchParams({
+              to_user_id: userId,
+              from: 'webapp',
+              count: '1'
+            });
+            const createResp = await fetch('https://www.tiktok.com/api/chat/create/', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: createParams.toString(),
+              credentials: 'include'
+            });
+            const createBody = await createResp.text();
+            let roomId = null;
+            try { const cd = JSON.parse(createBody); roomId = cd.data?.room_id || cd.room_id; } catch(e) {}
+            
+            // Step 3: Send message
+            const sendParams = new URLSearchParams({
+              recipient_user_id: userId,
+              message_type: 'text',
+              content: message,
+              client_message_id: crypto.randomUUID(),
+              from: 'webapp'
+            });
+            if (roomId) sendParams.append('room_id', roomId);
+            
+            const sendResp = await fetch('https://www.tiktok.com/api/chat/send_message/', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: sendParams.toString(),
+              credentials: 'include'
+            });
+            const sendBody = await sendResp.text();
+            
+            return { userId, roomId, createStatus: createResp.status, sendStatus: sendResp.status, createBody: createBody.substring(0, 300), sendBody: sendBody.substring(0, 500) };
+          } catch(e) { return { error: e.message }; }
+        }, { targetUsername, message });
+        
+        console.log('[TT] In-page API result:', JSON.stringify(apiResult).substring(0, 500));
+        
+        // Check if DM was sent
+        let sendParsed = {};
+        try { sendParsed = JSON.parse(apiResult.sendBody); } catch(e) {}
+        if (sendParsed.status_code === '0' || sendParsed.data || sendParsed.message_id) {
+          return { success: true, platform: 'TikTok', recipient: targetUsername, method: 'in_page_api', userId: apiResult.userId, apiResponse: apiResult.sendBody?.substring(0, 200) };
+        }
+        
+        // If API failed, log details but continue to UI method
+        console.log('[TT] In-page API failed, trying UI...');
+      } catch(e) {
+        console.log('[TT] In-page API error:', e.message.substring(0, 100));
+      }
+    }
+
     // Navigate to target profile
     console.log('[TT] Navigating to profile...');
     await page.goto('https://www.tiktok.com/@' + encodeURIComponent(targetUsername), { waitUntil: 'load', timeout: 30000 }).catch(() => {});
