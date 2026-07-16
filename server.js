@@ -964,7 +964,7 @@ async function igSend2FA(phone) {
     console.log('[IG send-2fa] After text:', afterText.substring(0, 300));
 
     // Check if we need to click Continuar again (2-click flow)
-    if (afterText.includes('Enviamos um código') && afterText.includes('Continuar')) {
+    if ((afterText.includes('Enviamos um código') || afterText.includes('Enviaremos um código') || afterText.includes('enviaremos um código')) && afterText.includes('Continuar')) {
       console.log('[IG send-2fa] Clicking Continuar again to send SMS');
       await page.evaluate(() => {
         const buttons = document.querySelectorAll('[role="button"]');
