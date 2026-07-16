@@ -1359,12 +1359,16 @@ async function fbLogin() {
     console.log('[FB] After login URL:', afterUrl, 'text:', afterText.substring(0, 200));
 
     // Check for 2FA / checkpoint / CAPTCHA
-    if (afterUrl.includes('captcha') || afterUrl.includes('challenge') || afterUrl.includes('checkpoint') || afterUrl.includes('two_factor')) {
+    if (afterUrl.includes('captcha') || afterUrl.includes('challenge') || afterUrl.includes('checkpoint') || afterUrl.includes('two_factor') || afterUrl.includes('two_step_verification')) {
       const pageTextFull = await page.evaluate(() => document.body?.innerText?.substring(0, 1000) || '');
       console.log('[FB] Challenge/checkpoint page text:', pageTextFull.substring(0, 300));
 
+      // two_step_verification URL is ALWAYS 2FA
+      const isTwoStepUrl = afterUrl.includes('two_step_verification') || afterUrl.includes('two_factor');
+
       // Check if this is a 2FA code page (not just a CAPTCHA)
-      const isFB2FA = pageTextFull.includes('two-factor') 
+      const isFB2FA = isTwoStepUrl
+        || pageTextFull.includes('two-factor') 
         || pageTextFull.includes('authentication code')
         || pageTextFull.includes('Enter login code')
         || pageTextFull.includes('enter the code')
