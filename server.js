@@ -786,21 +786,62 @@ async function detectIG2FAPage(page) {
   return has2FAElements;
 }
 
-async function igSend2FA() {
+async function igSend2FA(phone) {
   if (!ig2FA.active || !ig2FA.page) {
     return { success: false, error: 'Nenhum contexto 2FA ativo. Chame /ig/login primeiro.' };
   }
   try {
     const page = ig2FA.page;
-    // Try to click "Send SMS" button
-    const sendBtn = await page.$('button:has-text("Enviar")') || await page.$('button:has-text("Send")') || await page.$('button[type="submit"]');
-    if (sendBtn) {
-      await sendBtn.click();
-      await sleep(3000);
-      const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });
-      return { success: true, message: 'SMS enviado. Verifique o teu telefone.', screenshot };
+    const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });
+    const pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 1000) || '');
+    console.log('[IG] 2FA page text:', pageText.substring(0, 300));
+    console.log('[IG] 2FA URL:', page.url());
+
+    // If phone number provided, look for phone input field and fill it
+    if (phone) {
+      const phoneSelectors = [
+        'input[type="tel"]', 'input[name="phone"]', 'input[name="phoneNumber"]',
+        'input[name="email"]', 'input[inputmode="tel"]', 'input[inputmode="email"]',
+        'input[autocomplete="tel"]', 'input[autocomplete="email"]',
+        'input[placeholder*="número" i]', 'input[placeholder*="phone" i]',
+        'input[placeholder*="email" i]', 'input[placeholder*="Número"]',
+        'input[type="text"]'
+      ];
+      for (const sel of phoneSelectors) {
+        try {
+          const el = await page.$(sel);
+          if (el && await el.isVisible()) {
+            console.log('[IG] Found input:', sel, '- filling with phone:', phone);
+            await el.click();
+            await sleep(300);
+            await el.fill(phone);
+            await sleep(1000);
+            break;
+          }
+        } catch(e) { continue; }
+      }
     }
-    return { success: false, error: 'Botão de envio não encontrado' };
+
+    // Click send button (try multiple texts)
+    const sendSelectors = [
+      'button:has-text("Enviar")', 'button:has-text("Send")', 'button:has-text("Enviar código")',
+      'button:has-text("Send code")', 'button:has-text("Receber código")',
+      'button[type="submit"]', 'button:has-text("Next")', 'button:has-text("Próximo")',
+      'button:has-text("Continuar")', 'button:has-text("Continue")'
+    ];
+    for (const sel of sendSelectors) {
+      try {
+        const btn = await page.$(sel);
+        if (btn && await btn.isVisible()) {
+          console.log('[IG] Clicking send button:', sel);
+          await btn.click();
+          await sleep(5000);
+          const afterSs = await page.screenshot({ encoding: 'base64', fullPage: false });
+          return { success: true, message: 'Código enviado. Verifica o teu telefone.', screenshot: afterSs };
+        }
+      } catch(e) { continue; }
+    }
+    return { success: false, error: 'Botão de envio não encontrado', screenshot, pageText: pageText.substring(0, 500) };
   } catch(e) {
     return { success: false, error: e.message };
   }
@@ -1453,8 +1494,11 @@ app.post('/ig/login', authMiddleware, async (req, res) => {
 });
 
 app.post('/ig/send-2fa', authMiddleware, async (req, res) => {
-  try { const result = await igSend2FA(); res.json(result); }
-  catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  try {
+    const { phone } = req.body || {};
+    const result = await igSend2FA(phone);
+    res.json(result);
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.post('/ig/verify-2fa', authMiddleware, async (req, res) => {
