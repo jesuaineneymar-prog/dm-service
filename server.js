@@ -2380,7 +2380,7 @@ async function ttLogin() {
     const failSs = await page.screenshot({ encoding: 'base64', fullPage: false });
     const failText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
     await ctx.close();
-    return { success: false, error: 'Login falhou - sessao invalida', url: page.url(), pageText: failText, screenshot: failSs };
+    return { success: false, error: 'Login falhou - sessao invalida', url: page.url(), pageText: failText, screenshot: afterLoginSs, afterLoginUrl: afterUrl, afterLoginText: afterLoginText.substring(0, 500) };
   } catch (err) {
     console.error('[TT] Login error:', err.message);
     try { await ctx.close(); } catch(e) {}
