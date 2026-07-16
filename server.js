@@ -777,6 +777,62 @@ async function igLoginInternal() {
       const ignorePatterns = ['senha está visível', 'password is visible', 'mostrar senha', 'show password'];
       const isRealError = !ignorePatterns.some(p => loginError.toLowerCase().includes(p));
       if (isRealError) {
+        // If password incorrect, try "Receber código" (login via code)
+        if (pageTextAfter.includes('Receber código') && pageTextAfter.includes('Senha incorreta')) {
+          console.log('[IG] Password rejected, trying login via code...');
+          try {
+            // Click "Receber código" link
+            await page.getByRole('link', { name: 'Receber código' }).click({ timeout: 5000 }).catch(async () => {
+              await page.click('text=Receber código', { timeout: 3000 });
+            });
+            await sleep(5000);
+            const codePageUrl = page.url();
+            const codePageText = await page.evaluate(() => document.body?.innerText?.substring(0, 1000) || '');
+            console.log('[IG] Code page URL:', codePageUrl);
+            console.log('[IG] Code page text:', codePageText.substring(0, 300));
+            
+            // If we're on a code entry page (not password reset), save context
+            if (!codePageUrl.includes('password/reset') && !codePageUrl.includes('reset')) {
+              ig2FA.active = true; ig2FA.context = ctx; ig2FA.page = page; ig2FA.createdAt = Date.now();
+              const codeSs = await page.screenshot({ encoding: 'base64', fullPage: false });
+              return { success: false, needsLoginCode: true, message: 'Senha rejeitada. Página de código atingida. Chame /ig/verify-2fa {code}.', url: codePageUrl, pageText: codePageText.substring(0, 500), screenshot: codeSs };
+            }
+            
+            // If it went to password reset, check what's there
+            if (codePageUrl.includes('password/reset')) {
+              // Password reset page might have option to send code to phone
+              // Try filling phone and continuing
+              console.log('[IG] On password reset page, trying to get login code...');
+              const phoneInput = await page.$('input[aria-label="Número do celular"]') || await page.$('input[type="text"]');
+              if (phoneInput) {
+                const nativeSetter = 'Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set';
+                await page.evaluate((ps) => {
+                  const s = eval(ps);
+                  const input = document.querySelector('input[aria-label="Número do celular"]') || document.querySelector('input[type="text"]');
+                  if (input) { s.call(input, '+244925049405'); input.dispatchEvent(new Event('input', {bubbles:true})); input.dispatchEvent(new Event('change', {bubbles:true})); }
+                }, nativeSetter);
+                await sleep(1000);
+                try {
+                  await page.getByRole('button', { name: 'Continuar' }).click({ timeout: 5000 });
+                  await sleep(5000);
+                  const afterCodeUrl = page.url();
+                  const afterCodeText = await page.evaluate(() => document.body?.innerText?.substring(0, 1000) || '');
+                  console.log('[IG] After phone submit URL:', afterCodeUrl);
+                  console.log('[IG] After phone submit text:', afterCodeText.substring(0, 300));
+                  
+                  ig2FA.active = true; ig2FA.context = ctx; ig2FA.page = page; ig2FA.createdAt = Date.now();
+                  const finalSs = await page.screenshot({ encoding: 'base64', fullPage: false });
+                  return { success: false, needsLoginCode: true, message: 'Código de login enviado para o telefone. Verifica o SMS e chame /ig/verify-2fa {code}.', url: afterCodeUrl, pageText: afterCodeText.substring(0, 500), screenshot: finalSs };
+                } catch(e) {
+                  console.log('[IG] Continuar click failed:', e.message);
+                }
+              }
+            }
+          } catch(e) {
+            console.log('[IG] Receber código flow error:', e.message);
+          }
+        }
+        
         if (CREDS.ig.email && !CREDS.ig.user.includes('@')) {
           console.log('[IG] Username failed, retrying with email:', CREDS.ig.email);
           await ctx.close();
