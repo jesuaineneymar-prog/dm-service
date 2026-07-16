@@ -1496,27 +1496,53 @@ async function ttSendDM(targetUsername, message, useProxy = true) {
     console.log('[TT] Target userId:', userId);
     const cookies = sessions.tt.cookies.map(c => c.name + '=' + c.value).join('; ');
 
-    // Method 1: API
-    const sendResult = await page.evaluate(async ({ cookies, userId, message }) => {
+    // Get msToken from cookies
+    const msToken = sessions.tt.cookies.find(c => c.name === 'msToken');
+    const ttwid = sessions.tt.cookies.find(c => c.name === 'ttwid');
+
+    // Method 1: API - first create chat room, then send message
+    const sendResult = await page.evaluate(async ({ cookies, userId, message, msToken, ttwid }) => {
+      const headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Cookie': cookies };
+      if (msToken) headers['X-Ms-Token'] = msToken.value;
+      
+      // Step 1: Create or get chat room
       try {
-        const resp = await fetch('https://www.tiktok.com/api/chat/send_message/', {
+        const createResp = await fetch('https://www.tiktok.com/api/chat/create/', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Cookie': cookies },
-          body: 'recipient_user_id=' + userId + '&message_type=text&content=' + encodeURIComponent(message) + '&client_message_id=' + crypto.randomUUID(),
+          headers,
+          body: 'to_user_id=' + userId + '&from=webapp',
           credentials: 'include'
         });
-        return { status: resp.status, body: await resp.text() };
+        const createBody = await createResp.text();
+        console.log('[TT] Create room response:', createBody.substring(0, 500));
+        
+        let roomId = null;
+        try {
+          const cd = JSON.parse(createBody);
+          roomId = cd.data?.room_id || cd.room_id || cd.id;
+        } catch(e) {}
+        
+        // Step 2: Send message (with or without room_id)
+        const msgBody = 'recipient_user_id=' + userId + '&message_type=text&content=' + encodeURIComponent(message) + '&client_message_id=' + crypto.randomUUID() + (roomId ? '&room_id=' + roomId : '');
+        const sendResp = await fetch('https://www.tiktok.com/api/chat/send_message/', {
+          method: 'POST',
+          headers,
+          body: msgBody,
+          credentials: 'include'
+        });
+        const sendBody = await sendResp.text();
+        console.log('[TT] Send msg response:', sendBody.substring(0, 500));
+        return { createStatus: createResp.status, createBody: createBody.substring(0, 300), sendStatus: sendResp.status, sendBody: sendBody.substring(0, 500), roomId };
       } catch(e) { return { error: e.message }; }
-    }, { cookies, userId, message });
+    }, { cookies, userId, message, msToken: msToken ? { value: msToken.value } : null, ttwid });
 
-    if (sendResult.status >= 200 && sendResult.status < 300) {
-      try {
-        const p = JSON.parse(sendResult.body);
-        if (p.status_code === '0' || p.data || p.ok) {
-          await ctx.close();
-          return { success: true, platform: 'TikTok', recipient: targetUsername, recipientUid: userId, method: 'api' };
-        }
-      } catch(e) {}
+    console.log('[TT] API result:', JSON.stringify(sendResult).substring(0, 500));
+
+    // Check if DM was sent successfully
+    const sendParsed = typeof sendResult.sendBody === 'string' ? (() => { try { return JSON.parse(sendResult.sendBody); } catch(e) { return {}; }})() : (sendResult.sendBody || {});
+    if (sendParsed.status_code === '0' || sendParsed.data || sendParsed.message_id || sendParsed.ok) {
+      await ctx.close();
+      return { success: true, platform: 'TikTok', recipient: targetUsername, recipientUid: userId, method: 'api', apiResponse: sendResult.sendBody?.substring(0, 200) };
     }
 
     // Method 2: UI
@@ -1539,7 +1565,7 @@ async function ttSendDM(targetUsername, message, useProxy = true) {
     }
 
     await ctx.close();
-    return { success: false, error: 'All DM methods failed for @' + targetUsername, apiStatus: sendResult.status };
+    return { success: false, error: 'All DM methods failed for @' + targetUsername, apiDetails: sendResult };
   } catch (err) {
     console.error('[TT] Send DM error:', err.message);
     try { await ctx.close(); } catch(e) {}
