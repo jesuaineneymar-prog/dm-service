@@ -1171,13 +1171,22 @@ async function fbLogin() {
     await page.fill('input[name="pass"]', CREDS.fb.pass).catch(() => page.fill('#pass', CREDS.fb.pass).catch(() => {}));
     await sleep(1000);
 
+    // Debug: verify fields were filled
+    const fbFormDebug = await page.evaluate(() => {
+      const email = document.querySelector('input[name="email"]');
+      const pass = document.querySelector('input[name="pass"]');
+      return { emailVal: email ? email.value : 'NONE', passLen: pass ? pass.value.length : -1 };
+    });
+    console.log('[FB] Form debug:', JSON.stringify(fbFormDebug));
+
     // Click login
     await page.click('button[name="login"]').catch(() => page.click('#loginbutton').catch(() => page.keyboard.press('Enter')));
     await sleep(5000);
     await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
 
     const afterUrl = page.url();
-    console.log('[FB] After login URL:', afterUrl);
+    const afterText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
+    console.log('[FB] After login URL:', afterUrl, 'text:', afterText.substring(0, 200));
 
     // Check for CAPTCHA
     if (afterUrl.includes('captcha') || afterUrl.includes('challenge') || afterUrl.includes('checkpoint')) {
@@ -1267,7 +1276,7 @@ async function fbLogin() {
     }
 
     await ctx.close();
-    return { success: false, error: 'Login failed - no session cookies. Cookies: ' + cookieNames.join(', '), screenshot };
+    return { success: false, error: 'Login failed - no session cookies. Cookies: ' + cookieNames.join(', '), afterUrl, afterText: afterText.substring(0, 300), screenshot };
 
   } catch (err) {
     console.error('[FB] Login error:', err.message);
