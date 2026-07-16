@@ -2511,8 +2511,10 @@ async function ttSendDM(targetUsername, message, useProxy = true) {
           return { success: true, platform: 'TikTok', recipient: targetUsername, method: 'in_page_api', userId: apiResult.userId, apiResponse: apiResult.sendBody?.substring(0, 200) };
         }
         
-        // If API failed, log details but continue to UI method
-        console.log('[TT] In-page API failed, trying UI...');
+        // If API failed, return details (don't continue to broken UI)
+        console.log('[TT] In-page API failed, returning details');
+        if (!reuseCtx) await ctx.close();
+        return { success: false, error: 'In-page API falhou', apiDetails: apiResult };
       } catch(e) {
         console.log('[TT] In-page API error:', e.message.substring(0, 100));
       }
