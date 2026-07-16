@@ -2199,4 +2199,4 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('Capsolver: ' + (CAPSOLVER_KEY ? 'configured' : 'MISSING'));
   console.log('Platforms: IG (2FA+CAPTCHA), FB (CAPTCHA), TikTok (CAPTCHA)');
   console.log('========================================');
-});
+});// trigger restart
