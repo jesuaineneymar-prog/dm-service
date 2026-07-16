@@ -811,88 +811,127 @@ async function igSend2FA(phone) {
     });
     console.log('[IG] 2FA debug:', JSON.stringify(debugInfo).substring(0, 1000));
 
-    // If phone number provided, look for phone input field and fill it
+    // If phone number provided, fill using React-compatible method
     let phoneFilled = false;
     if (phone) {
-      const phoneSelectors = [
-        'input[type="tel"]', 'input[name="phone"]', 'input[name="phoneNumber"]',
-        'input[inputmode="tel"]', 'input[autocomplete="tel"]',
-        'input[placeholder*="número" i]', 'input[placeholder*="phone" i]',
-        'input[placeholder*="Número"]', 'input[aria-label*="Número" i]',
-        'input[aria-label*="celular" i]', 'input[aria-label*="phone" i]',
-        'input[type="text"]'
-      ];
-      for (const sel of phoneSelectors) {
-        try {
-          const el = await page.$(sel);
-          if (el && await el.isVisible()) {
-            console.log('[IG] Found input:', sel);
-            await el.click({ clickCount: 3 }); // select all
-            await sleep(200);
-            await el.fill(''); // clear
-            await sleep(200);
-            await el.type(phone, { delay: 50 }); // type char by char
-            await sleep(1500);
-            // Verify it was filled
-            const val = await el.inputValue();
-            console.log('[IG] Input value after fill:', val);
-            if (val && val.length > 3) {
-              phoneFilled = true;
-              break;
+      // Use locator().fill() which handles React controlled inputs properly
+      try {
+        const inputLocator = page.locator('input[aria-label="Número do celular"]');
+        if (await inputLocator.isVisible()) {
+          console.log('[IG] Found input by aria-label, using locator.fill()');
+          await inputLocator.click();
+          await sleep(300);
+          await inputLocator.fill(phone);
+          await sleep(1000);
+          // Dispatch React-compatible events
+          await inputLocator.evaluate(el => {
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+          });
+          await sleep(500);
+          const val = await inputLocator.inputValue();
+          console.log('[IG] Input value after fill:', val);
+          phoneFilled = val && val.length > 3;
+        }
+      } catch(e) {
+        console.log('[IG] aria-label fill failed:', e.message);
+      }
+
+      // Fallback: try generic visible input with React hack
+      if (!phoneFilled) {
+        const phoneSelectors = [
+          'input[type="tel"]', 'input[name="phone"]', 'input[name="phoneNumber"]',
+          'input[inputmode="tel"]', 'input[autocomplete="tel"]',
+          'input[placeholder*="número" i]', 'input[placeholder*="phone" i]',
+          'input[aria-label*="celular" i]', 'input[aria-label*="phone" i]',
+        ];
+        for (const sel of phoneSelectors) {
+          try {
+            const locator = page.locator(sel).first();
+            if (await locator.isVisible()) {
+              console.log('[IG] Found input:', sel);
+              await locator.click();
+              await sleep(300);
+              await locator.fill(phone);
+              await locator.evaluate(el => {
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+              });
+              await sleep(1000);
+              const val = await locator.inputValue();
+              console.log('[IG] Input value:', val);
+              if (val && val.length > 3) { phoneFilled = true; break; }
             }
+          } catch(e) { continue; }
+        }
+      }
+
+      // Last resort: keyboard type into focused element
+      if (!phoneFilled) {
+        try {
+          const input = page.locator('input:visible').first();
+          await input.click();
+          await sleep(200);
+          // Clear with keyboard
+          await page.keyboard.press('Control+a');
+          await page.keyboard.press('Backspace');
+          await sleep(200);
+          await page.keyboard.type(phone, { delay: 80 });
+          await sleep(1000);
+          const val = await input.inputValue();
+          console.log('[IG] Keyboard type value:', val);
+          phoneFilled = val && val.length > 3;
+        } catch(e) {
+          console.log('[IG] keyboard type failed:', e.message);
+        }
+      }
+    }
+
+    console.log('[IG] phoneFilled:', phoneFilled);
+
+    // Click send/continue button - prefer locator for React compatibility
+    let clicked = false;
+
+    // Try Playwright locator with getByRole first (most reliable for React)
+    try {
+      const continueBtn = page.getByRole('button', { name: 'Continuar' });
+      if (await continueBtn.isVisible()) {
+        console.log('[IG] Clicking via getByRole: Continuar');
+        await continueBtn.click();
+        clicked = true;
+      }
+    } catch(e) {
+      console.log('[IG] getByRole failed:', e.message);
+    }
+
+    if (!clicked) {
+      const sendSelectors = [
+        'button:has-text("Enviar código")', 'button:has-text("Enviar")', 'button:has-text("Send code")', 'button:has-text("Send")',
+        'button:has-text("Receber código")', 'button:has-text("Continuar")', 'button:has-text("Continue")',
+        'button[type="submit"]', 'button:has-text("Next")', 'button:has-text("Próximo")',
+        'div[role="button"]:has-text("Continuar")', 'div[role="button"]:has-text("Enviar")',
+        'a:has-text("Continuar")', 'a:has-text("Enviar")',
+      ];
+      for (const sel of sendSelectors) {
+        try {
+          const locator = page.locator(sel).first();
+          if (await locator.isVisible()) {
+            console.log('[IG] Clicking via locator:', sel);
+            await locator.click();
+            clicked = true;
+            break;
           }
         } catch(e) { continue; }
       }
     }
 
-    if (!phoneFilled && phone) {
-      // Fallback: use page.type on the first visible input
-      try {
-        const firstInput = await page.$('input:visible');
-        if (firstInput) {
-          await firstInput.click({ clickCount: 3 });
-          await sleep(200);
-          await page.keyboard.type(phone, { delay: 50 });
-          await sleep(1000);
-          const val = await firstInput.inputValue();
-          console.log('[IG] Fallback input value:', val);
-          phoneFilled = val && val.length > 3;
-        }
-      } catch(e) {}
-    }
-
-    console.log('[IG] phoneFilled:', phoneFilled);
-
-    // Click send/continue button
-    const sendSelectors = [
-      'button:has-text("Enviar código")', 'button:has-text("Enviar")', 'button:has-text("Send code")', 'button:has-text("Send")',
-      'button:has-text("Receber código")', 'button:has-text("Continuar")', 'button:has-text("Continue")',
-      'button[type="submit"]', 'button:has-text("Next")', 'button:has-text("Próximo")',
-      'div[role="button"]:has-text("Continuar")', 'div[role="button"]:has-text("Enviar")',
-      'div[role="button"]:has-text("Enviar código")', 'div[role="button"]:has-text("Next")',
-      'a:has-text("Continuar")', 'a:has-text("Enviar")', 'a:has-text("Next")',
-    ];
-    let clicked = false;
-    for (const sel of sendSelectors) {
-      try {
-        const btn = await page.$(sel);
-        if (btn && await btn.isVisible()) {
-          console.log('[IG] Clicking button:', sel);
-          await btn.click();
-          clicked = true;
-          break;
-        }
-      } catch(e) { continue; }
-    }
-
-    // If no standard selector worked, try text-based click
     if (!clicked) {
       try {
-        await page.click('text=Continuar', { timeout: 3000 });
-        console.log('[IG] Clicked text=Continuar');
+        await page.getByText('Continuar').click({ timeout: 3000 });
+        console.log('[IG] Clicked via getByText: Continuar');
         clicked = true;
       } catch(e) {
-        console.log('[IG] text=Continuar failed:', e.message);
+        console.log('[IG] getByText failed:', e.message);
       }
     }
 
