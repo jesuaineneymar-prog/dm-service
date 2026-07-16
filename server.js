@@ -26,7 +26,7 @@ let browserLockWP = false;
 let sessions = {
   ig: { cookies: null, loggedIn: false, dsUserId: null, igD: null, csrftoken: null, sessionId: null, expiresAt: 0 },
   fb: { cookies: null, loggedIn: false, userId: null, dtsg: null, expiresAt: 0 },
-  tt: { cookies: null, loggedIn: false, expiresAt: 0 }
+  tt: { cookies: null, loggedIn: false, expiresAt: 0, localStorage: null }
 };
 
 // Pending IG 2FA context
@@ -2327,7 +2327,9 @@ async function ttLogin() {
     // Verify session is actually valid (verifyTTSession navigates to @me)
     const validSession = await verifyTTSession(page);
     if (validSession) {
-      sessions.tt = { cookies: await ctx.cookies(), loggedIn: true, expiresAt: Date.now() + 3600000 };
+      // Save localStorage for session transfer (TikTok stores auth tokens there)
+      const lsData = await page.evaluate(() => JSON.stringify(localStorage));
+      sessions.tt = { cookies: await ctx.cookies(), loggedIn: true, expiresAt: Date.now() + 3600000, localStorage: lsData };
       console.log('[TT] Login OK!');
       await ctx.close();
       return { success: true };
@@ -2389,9 +2391,29 @@ async function ttSendDM(targetUsername, message, useProxy = true) {
 
   console.log('[TT] Sending DM to @' + targetUsername);
   const ctx = await createContext(false, useProxy);
-  await ctx.addCookies(sessions.tt.cookies);
   const page = await ctx.newPage();
   await page.addInitScript(STEALTH_JS);
+
+  // Navigate to tiktok.com first to set domain for cookies
+  await page.goto('https://www.tiktok.com', { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
+  await ctx.addCookies(sessions.tt.cookies);
+  
+  // Restore localStorage (TikTok stores auth tokens here)
+  if (sessions.tt.localStorage) {
+    try {
+      await page.evaluate((lsJson) => {
+        const items = JSON.parse(lsJson);
+        for (const [key, value] of Object.entries(items)) {
+          try { localStorage.setItem(key, value); } catch(e) {}
+        }
+      }, sessions.tt.localStorage);
+      console.log('[TT] Restored localStorage');
+    } catch(e) {
+      console.log('[TT] localStorage restore error:', e.message.substring(0, 80));
+    }
+  } else {
+    console.log('[TT] WARNING: No localStorage saved from login');
+  }
 
   try {
     // Navigate to target profile
@@ -2823,7 +2845,7 @@ app.post('/clear', authMiddleware, async (req, res) => {
   sessions = {
     ig: { cookies: null, loggedIn: false, dsUserId: null, igD: null, csrftoken: null, sessionId: null, expiresAt: 0 },
     fb: { cookies: null, loggedIn: false, userId: null, dtsg: null, expiresAt: 0 },
-    tt: { cookies: null, loggedIn: false, expiresAt: 0 }
+    tt: { cookies: null, loggedIn: false, expiresAt: 0, localStorage: null }
   };
   if (browserNoProxy) { await browserNoProxy.close().catch(() => {}); browserNoProxy = null; }
   if (browserWithProxy) { await browserWithProxy.close().catch(() => {}); browserWithProxy = null; }
