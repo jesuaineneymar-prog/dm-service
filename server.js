@@ -2266,7 +2266,7 @@ async function ttLogin() {
   }
 
   // Check if we have a live login context to reuse
-  if (ttLoginCtx && ttLoginCtx.isConnected() && Date.now() < ttLoginCtxExpires) {
+  if (ttLoginCtx && (function(){ try { return ttLoginCtx.pages().length >= 0; } catch(e) { return false; } })() && Date.now() < ttLoginCtxExpires) {
     console.log('[TT] Reusing live login context');
     return { success: true, cached: true, reuseContext: true };
   }
@@ -2412,7 +2412,7 @@ async function ttSendDM(targetUsername, message, useProxy = true) {
   
   // Reuse login context if available (TikTok auth doesn't transfer between contexts)
   let ctx, page;
-  const reuseCtx = ttLoginCtx && ttLoginCtx.isConnected() && Date.now() < ttLoginCtxExpires;
+  const reuseCtx = ttLoginCtx && (function(){ try { return ttLoginCtx.pages().length >= 0; } catch(e) { return false; } })() && Date.now() < ttLoginCtxExpires;
   if (reuseCtx) {
     console.log('[TT] Reusing login context for DM');
     ctx = ttLoginCtx;
