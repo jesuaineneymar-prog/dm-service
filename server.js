@@ -2267,6 +2267,11 @@ async function ttLogin() {
     await page.goto('https://www.tiktok.com/login', { waitUntil: 'load', timeout: 45000 });
     await sleep(3000);
 
+    // Take screenshot to debug login page state
+    const loginSs = await page.screenshot({ encoding: 'base64', fullPage: false });
+    const loginPageText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
+    console.log('[TT] Login page text:', loginPageText.substring(0, 200));
+
     const usePhoneBtn = await page.$('span:has-text("Use phone / email / username")');
     if (usePhoneBtn) { await usePhoneBtn.click(); await sleep(2000); }
 
@@ -2304,10 +2309,10 @@ async function ttLogin() {
         console.log('[TT] After CAPTCHA URL:', afterCaptchaUrl);
 
         if (!afterCaptchaUrl.includes('login') && !afterCaptchaUrl.includes('verify') && !afterCaptchaUrl.includes('captcha')) {
-          const cookies = await ctx.cookies();
-          const sessionId = cookies.find(c => c.name === 'sessionid');
-          if (sessionId || !afterCaptchaUrl.includes('login')) {
-            sessions.tt = { cookies, loggedIn: true, expiresAt: Date.now() + 3600000 };
+          // Verify session is actually valid by checking for logged-in indicators
+          const validSession = await verifyTTSession(page);
+          if (validSession) {
+            sessions.tt = { cookies: await ctx.cookies(), loggedIn: true, expiresAt: Date.now() + 3600000 };
             console.log('[TT] Login OK after CAPTCHA!');
             await ctx.close();
             return { success: true, method: 'captcha_solved' };
@@ -2319,30 +2324,66 @@ async function ttLogin() {
       return { success: false, error: 'CAPTCHA nao resolvido', needsCaptcha: true, screenshot: screenshot2 };
     }
 
-    const cookies = await ctx.cookies();
-    const sessionId = cookies.find(c => c.name === 'sessionid');
-    if (sessionId || !afterUrl.includes('login')) {
-      sessions.tt = { cookies, loggedIn: true, expiresAt: Date.now() + 3600000 };
+    // Verify session is actually valid (not just "not on login page")
+    const validSession = await verifyTTSession(page);
+    if (validSession) {
+      sessions.tt = { cookies: await ctx.cookies(), loggedIn: true, expiresAt: Date.now() + 3600000 };
       console.log('[TT] Login OK!');
       await ctx.close();
       return { success: true };
     }
 
     // Double check via profile
+    console.log('[TT] Session invalid, trying @me redirect...');
     await page.goto('https://www.tiktok.com/@me', { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
     await sleep(3000);
-    if (!page.url().includes('login')) {
+    const meValid = await verifyTTSession(page);
+    if (meValid) {
       sessions.tt = { cookies: await ctx.cookies(), loggedIn: true, expiresAt: Date.now() + 3600000 };
       await ctx.close();
       return { success: true };
     }
 
+    const failSs = await page.screenshot({ encoding: 'base64', fullPage: false });
+    const failText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
     await ctx.close();
-    return { success: false, error: 'Login failed' };
+    return { success: false, error: 'Login falhou - sessao invalida', url: page.url(), pageText: failText, screenshot: failSs };
   } catch (err) {
     console.error('[TT] Login error:', err.message);
     try { await ctx.close(); } catch(e) {}
     return { success: false, error: err.message };
+  }
+}
+
+// Verify TikTok session is actually valid (not a guest session)
+async function verifyTTSession(page) {
+  try {
+    const pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 2000) || '');
+    const url = page.url();
+
+    // If we're on login page, not logged in
+    if (url.includes('/login')) return false;
+
+    // Check for logged-in indicators
+    // Logged-in users see their profile, settings, inbox
+    // Not-logged-in users see "Entrar no TikTok" prominently
+    const hasLoginPrompt = pageText.includes('Entrar no TikTok')
+      || pageText.includes('Log in to TikTok')
+      || (pageText.match(/\bEntrar\b/g) || []).length >= 3;
+
+    // Check for sessionid cookie
+    const cookies = await page.context().cookies();
+    const sessionId = cookies.find(c => c.name === 'sessionid');
+
+    // Check URL patterns for logged-in users
+    const onLoggedInPage = url === 'https://www.tiktok.com/' || url === 'https://www.tiktok.com/foryou' || url.includes('/@me');
+
+    const isValid = !hasLoginPrompt && (sessionId || onLoggedInPage);
+    console.log('[TT] Session valid:', isValid, 'hasLoginPrompt:', hasLoginPrompt, 'sessionId:', !!sessionId, 'url:', url);
+    return isValid;
+  } catch(e) {
+    console.log('[TT] verifyTTSession error:', e.message);
+    return false;
   }
 }
 
