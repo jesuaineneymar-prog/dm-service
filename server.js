@@ -1722,10 +1722,16 @@ async function fbSend2FA() {
 
       // Check frames too
       frameDebug = [];
+      let recaptchaSitekey = pageDebug.sitekey;
       for (const frame of page.frames()) {
         try {
           const fUrl = frame.url();
           if (fUrl.includes('about:blank')) continue;
+          // Extract sitekey from recaptcha iframe URL
+          if (fUrl.includes('recaptcha') && !recaptchaSitekey) {
+            const m = fUrl.match(/k=([^&]+)/);
+            if (m) recaptchaSitekey = m[1];
+          }
           const fText = await frame.evaluate(() => document.body?.innerText?.substring(0, 200) || '').catch(() => '');
           const fInputs = await frame.evaluate(() => {
             return Array.from(document.querySelectorAll('input, button, [role="button"]')).map(e => ({
@@ -1738,6 +1744,81 @@ async function fbSend2FA() {
         } catch(e) {}
       }
       console.log('[FB send-2fa] Frames:', JSON.stringify(frameDebug));
+      console.log('[FB send-2fa] Recaptcha sitekey:', recaptchaSitekey || 'NOT FOUND');
+
+      // Solve reCAPTCHA Enterprise with Capsolver
+      if (recaptchaSitekey) {
+        console.log('[FB send-2fa] Solving reCAPTCHA Enterprise, sitekey:', recaptchaSitekey);
+        try {
+          const taskId = await createCapsolverTask({
+            type: 'ReCaptchaV2EnterpriseTaskProxyLess',
+            websiteURL: currentUrl,
+            websiteKey: recaptchaSitekey,
+            enterprisePayload: {}
+          });
+          console.log('[FB send-2fa] Capsolver task created:', taskId);
+          const solution = await getCapsolverResult(taskId);
+          if (solution && solution.gRecaptchaResponse) {
+            console.log('[FB send-2fa] reCAPTCHA Enterprise solved! Injecting token...');
+            // Find the recaptcha anchor frame and inject token
+            let tokenInjected = false;
+            for (const frame of page.frames()) {
+              if (frame.url().includes('recaptcha/enterprise/anchor') || frame.url().includes('recaptcha/enterprise/bframe')) {
+                try {
+                  await frame.evaluate((token) => {
+                    document.getElementById('recaptcha-token').value = token;
+                    // Also dispatch input event
+                    const input = document.getElementById('recaptcha-token');
+                    if (input) {
+                      input.dispatchEvent(new Event('input', { bubbles: true }));
+                      input.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    // Try callback
+                    if (window.___grecaptcha_cfg) {
+                      // Post message to parent
+                      window.parent.postMessage({ type: 'recaptcha', token: token }, '*');
+                    }
+                  }, solution.gRecaptchaResponse);
+                  tokenInjected = true;
+                  console.log('[FB send-2fa] Token injected in frame:', frame.url().substring(0, 60));
+                } catch(e) {
+                  console.log('[FB send-2fa] Frame inject error:', e.message);
+                }
+              }
+            }
+            // Also inject on main page
+            await page.evaluate((token) => {
+              // Set in any recaptcha response textareas
+              const tas = document.querySelectorAll('textarea[name="g-recaptcha-response"], #g-recaptcha-response');
+              tas.forEach(ta => { ta.value = token; ta.innerHTML = token; });
+              // Try enterprise callback
+              if (window.grecaptcha && window.grecaptcha.enterprise) {
+                // This won't work since grecaptcha isn't available on main page
+              }
+              // Post message for cross-frame communication
+              window.postMessage({ source: 'recaptcha', token: token }, '*');
+            }, solution.gRecaptchaResponse);
+            
+            if (tokenInjected) {
+              console.log('[FB send-2fa] Token injected, waiting for page to proceed...');
+              await sleep(8000);
+              // Re-read page state
+              pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 1500) || '');
+              for (const frame of page.frames()) {
+                try {
+                  const ft = await frame.evaluate(() => document.body?.innerText?.substring(0, 1500) || '');
+                  if (ft.length > pageText.length) pageText = ft;
+                } catch(e) {}
+              }
+              console.log('[FB send-2fa] After reCAPTCHA solve text:', pageText.substring(0, 300));
+            }
+          } else {
+            console.log('[FB send-2fa] Capsolver returned no solution');
+          }
+        } catch(e) {
+          console.log('[FB send-2fa] reCAPTCHA solve error:', e.message);
+        }
+      }
 
       // First try Capsolver
       const captchaResult = await solveCaptcha(page);
