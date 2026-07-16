@@ -920,34 +920,54 @@ async function igSend2FA(phone) {
       await sleep(1500);
     }
 
-    // Click Continuar using JavaScript (most reliable for Web Bloks)
+    // Click Continuar using mouse click (most realistic for Web Bloks)
     let clicked = false;
-    const clickResult = await page.evaluate(() => {
-      const buttons = document.querySelectorAll('[role="button"], button, div[role="button"]');
-      for (const btn of buttons) {
-        const text = (btn.innerText || '').trim();
-        if (text === 'Continuar' || text === 'Enviar código' || text === 'Enviar') {
-          btn.click();
-          return { clicked: true, text: text };
-        }
-      }
-      // Fallback: click any visible submit
-      const submitBtn = document.querySelector('button[type="submit"]');
-      if (submitBtn) { submitBtn.click(); return { clicked: true, text: 'submit' }; }
-      return { clicked: false };
-    });
-    clicked = clickResult.clicked;
-    console.log('[IG send-2fa] Click result:', JSON.stringify(clickResult));
-
-    if (!clicked) {
-      // Last resort: Playwright locator
-      try {
-        await page.getByRole('button', { name: 'Continuar' }).click({ timeout: 5000 });
+    
+    // Method 1: Get bounding box and use mouse.click (most reliable for Web Bloks)
+    try {
+      const btnBox = await page.locator('[role="button"]').filter({ hasText: 'Continuar' }).first().boundingBox({ timeout: 5000 });
+      if (btnBox) {
+        const x = btnBox.x + btnBox.width / 2;
+        const y = btnBox.y + btnBox.height / 2;
+        console.log('[IG send-2fa] Clicking via mouse.click at', x, y);
+        await page.mouse.click(x, y);
         clicked = true;
-        console.log('[IG send-2fa] Clicked via Playwright getByRole');
-      } catch(e) {
-        console.log('[IG send-2fa] Playwright click failed:', e.message);
       }
+    } catch(e) {
+      console.log('[IG send-2fa] mouse.click failed:', e.message);
+    }
+
+    // Method 2: JS click with full event simulation
+    if (!clicked) {
+      const clickResult = await page.evaluate(() => {
+        const buttons = document.querySelectorAll('[role="button"], button, div[role="button"]');
+        for (const btn of buttons) {
+          const text = (btn.innerText || '').trim();
+          if (text === 'Continuar' || text === 'Enviar código' || text === 'Enviar') {
+            // Full event simulation
+            const rect = btn.getBoundingClientRect();
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+            btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: x, clientY: y }));
+            btn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: x, clientY: y }));
+            btn.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: x, clientY: y }));
+            return { clicked: true, text: text, method: 'full_events' };
+          }
+        }
+        const submitBtn = document.querySelector('button[type="submit"]');
+        if (submitBtn) { submitBtn.click(); return { clicked: true, text: 'submit' }; }
+        return { clicked: false };
+      });
+      clicked = clickResult.clicked;
+      console.log('[IG send-2fa] Click result:', JSON.stringify(clickResult));
+    }
+
+    // Method 3: Playwright getByRole as last resort
+    if (!clicked) {
+      try {
+        await page.getByRole('button', { name: 'Continuar' }).click({ timeout: 5000, force: true });
+        clicked = true;
+      } catch(e) {}
     }
 
     if (!clicked) {
@@ -965,14 +985,29 @@ async function igSend2FA(phone) {
 
     // Check if we need to click Continuar again (2-click flow)
     if ((afterText.includes('Enviamos um código') || afterText.includes('Enviaremos um código') || afterText.includes('enviaremos um código')) && afterText.includes('Continuar')) {
-      console.log('[IG send-2fa] Clicking Continuar again to send SMS');
-      await page.evaluate(() => {
-        const buttons = document.querySelectorAll('[role="button"]');
-        for (const btn of buttons) {
-          if ((btn.innerText || '').trim() === 'Continuar') { btn.click(); return; }
+      console.log('[IG send-2fa] Clicking Continuar AGAIN via mouse.click to send SMS');
+      try {
+        const btnBox2 = await page.locator('[role="button"]').filter({ hasText: 'Continuar' }).first().boundingBox({ timeout: 5000 });
+        if (btnBox2) {
+          await page.mouse.click(btnBox2.x + btnBox2.width / 2, btnBox2.y + btnBox2.height / 2);
+        } else {
+          await page.evaluate(() => {
+            const buttons = document.querySelectorAll('[role="button"]');
+            for (const btn of buttons) {
+              if ((btn.innerText || '').trim() === 'Continuar') {
+                const rect = btn.getBoundingClientRect();
+                btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: rect.left + rect.width/2, clientY: rect.top + rect.height/2 }));
+                btn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: rect.left + rect.width/2, clientY: rect.top + rect.height/2 }));
+                btn.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: rect.left + rect.width/2, clientY: rect.top + rect.height/2 }));
+                return;
+              }
+            }
+          });
         }
-      });
-      await sleep(5000);
+      } catch(e) {
+        console.log('[IG send-2fa] Second click error:', e.message);
+      }
+      await sleep(8000);  // Wait longer for SMS to actually send
       const finalText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
       const finalSs = await page.screenshot({ encoding: 'base64', fullPage: false });
       return { success: true, message: 'Código SMS enviado! Verifica o telefone.', url: page.url(), pageText: finalText, screenshot: finalSs };
