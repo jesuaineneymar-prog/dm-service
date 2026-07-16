@@ -811,78 +811,53 @@ async function igSend2FA(phone) {
     });
     console.log('[IG] 2FA debug:', JSON.stringify(debugInfo).substring(0, 1000));
 
-    // If phone number provided, fill using React-compatible method
+    // If phone number provided, fill using nativeInputValueSetter (for Web Bloks framework)
     let phoneFilled = false;
     if (phone) {
-      // Use locator().fill() which handles React controlled inputs properly
-      try {
-        const inputLocator = page.locator('input[aria-label="Número do celular"]');
-        if (await inputLocator.isVisible()) {
-          console.log('[IG] Found input by aria-label, using locator.fill()');
+      // Web Bloks uses custom input handling - need native value setter
+      const fillResult = await page.evaluate((phoneNumber) => {
+        const input = document.querySelector('input[aria-label="Número do celular"]') 
+                   || document.querySelector('input[type="text"]');
+        if (!input) return { found: false };
+        
+        // Use native input value setter to bypass framework
+        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        nativeSetter.call(input, phoneNumber);
+        
+        // Dispatch all possible events that Web Bloks might listen to
+        input.dispatchEvent(new Event('focus', { bubbles: true }));
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        input.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: phoneNumber[phoneNumber.length-1] }));
+        input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: phoneNumber[phoneNumber.length-1] }));
+        
+        return { found: true, value: input.value, tagName: input.tagName };
+      }, phone);
+      
+      console.log('[IG] Native fill result:', JSON.stringify(fillResult));
+      phoneFilled = fillResult.found && fillResult.value && fillResult.value.length > 3;
+      
+      // Verify from Playwright side
+      if (fillResult.found) {
+        await sleep(1000);
+        const pwVal = await page.locator('input[aria-label="Número do celular"]').inputValue().catch(() => '');
+        console.log('[IG] Playwright inputValue:', pwVal);
+        if (pwVal && pwVal.length > 3) phoneFilled = true;
+      }
+
+      // If native setter didn't work, try Playwright locator fill
+      if (!phoneFilled && fillResult.found) {
+        try {
+          const inputLocator = page.locator('input[aria-label="Número do celular"]');
           await inputLocator.click();
           await sleep(300);
-          await inputLocator.fill(phone);
+          await inputLocator.pressSequentially(phone, { delay: 100 });
           await sleep(1000);
-          // Dispatch React-compatible events
-          await inputLocator.evaluate(el => {
-            el.dispatchEvent(new Event('input', { bubbles: true }));
-            el.dispatchEvent(new Event('change', { bubbles: true }));
-          });
-          await sleep(500);
           const val = await inputLocator.inputValue();
-          console.log('[IG] Input value after fill:', val);
-          phoneFilled = val && val.length > 3;
-        }
-      } catch(e) {
-        console.log('[IG] aria-label fill failed:', e.message);
-      }
-
-      // Fallback: try generic visible input with React hack
-      if (!phoneFilled) {
-        const phoneSelectors = [
-          'input[type="tel"]', 'input[name="phone"]', 'input[name="phoneNumber"]',
-          'input[inputmode="tel"]', 'input[autocomplete="tel"]',
-          'input[placeholder*="número" i]', 'input[placeholder*="phone" i]',
-          'input[aria-label*="celular" i]', 'input[aria-label*="phone" i]',
-        ];
-        for (const sel of phoneSelectors) {
-          try {
-            const locator = page.locator(sel).first();
-            if (await locator.isVisible()) {
-              console.log('[IG] Found input:', sel);
-              await locator.click();
-              await sleep(300);
-              await locator.fill(phone);
-              await locator.evaluate(el => {
-                el.dispatchEvent(new Event('input', { bubbles: true }));
-                el.dispatchEvent(new Event('change', { bubbles: true }));
-              });
-              await sleep(1000);
-              const val = await locator.inputValue();
-              console.log('[IG] Input value:', val);
-              if (val && val.length > 3) { phoneFilled = true; break; }
-            }
-          } catch(e) { continue; }
-        }
-      }
-
-      // Last resort: keyboard type into focused element
-      if (!phoneFilled) {
-        try {
-          const input = page.locator('input:visible').first();
-          await input.click();
-          await sleep(200);
-          // Clear with keyboard
-          await page.keyboard.press('Control+a');
-          await page.keyboard.press('Backspace');
-          await sleep(200);
-          await page.keyboard.type(phone, { delay: 80 });
-          await sleep(1000);
-          const val = await input.inputValue();
-          console.log('[IG] Keyboard type value:', val);
+          console.log('[IG] pressSequentially value:', val);
           phoneFilled = val && val.length > 3;
         } catch(e) {
-          console.log('[IG] keyboard type failed:', e.message);
+          console.log('[IG] pressSequentially failed:', e.message);
         }
       }
     }
@@ -947,7 +922,7 @@ async function igSend2FA(phone) {
     console.log('[IG] After click text:', afterText.substring(0, 300));
 
     // Always include debug info in response
-    const result = { screenshot: afterSs, pageText: afterText, afterUrl, phoneFilled, debugInfo };
+    const result = { screenshot: afterSs, pageText: afterText, afterUrl, phoneFilled, fillResult, debugInfo };
 
     // Check if we're now on a code entry page (look for 6-digit code input)
     const codeInputs = await page.$$('input[maxlength="6"]');
