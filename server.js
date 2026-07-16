@@ -925,22 +925,41 @@ async function igSend2FA(phone) {
     // Always include debug info in response
     const result = { screenshot: afterSs, pageText: afterText, afterUrl, phoneFilled, fillResult, debugInfo };
 
-    // Check if we're now on a code entry page (look for 6-digit code input)
-    const codeInputs = await page.$$('input[maxlength="6"]');
-    let realCodeInput = false;
-    for (const ci of codeInputs) {
-      if (await ci.isVisible()) { realCodeInput = true; break; }
+    // Check if we're now on a code entry page
+    // Web Bloks pages might not have standard input elements
+    // Detect by page text: "Insira o código" or "Enviamos um código"
+    let isCodeEntryPage = afterText.includes('Insira o código') || afterText.includes('Enviamos um código') || afterText.includes('Enter the code');
+    
+    // Also check for standard code inputs
+    if (!isCodeEntryPage) {
+      const codeInputs = await page.$$('input[maxlength="6"]');
+      for (const ci of codeInputs) {
+        if (await ci.isVisible()) { isCodeEntryPage = true; break; }
+      }
     }
-    if (!realCodeInput) {
+    if (!isCodeEntryPage) {
       const numInput = await page.$('input[inputmode="numeric"]');
-      if (numInput && await numInput.isVisible()) realCodeInput = true;
+      if (numInput && await numInput.isVisible()) isCodeEntryPage = true;
     }
-    if (!realCodeInput) {
+    if (!isCodeEntryPage) {
       const vcInput = await page.$('input[name="verificationCode"]');
-      if (vcInput && await vcInput.isVisible()) realCodeInput = true;
+      if (vcInput && await vcInput.isVisible()) isCodeEntryPage = true;
     }
 
-    if (realCodeInput) {
+    if (isCodeEntryPage) {
+      // If we see "Enviamos um código" but also "Continuar", need to click again
+      if (afterText.includes('Enviamos um código') && afterText.includes('Continuar')) {
+        console.log('[IG] On confirmation page, clicking Continuar to actually send code');
+        try {
+          await page.getByRole('button', { name: 'Continuar' }).click({ timeout: 5000 });
+          await sleep(5000);
+          const finalText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
+          const finalSs = await page.screenshot({ encoding: 'base64', fullPage: false });
+          return { success: true, message: 'Código SMS enviado! Verifica o teu telefone.', screenshot: finalSs, pageText: finalText, afterUrl: page.url() };
+        } catch(e) {
+          console.log('[IG] Second continue click failed:', e.message);
+        }
+      }
       return { success: true, message: 'Página de código 2FA atingida. Verifica o teu telefone.', ...result };
     }
 
@@ -965,26 +984,84 @@ async function igVerify2FA(code) {
     const page = ig2FA.page;
     const ctx = ig2FA.context;
 
-    // Find code input
-    const codeInput = await page.$('input[name="verificationCode"]') || await page.$('input[inputmode="numeric"]') || await page.$('input[maxlength="6"]') || await page.$('input[type="text"]');
+    // Debug current page state
+    const pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
+    const pageUrl = page.url();
+    console.log('[IG] Verify 2FA page:', pageUrl);
+    console.log('[IG] Verify 2FA text:', pageText.substring(0, 300));
+
+    // Find code input - try standard inputs first
+    let codeInput = await page.$('input[name="verificationCode"]') || await page.$('input[inputmode="numeric"]') || await page.$('input[maxlength="6"]');
+
     if (!codeInput) {
-      return { success: false, error: 'Campo de código não encontrado', screenshot: await page.screenshot({ encoding: 'base64' }).catch(() => '') };
+      // Web Bloks: look for any visible input (might be dynamically created)
+      const allInputs = await page.$$('input');
+      for (const inp of allInputs) {
+        if (await inp.isVisible()) {
+          codeInput = inp;
+          break;
+        }
+      }
     }
 
-    await codeInput.fill(code);
-    await sleep(1000);
+    if (codeInput) {
+      console.log('[IG] Found code input, filling with native setter');
+      // Use native setter for Web Bloks compatibility
+      await page.evaluate((code) => {
+        const input = document.querySelector('input[name="verificationCode"]') 
+                   || document.querySelector('input[inputmode="numeric"]') 
+                   || document.querySelector('input[maxlength="6"]')
+                   || document.querySelector('input:visible');
+        if (input) {
+          const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+          nativeSetter.call(input, code);
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }, code);
+      await sleep(1000);
+    } else {
+      // No input element found - try keyboard typing on the page
+      console.log('[IG] No code input found, trying keyboard approach');
+      // Click on the "Insira o código" area first
+      try {
+        await page.getByText('Insira o código').click({ timeout: 3000 });
+        await sleep(500);
+        await page.keyboard.type(code, { delay: 100 });
+        await sleep(1000);
+      } catch(e) {
+        console.log('[IG] Keyboard approach failed:', e.message);
+        return { success: false, error: 'Campo de código não encontrado', pageText, pageUrl, screenshot: await page.screenshot({ encoding: 'base64' }).catch(() => '') };
+      }
+    }
 
-    // Submit
-    const submitBtn = await page.$('button[type="submit"]') || await page.$('button:has-text("Confirmar")') || await page.$('button:has-text("Submit")') || await page.$('button:has-text("Next")');
-    if (submitBtn) await submitBtn.click();
-    else await page.keyboard.press('Enter');
+    // Submit - click Continuar button (Web Bloks div[role=button])
+    let submitted = false;
+    try {
+      const continueBtn = page.getByRole('button', { name: 'Continuar' });
+      if (await continueBtn.isVisible()) {
+        await continueBtn.click();
+        submitted = true;
+      }
+    } catch(e) {}
+
+    if (!submitted) {
+      const submitBtn = await page.$('button[type="submit"]') || await page.$('button:has-text("Confirmar")') || await page.$('button:has-text("Next")');
+      if (submitBtn) { await submitBtn.click(); submitted = true; }
+    }
+
+    if (!submitted) {
+      await page.keyboard.press('Enter');
+    }
 
     await sleep(8000);
     await page.waitForLoadState('domcontentloaded', { timeout: 30000 }).catch(() => {});
 
     const afterUrl = page.url();
     const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });
+    const afterText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
     console.log('[IG] After 2FA URL:', afterUrl);
+    console.log('[IG] After 2FA text:', afterText.substring(0, 200));
 
     // Check CAPTCHA after 2FA
     if (afterUrl.includes('challenge') || afterUrl.includes('captcha') || afterUrl.includes('verify')) {
@@ -1002,7 +1079,7 @@ async function igVerify2FA(code) {
       }
     }
 
-    if (!afterUrl.includes('login') && !afterUrl.includes('challenge') && !afterUrl.includes('2fa')) {
+    if (!afterUrl.includes('login') && !afterUrl.includes('challenge') && !afterUrl.includes('2fa') && !afterUrl.includes('password/reset')) {
       // Login success!
       const cookies = await ctx.cookies();
       await saveIGSession(cookies);
@@ -1011,7 +1088,7 @@ async function igVerify2FA(code) {
     }
 
     await close2FAContext();
-    return { success: false, error: '2FA verificação falhou. URL: ' + afterUrl, screenshot };
+    return { success: false, error: '2FA verificação falhou. URL: ' + afterUrl, screenshot, afterUrl, afterText };
 
   } catch(e) {
     console.error('[IG] 2FA verify error:', e.message);
