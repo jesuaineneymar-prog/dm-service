@@ -2368,32 +2368,40 @@ async function ttLogin() {
 // Verify TikTok session is actually valid (not a guest session)
 async function verifyTTSession(page) {
   try {
-    // Navigate to /@me to force authentication check
-    const currentUrl = page.url();
-    if (!currentUrl.includes('/@me')) {
-      await page.goto('https://www.tiktok.com/@me', { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
-      await sleep(3000);
-    }
+    // CRITICAL: /@me might show a literal user named "me" (not "my profile")
+    // Check the ACTUAL username profile for "Editar perfil" (Edit profile) button
+    const actualUsername = CREDS.tt.user;
+    console.log('[TT] verifyTTSession: checking @' + actualUsername);
+    await page.goto('https://www.tiktok.com/@' + actualUsername, { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
+    await sleep(3000);
     
     const url = page.url();
-    console.log('[TT] verifyTTSession URL after @me:', url);
+    const pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 2000) || '');
+    console.log('[TT] verifyTTSession URL:', url);
     
-    // KEY CHECK: If /@me didn't redirect to /login, user IS logged in
-    // TikTok ALWAYS redirects unauthenticated /@me to /login
     if (url.includes('/login')) {
-      console.log('[TT] @me redirected to login - NOT logged in');
+      console.log('[TT] Redirected to login');
       return false;
     }
     
-    // Secondary: check page content for profile indicators
-    const pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 2000) || '');
-    // Real profiles show follower counts, not login prompts
-    const hasFollowers = pageText.match(/\d+\.?\d*K?\s*Seguidores/i);
-    const hasRealProfile = hasFollowers || pageText.includes('Editar perfil') || pageText.includes('Edit profile');
+    // "Editar perfil" only appears on your OWN profile
+    const hasEditProfile = pageText.includes('Editar perfil') || pageText.includes('Edit profile');
+    const hasLoginPrompt = pageText.includes('Entrar no TikTok') || pageText.includes('Log in to TikTok');
     
-    const isValid = hasRealProfile || url.includes('/@me');
-    console.log('[TT] Session valid:', isValid, 'hasFollowers:', !!hasFollowers, 'hasRealProfile:', hasRealProfile, 'url:', url);
-    return isValid;
+    if (hasEditProfile) {
+      console.log('[TT] VALID: Edit profile button found on @' + actualUsername);
+      return true;
+    }
+    
+    // Fallback: check /@me and look for our username
+    console.log('[TT] No edit profile on @' + actualUsername + ', trying /@me...');
+    await page.goto('https://www.tiktok.com/@me', { waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
+    await sleep(2000);
+    const meUrl = page.url();
+    const meText = await page.evaluate(() => document.body?.innerText?.substring(0, 1000) || '');
+    const meValid = !meUrl.includes('/login') && (meText.includes('Editar perfil') || meText.includes('Edit profile') || meText.includes(actualUsername));
+    console.log('[TT] /@me valid:', meValid, 'hasEdit:', meText.includes('Editar perfil'), 'hasUsername:', meText.includes(actualUsername));
+    return meValid;
   } catch(e) {
     console.log('[TT] verifyTTSession error:', e.message);
     return false;
