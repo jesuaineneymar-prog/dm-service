@@ -1019,95 +1019,68 @@ async function igVerify2FA(code) {
 
     let codeEntered = false;
 
-    // Approach 1: Standard input elements
-    const codeInput = await page.$('input[name="verificationCode"]') || await page.$('input[inputmode="numeric"]') || await page.$('input[maxlength="6"]');
-    if (codeInput) {
-      console.log('[IG] Found standard code input');
-      const nativeSetter = `Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set`;
-      await page.evaluate((c, ns) => {
-        const input = document.querySelector('input[name="verificationCode"]') || document.querySelector('input[inputmode="numeric"]') || document.querySelector('input[maxlength="6"]');
-        if (input) { eval(ns).call(input, c); input.dispatchEvent(new Event('input', {bubbles:true})); input.dispatchEvent(new Event('change', {bubbles:true})); }
-      }, code, nativeSetter);
-      codeEntered = true;
-    }
-
-    // Approach 2: contenteditable element
-    if (!codeEntered) {
-      const ce = await page.$('[contenteditable="true"]');
-      if (ce && await ce.isVisible()) {
-        console.log('[IG] Found contenteditable, using execCommand');
-        await ce.click();
+    // Direct approach: target the known Web Bloks code input
+    try {
+      const codeLocator = page.locator('input[aria-label="Insira o código"]');
+      if (await codeLocator.isVisible({ timeout: 3000 })) {
+        console.log('[IG] Found code input by aria-label, using native setter');
+        await codeLocator.click();
         await sleep(300);
-        await page.evaluate(() => document.execCommand('selectAll'));
-        await page.evaluate(() => document.execCommand('delete'));
-        await page.keyboard.type(code, { delay: 80 });
-        codeEntered = true;
-      }
-    }
-
-    // Approach 3: role="textbox"
-    if (!codeEntered) {
-      const textbox = await page.$('[role="textbox"]');
-      if (textbox && await textbox.isVisible()) {
-        console.log('[IG] Found role=textbox');
-        await textbox.click();
-        await sleep(300);
-        await page.keyboard.type(code, { delay: 80 });
-        codeEntered = true;
-      }
-    }
-
-    // Approach 4: Click the code label area, then type (Web Bloks may create input on focus)
-    if (!codeEntered) {
-      console.log('[IG] Trying click-on-label + keyboard approach');
-      // Try clicking on different areas where the code input might be
-      const clickTargets = [
-        'text=Insira o código',
-        'text=Insira um código', 
-        'label:has-text("código")',
-      ];
-      for (const target of clickTargets) {
-        try {
-          const el = page.locator(target).first();
-          if (await el.isVisible({ timeout: 2000 })) {
-            await el.click();
-            await sleep(800);
-            // After clicking, check if an input appeared
-            const newInput = await page.$('input:visible');
-            if (newInput) {
-              console.log('[IG] Input appeared after clicking:', target);
-              const val = await newInput.inputValue();
-              console.log('[IG] Input current value:', val);
-              // Use native setter
-              await page.evaluate((c) => {
-                const inp = document.querySelector('input:visible');
-                if (inp) {
-                  const s = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-                  s.call(inp, c);
-                  inp.dispatchEvent(new Event('input', {bubbles:true}));
-                  inp.dispatchEvent(new Event('change', {bubbles:true}));
-                }
-              }, code);
-              codeEntered = true;
-              break;
-            }
-            // Try typing directly
-            await page.keyboard.type(code, { delay: 80 });
-            codeEntered = true;
-            break;
+        // Use native value setter for Web Bloks
+        await page.evaluate((c) => {
+          const input = document.querySelector('input[aria-label="Insira o código"]');
+          if (input) {
+            const s = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+            s.call(input, c);
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
           }
-        } catch(e) { continue; }
+        }, code);
+        await sleep(1500);
+        const val = await codeLocator.inputValue();
+        console.log('[IG] Code input value after fill:', val);
+        codeEntered = val && val.length >= 4;
       }
+    } catch(e) {
+      console.log('[IG] aria-label approach failed:', e.message);
     }
 
-    // Approach 5: Click on the page center area and type (last resort)
+    // Fallback: try any inputmode=numeric input
     if (!codeEntered) {
-      console.log('[IG] Last resort: click center + type');
-      const viewport = page.viewportSize();
-      await page.mouse.click(viewport.width / 2, viewport.height / 2 - 30);
-      await sleep(500);
-      await page.keyboard.type(code, { delay: 80 });
-      codeEntered = true;
+      try {
+        const numInput = page.locator('input[inputmode="numeric"]').first();
+        if (await numInput.isVisible({ timeout: 2000 })) {
+          console.log('[IG] Found inputmode=numeric input');
+          await numInput.click();
+          await sleep(300);
+          await page.evaluate((c) => {
+            const input = document.querySelector('input[inputmode="numeric"]');
+            if (input) {
+              const s = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+              s.call(input, c);
+              input.dispatchEvent(new Event('input', { bubbles: true }));
+              input.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          }, code);
+          await sleep(1000);
+          codeEntered = true;
+        }
+      } catch(e) {}
+    }
+
+    // Fallback: keyboard typing on focused input
+    if (!codeEntered) {
+      try {
+        const anyInput = page.locator('input:visible').first();
+        if (await anyInput.isVisible({ timeout: 2000 })) {
+          console.log('[IG] Fallback: typing on first visible input');
+          await anyInput.click();
+          await sleep(200);
+          await page.keyboard.type(code, { delay: 80 });
+          await sleep(1000);
+          codeEntered = true;
+        }
+      } catch(e) {}
     }
 
     console.log('[IG] codeEntered:', codeEntered);
