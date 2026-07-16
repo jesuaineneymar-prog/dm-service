@@ -1,0 +1,11 @@
+{
+  "name": "mba-dm-service",
+  "version": "3.0.0",
+  "description": "MBA Brain DM Service - Playwright + Capsolver",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": {
+    "express": "^4.21.0",
+    "playwright": "^1.49.0"
+  }
+}
