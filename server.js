@@ -1683,42 +1683,82 @@ async function fbSend2FA() {
     if (pageText.includes('reCAPTCHA') || pageText.includes('recaptcha') || pageText.includes('verificação de segurança')) {
       console.log('[FB send-2fa] CAPTCHA/verification page detected');
       
+      // Debug: dump page structure
+      const pageDebug = await page.evaluate(() => {
+        const allElements = document.querySelectorAll('*');
+        const buttons = [];
+        const inputs = [];
+        const iframes = [];
+        for (const el of allElements) {
+          const tag = el.tagName;
+          const rect = el.getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0 && rect.top > 0) {
+            if (tag === 'BUTTON' || tag === 'A' || tag === 'INPUT' || tag === 'IFRAME') {
+              const info = { tag, text: (el.innerText||'').substring(0,50), id: el.id, name: el.name, type: el.type, src: (el.src||'').substring(0,100), w: Math.round(rect.width), h: Math.round(rect.height) };
+              if (tag === 'BUTTON' || tag === 'A') buttons.push(info);
+              if (tag === 'INPUT') inputs.push(info);
+              if (tag === 'IFRAME') iframes.push(info);
+            }
+          }
+        }
+        // Also check for grecaptcha
+        const hasGrecaptcha = !!window.grecaptcha;
+        const hasEnterprise = hasGrecaptcha && !!window.grecaptcha.enterprise;
+        // Check for data-sitekey
+        const sitekeyEl = document.querySelector('[data-sitekey]');
+        const sitekey = sitekeyEl ? sitekeyEl.getAttribute('data-sitekey') : null;
+        // Check for recaptcha scripts
+        const rcScripts = [];
+        document.querySelectorAll('script').forEach(s => {
+          if (s.src && (s.src.includes('recaptcha') || s.src.includes('captcha'))) rcScripts.push(s.src.substring(0, 120));
+          if (s.textContent && s.textContent.includes('sitekey')) rcScripts.push('INLINE: ' + s.textContent.substring(0, 100));
+        });
+        return { buttons, inputs, iframes, hasGrecaptcha, hasEnterprise, sitekey, rcScripts, html: document.documentElement.outerHTML.substring(0, 2000) };
+      }).catch(e => ({ error: e.message }));
+      console.log('[FB send-2fa] Page debug:', JSON.stringify(pageDebug, null, 2).substring(0, 2000));
+
+      // Check frames too
+      const frameDebug = [];
+      for (const frame of page.frames()) {
+        try {
+          const fUrl = frame.url();
+          if (fUrl.includes('about:blank')) continue;
+          const fText = await frame.evaluate(() => document.body?.innerText?.substring(0, 200) || '').catch(() => '');
+          const fInputs = await frame.evaluate(() => {
+            return Array.from(document.querySelectorAll('input, button, [role="button"]')).map(e => ({
+              tag: e.tagName, type: e.type, name: e.name, id: e.id, text: (e.innerText||'').substring(0,30)
+            }));
+          }).catch(() => []);
+          if (fText || fInputs.length > 0) {
+            frameDebug.push({ url: fUrl.substring(0, 100), text: fText.substring(0, 100), elements: fInputs });
+          }
+        } catch(e) {}
+      }
+      console.log('[FB send-2fa] Frames:', JSON.stringify(frameDebug));
+
       // First try Capsolver
       const captchaResult = await solveCaptcha(page);
       if (captchaResult) {
-        console.log('[FB send-2fa] CAPTCHA solved! Waiting for page to progress...');
+        console.log('[FB send-2fa] CAPTCHA solved!');
         await sleep(2000);
       } else {
-        console.log('[FB send-2fa] Capsolver could not detect CAPTCHA, trying to find/extract sitekey...');
+        console.log('[FB send-2fa] Capsolver could not detect/solve CAPTCHA');
       }
 
-      // Try to find and click any button to proceed past the verification page
-      // Facebook's reCAPTCHA Enterprise page usually has a "Continuar" / "Continue" / submit button
+      // Try to click any visible button to proceed
       let btnClicked = false;
       
-      // Method 1: Click any visible button on the page
-      const btnSelectors = [
-        'button[type="submit"]',
-        'button[id="checkpointSubmitButton"]', 
-        'button[name="submit"]',
-        'button',
-        '[role="button"]'
-      ];
-      
-      for (const sel of btnSelectors) {
+      for (const sel of ['button', '[role="button"]', 'a[href]', 'input[type="submit"]']) {
         try {
           const btns = await page.$$(sel);
           for (const btn of btns) {
             try {
-              const isVisible = await btn.isVisible({ timeout: 1000 }).catch(() => false);
-              if (isVisible) {
-                const box = await btn.boundingBox();
-                if (box && box.width > 0 && box.height > 0) {
-                  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-                  console.log('[FB send-2fa] Clicked button via mouse:', sel);
-                  btnClicked = true;
-                  break;
-                }
+              const box = await btn.boundingBox({ timeout: 2000 }).catch(() => null);
+              if (box && box.width > 30 && box.height > 15) {
+                await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+                console.log('[FB send-2fa] Clicked:', sel, 'at', Math.round(box.x), Math.round(box.y));
+                btnClicked = true;
+                break;
               }
             } catch(e) {}
           }
@@ -1726,49 +1766,9 @@ async function fbSend2FA() {
         } catch(e) {}
       }
 
-      // Method 2: Try clicking in all frames
-      if (!btnClicked) {
-        for (const frame of page.frames()) {
-          try {
-            const frameBtns = await frame.$$('button, [role="button"], input[type="submit"]');
-            for (const btn of frameBtns) {
-              const isVisible = await btn.isVisible({ timeout: 500 }).catch(() => false);
-              if (isVisible) {
-                await btn.click();
-                console.log('[FB send-2fa] Clicked button in frame');
-                btnClicked = true;
-                break;
-              }
-            }
-            if (btnClicked) break;
-          } catch(e) {}
-        }
-      }
-
-      // Method 3: JS click on anything that looks like a button
-      if (!btnClicked) {
-        const jsResult = await page.evaluate(() => {
-          const clickables = document.querySelectorAll('button, [role="button"], [type="submit"], a[href]');
-          for (const el of clickables) {
-            const rect = el.getBoundingClientRect();
-            if (rect.width > 50 && rect.height > 20 && rect.top > 0) {
-              el.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: rect.left + rect.width/2, clientY: rect.top + rect.height/2 }));
-              return { clicked: true, tag: el.tagName, text: (el.innerText||'').substring(0,50) };
-            }
-          }
-          return { clicked: false };
-        }).catch(() => ({ clicked: false }));
-        if (jsResult.clicked) {
-          btnClicked = true;
-          console.log('[FB send-2fa] Clicked via JS:', jsResult.tag, jsResult.text);
-        }
-      }
-
       if (btnClicked) {
-        console.log('[FB send-2fa] Button clicked, waiting for page transition...');
+        console.log('[FB send-2fa] Button clicked, waiting 10s...');
         await sleep(10000);
-        
-        // Re-read page state
         pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 1500) || '');
         for (const frame of page.frames()) {
           try {
@@ -1879,7 +1879,16 @@ async function fbSend2FA() {
     }
 
     // Even if we couldn't find text, the code might have been sent already
-    return { success: clicked, message: clicked ? 'Botão clicado. Verifica o telefone para o código 2FA e chame /fb/verify-2fa {code}.' : 'Nenhum botão encontrado, mas a página 2FA está ativa. Verifica o telefone e tenta /fb/verify-2fa {code}.', url: afterUrl, pageText: fullAfterText.substring(0, 500), screenshot: ss, needs2FA: true };
+    return { 
+      success: clicked, 
+      message: clicked ? 'Botão clicado. Verifica o telefone para o código 2FA e chame /fb/verify-2fa {code}.' : 'Nenhum botão encontrado, mas a página 2FA está ativa. Verifica o telefone e tenta /fb/verify-2fa {code}.', 
+      url: afterUrl, 
+      pageText: fullAfterText.substring(0, 500), 
+      screenshot: ss, 
+      needs2FA: true,
+      debug: pageDebug || undefined,
+      frames: frameDebug && frameDebug.length > 0 ? frameDebug : undefined
+    };
 
   } catch(e) {
     return { success: false, error: e.message };
