@@ -792,26 +792,12 @@ async function igSend2FA(phone) {
   }
   try {
     const page = ig2FA.page;
+    const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });
     const pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 1000) || '');
-    const pageUrl = page.url();
     console.log('[IG] 2FA page text:', pageText.substring(0, 300));
-    console.log('[IG] 2FA URL:', pageUrl);
+    console.log('[IG] 2FA URL:', page.url());
 
-    // Debug all form elements
-    const formDebug = await page.evaluate(() => {
-      const inputs = Array.from(document.querySelectorAll('input')).map(i => ({
-        type: i.type, name: i.name, id: i.id, placeholder: i.placeholder,
-        visible: i.offsetParent !== null, ariaLabel: i.getAttribute('aria-label')
-      }));
-      const buttons = Array.from(document.querySelectorAll('button')).map(b => ({
-        text: b.textContent.trim().substring(0, 50), type: b.type, disabled: b.disabled,
-        visible: b.offsetParent !== null
-      }));
-      return { inputs, buttons };
-    });
-    console.log('[IG] Form debug:', JSON.stringify(formDebug));
-
-    // Fill phone into ANY visible input
+    // If phone number provided, look for phone input field and fill it
     if (phone) {
       const phoneSelectors = [
         'input[type="tel"]', 'input[name="phone"]', 'input[name="phoneNumber"]',
@@ -819,57 +805,47 @@ async function igSend2FA(phone) {
         'input[autocomplete="tel"]', 'input[autocomplete="email"]',
         'input[placeholder*="número" i]', 'input[placeholder*="phone" i]',
         'input[placeholder*="email" i]', 'input[placeholder*="Número"]',
-        'input[aria-label*="número" i]', 'input[aria-label*="phone" i]',
-        'input[aria-label*="celular" i]', 'input[aria-label*="Número" i]'
+        'input[type="text"]'
       ];
-      let filled = false;
       for (const sel of phoneSelectors) {
         try {
           const el = await page.$(sel);
           if (el && await el.isVisible()) {
-            console.log('[IG] Found input:', sel);
-            await el.click(); await sleep(300);
-            await el.type(phone, { delay: 50 });
-            await sleep(1000); filled = true; break;
+            console.log('[IG] Found input:', sel, '- filling with phone:', phone);
+            await el.click();
+            await sleep(300);
+            await el.fill(phone);
+            await sleep(1000);
+            break;
           }
         } catch(e) { continue; }
       }
-      if (!filled) {
-        for (const el of await page.$$('input')) {
-          try {
-            const type = await el.getAttribute('type') || 'text';
-            if (await el.isVisible() && (type === 'text' || type === 'tel' || type === '')) {
-              console.log('[IG] Fallback input, type:', type);
-              await el.click(); await sleep(300);
-              await el.type(phone, { delay: 50 });
-              await sleep(1000); filled = true; break;
-            }
-          } catch(e) { continue; }
-        }
-      }
-      console.log('[IG] Phone filled:', filled);
     }
 
-    // Click button
+    // Click send/continue button (try button, div[role=button], a, text=)
     const sendSelectors = [
-      'button:has-text("Continuar")', 'button:has-text("Continue")',
-      'button:has-text("Enviar")', 'button:has-text("Send")',
-      'button:has-text("Enviar código")', 'button:has-text("Send code")',
-      'button:has-text("Receber código")', 'button:has-text("Next")',
-      'button:has-text("Próximo")', 'button[type="submit"]'
+      'button:has-text("Enviar código")', 'button:has-text("Enviar")', 'button:has-text("Send code")', 'button:has-text("Send")',
+      'button:has-text("Receber código")', 'button:has-text("Continuar")', 'button:has-text("Continue")',
+      'button[type="submit"]', 'button:has-text("Next")', 'button:has-text("Próximo")',
+      'div[role="button"]:has-text("Continuar")', 'div[role="button"]:has-text("Enviar")',
+      'div[role="button"]:has-text("Enviar código")', 'div[role="button"]:has-text("Next")',
+      'a:has-text("Continuar")', 'a:has-text("Enviar")', 'a:has-text("Next")',
+      'text=Continuar', 'text=Enviar código', 'text=Enviar', 'text=Next', 'text=Continue'
     ];
     for (const sel of sendSelectors) {
       try {
         const btn = await page.$(sel);
         if (btn && await btn.isVisible()) {
-          console.log('[IG] Clicking:', sel);
-          await btn.click(); await sleep(5000);
+          console.log('[IG] Clicking send button:', sel);
+          await btn.click();
+          await sleep(5000);
+          const afterSs = await page.screenshot({ encoding: 'base64', fullPage: false });
           const afterText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
-          return { success: true, message: 'Botão clicado. Verifica o teu telefone.', pageText: afterText, formDebug };
+          return { success: true, message: 'Código enviado. Verifica o teu telefone.', screenshot: afterSs, pageText: afterText };
         }
       } catch(e) { continue; }
     }
-    return { success: false, error: 'Botão não encontrado', pageText: pageText.substring(0, 500), formDebug };
+    return { success: false, error: 'Botão de envio não encontrado', screenshot, pageText: pageText.substring(0, 500) };
   } catch(e) {
     return { success: false, error: e.message };
   }
