@@ -554,10 +554,8 @@ function createContext(mobile = false, useProxy = false) {
 // ============================================
 
 async function igLogin() {
-  if (sessions.ig.loggedIn && sessions.ig.cookies && Date.now() < sessions.ig.expiresAt) {
-    console.log('[IG] Using cached session');
-    return { success: true, cached: true, sessionId: sessions.ig.sessionId };
-  }
+  // NO caching - fresh login every time
+  sessions.ig = { cookies: null, loggedIn: false, dsUserId: null, igD: null, csrftoken: null, sessionId: null, expiresAt: 0 };
   return igLoginInternal();
 }
 
@@ -1195,7 +1193,7 @@ async function igSendDM(targetUsername, message, useProxy = true) {
     const cookies = sessions.ig.cookies.map(c => c.name + '=' + c.value).join('; ');
 
     // Get user ID
-    await page.goto('https://www.instagram.com/' + encodeURIComponent(targetUsername) + '/', { waitUntil: 'networkidle', timeout: 30000 }).catch(() => {});
+    await page.goto('https://www.instagram.com/' + encodeURIComponent(targetUsername) + '/', { waitUntil: 'load', timeout: 30000 }).catch(() => {});
     await sleep(3000);
 
     const userId = await page.evaluate(() => {
@@ -1268,7 +1266,7 @@ async function igSendDM(targetUsername, message, useProxy = true) {
 
     // Method 2: Browser UI
     console.log('[IG] API failed, trying browser UI...');
-    await page.goto('https://www.instagram.com/direct/new/', { waitUntil: 'networkidle', timeout: 30000 }).catch(() => {});
+    await page.goto('https://www.instagram.com/direct/new/', { waitUntil: 'load', timeout: 30000 }).catch(() => {});
     await sleep(3000);
 
     const searchInput = await page.$('input[placeholder*="Search"]') || await page.$('input[placeholder*="search" i]') || await page.$('input[name="query"]') || await page.$('input[type="text"]');
@@ -1310,10 +1308,8 @@ async function igSendDM(targetUsername, message, useProxy = true) {
 // ============================================
 
 async function fbLogin() {
-  if (sessions.fb.loggedIn && sessions.fb.cookies && Date.now() < sessions.fb.expiresAt) {
-    console.log('[FB] Using cached session');
-    return { success: true, cached: true };
-  }
+  // NO caching - fresh login every time
+  sessions.fb = { cookies: null, loggedIn: false, userId: null, dtsg: null, expiresAt: 0 };
 
   console.log('[FB] Starting browser login...');
   const useProxy = !!getProxyAddress();
@@ -1323,7 +1319,7 @@ async function fbLogin() {
   await page.addInitScript(STEALTH_JS);
 
   try {
-    await page.goto('https://www.facebook.com/login/', { waitUntil: 'networkidle', timeout: 45000 });
+    await page.goto('https://www.facebook.com/login/', { waitUntil: 'domcontentloaded', timeout: 30000 });
     await sleep(2000);
     const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });
 
@@ -1357,7 +1353,7 @@ async function fbLogin() {
     // Click login
     await page.click('button[name="login"]').catch(() => page.click('#loginbutton').catch(() => page.keyboard.press('Enter')));
     await sleep(5000);
-    await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {});
+    await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
 
     const afterUrl = page.url();
     console.log('[FB] After login URL:', afterUrl);
@@ -1371,13 +1367,13 @@ async function fbLogin() {
       const captchaResult = await checkAndSolveCaptcha(page, 'button[name="login"]');
       if (captchaResult.solved) {
         await sleep(5000);
-        await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {});
+        await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
         const afterCaptchaUrl = page.url();
         console.log('[FB] After CAPTCHA URL:', afterCaptchaUrl);
 
         if (!afterCaptchaUrl.includes('login') && !afterCaptchaUrl.includes('captcha') && !afterCaptchaUrl.includes('checkpoint')) {
           // Success after CAPTCHA
-          await page.goto('https://www.facebook.com/', { waitUntil: 'networkidle', timeout: 30000 }).catch(() => {});
+          await page.goto('https://www.facebook.com/', { waitUntil: 'load', timeout: 30000 }).catch(() => {});
           await sleep(3000);
           const fbDtsg = await page.evaluate(() => {
             const el = document.querySelector('[name="fb_dtsg"]');
@@ -1408,7 +1404,7 @@ async function fbLogin() {
     }
 
     // Success
-    await page.goto('https://www.facebook.com/', { waitUntil: 'networkidle', timeout: 30000 }).catch(() => {});
+    await page.goto('https://www.facebook.com/', { waitUntil: 'load', timeout: 30000 }).catch(() => {});
     await sleep(3000);
 
     const fbDtsg = await page.evaluate(() => {
@@ -1457,7 +1453,7 @@ async function fbSendDM(targetUsername, message, useProxy = true) {
   await page.addInitScript(STEALTH_JS);
 
   try {
-    await page.goto('https://www.facebook.com/' + encodeURIComponent(targetUsername), { waitUntil: 'networkidle', timeout: 30000 }).catch(() => {});
+    await page.goto('https://www.facebook.com/' + encodeURIComponent(targetUsername), { waitUntil: 'load', timeout: 30000 }).catch(() => {});
     await sleep(3000);
 
     const userId = await page.evaluate(() => {
@@ -1501,7 +1497,7 @@ async function fbSendDM(targetUsername, message, useProxy = true) {
     }
 
     // Fallback: UI
-    await page.goto('https://www.facebook.com/messages/t/' + userId + '/', { waitUntil: 'networkidle', timeout: 30000 }).catch(() => {});
+    await page.goto('https://www.facebook.com/messages/t/' + userId + '/', { waitUntil: 'load', timeout: 30000 }).catch(() => {});
     await sleep(3000);
     const msgInput = await page.$('div[contenteditable="true"][role="textbox"]') || await page.$('textarea[name="message_body"]');
     if (msgInput) {
@@ -1527,10 +1523,8 @@ async function fbSendDM(targetUsername, message, useProxy = true) {
 // ============================================
 
 async function ttLogin() {
-  if (sessions.tt.loggedIn && sessions.tt.cookies && Date.now() < sessions.tt.expiresAt) {
-    console.log('[TT] Using cached session');
-    return { success: true, cached: true };
-  }
+  // NO caching - fresh login every time
+  sessions.tt = { cookies: null, loggedIn: false, expiresAt: 0 };
 
   console.log('[TT] Starting browser login...');
   const useProxy = !!getProxyAddress();
@@ -1540,7 +1534,7 @@ async function ttLogin() {
   await page.addInitScript(STEALTH_JS);
 
   try {
-    await page.goto('https://www.tiktok.com/login', { waitUntil: 'networkidle', timeout: 45000 });
+    await page.goto('https://www.tiktok.com/login', { waitUntil: 'load', timeout: 45000 });
     await sleep(3000);
 
     const usePhoneBtn = await page.$('span:has-text("Use phone / email / username")');
@@ -1562,7 +1556,7 @@ async function ttLogin() {
     else await page.keyboard.press('Enter');
 
     await sleep(5000);
-    await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {});
+    await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
 
     const afterUrl = page.url();
     console.log('[TT] After login URL:', afterUrl);
@@ -1575,7 +1569,7 @@ async function ttLogin() {
       const captchaResult = await checkAndSolveCaptcha(page, 'button[data-e2e="login-button"]');
       if (captchaResult.solved) {
         await sleep(5000);
-        await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {});
+        await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
         const afterCaptchaUrl = page.url();
         console.log('[TT] After CAPTCHA URL:', afterCaptchaUrl);
 
@@ -1638,7 +1632,7 @@ async function ttSendDM(targetUsername, message, useProxy = true) {
   await page.addInitScript(STEALTH_JS);
 
   try {
-    await page.goto('https://www.tiktok.com/@' + encodeURIComponent(targetUsername), { waitUntil: 'networkidle', timeout: 30000 }).catch(() => {});
+    await page.goto('https://www.tiktok.com/@' + encodeURIComponent(targetUsername), { waitUntil: 'load', timeout: 30000 }).catch(() => {});
     await sleep(3000);
 
     const userId = await page.evaluate(() => {
@@ -1685,7 +1679,7 @@ async function ttSendDM(targetUsername, message, useProxy = true) {
     }
 
     // Method 2: UI
-    await page.goto('https://www.tiktok.com/@' + encodeURIComponent(targetUsername), { waitUntil: 'networkidle', timeout: 30000 }).catch(() => {});
+    await page.goto('https://www.tiktok.com/@' + encodeURIComponent(targetUsername), { waitUntil: 'load', timeout: 30000 }).catch(() => {});
     await sleep(2000);
 
     const msgBtn = await page.$('div[data-e2e="user-post-item-message"]') || await page.$('button:has-text("Message")');
@@ -1865,6 +1859,29 @@ app.post('/clear', authMiddleware, async (req, res) => {
   if (browserNoProxy) { await browserNoProxy.close().catch(() => {}); browserNoProxy = null; }
   if (browserWithProxy) { await browserWithProxy.close().catch(() => {}); browserWithProxy = null; }
   res.json({ success: true, message: 'Todas as sessoes limpas' });
+});
+
+// Test all 3 platforms login at once
+app.post('/test-all', authMiddleware, async (req, res) => {
+  try {
+    const results = {};
+    
+    // Run FB and TT in parallel (IG needs sequential 2FA)
+    const [fbResult, ttResult] = await Promise.allSettled([
+      fbLogin().catch(e => ({ success: false, error: e.message })),
+      ttLogin().catch(e => ({ success: false, error: e.message }))
+    ]);
+    
+    results.facebook = fbResult.status === 'fulfilled' ? fbResult.value : { success: false, error: fbResult.reason?.message };
+    results.tiktok = ttResult.status === 'fulfilled' ? ttResult.value : { success: false, error: ttResult.reason?.message };
+    
+    // Clean results (remove screenshots for brevity)
+    for (const k of ['facebook', 'tiktok']) {
+      delete results[k]?.screenshot;
+    }
+    
+    res.json({ success: true, results });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ============================================
