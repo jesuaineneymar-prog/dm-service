@@ -1356,7 +1356,9 @@ async function fbLogin() {
     await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
 
     const afterUrl = page.url();
+    const afterText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
     console.log('[FB] After login URL:', afterUrl);
+    console.log('[FB] After login text:', afterText.substring(0, 200));
 
     // Check for CAPTCHA
     if (afterUrl.includes('captcha') || afterUrl.includes('challenge') || afterUrl.includes('checkpoint')) {
@@ -1428,7 +1430,8 @@ async function fbLogin() {
     }
 
     await ctx.close();
-    return { success: false, error: 'Login failed - no session cookies', screenshot };
+    const finalUrl = page.url();
+    return { success: false, error: 'Login failed - no session cookies', afterUrl: finalUrl, afterText: afterText?.substring(0, 300), screenshot };
 
   } catch (err) {
     console.error('[FB] Login error:', err.message);
