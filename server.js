@@ -45,6 +45,10 @@ let fb2FA = {
   createdAt: 0
 };
 
+// TT login context reuse (avoid session transfer issues)
+let ttLoginCtx = null;
+let ttLoginCtxExpires = 0;
+
 // --- Credentials ---
 const CREDS = {
   ig: { user: process.env.IG_USER || 'jesuainecristiano78', pass: process.env.IG_PASS || '9adJpLRGPX#YGx$', email: process.env.IG_EMAIL || '' },
@@ -101,6 +105,11 @@ async function close2FAContext() {
     fb2FA.context = null;
   }
   fb2FA.active = false;
+  if (ttLoginCtx) {
+    try { await ttLoginCtx.close(); } catch(e) {}
+    ttLoginCtx = null;
+    ttLoginCtxExpires = 0;
+  }
 }
 
 // --- Stealth injection script ---
@@ -2256,6 +2265,14 @@ async function ttLogin() {
     return { success: true, cached: true };
   }
 
+  // Check if we have a live login context to reuse
+  if (ttLoginCtx && ttLoginCtx.isConnected() && Date.now() < ttLoginCtxExpires) {
+    console.log('[TT] Reusing live login context');
+    return { success: true, cached: true, reuseContext: true };
+  }
+  // Close old context if any
+  if (ttLoginCtx) { try { await ttLoginCtx.close(); } catch(e) {} ttLoginCtx = null; }
+
   console.log('[TT] Starting browser login...');
   const useProxy = !!getProxyAddress();
   const br = await getBrowser(useProxy);
@@ -2314,8 +2331,9 @@ async function ttLogin() {
           if (validSession) {
             const lsData = await page.evaluate(() => { try { return JSON.stringify(localStorage); } catch(e) { return '{}'; } });
             sessions.tt = { cookies: await ctx.cookies(), loggedIn: true, expiresAt: Date.now() + 3600000, localStorage: lsData };
+            ttLoginCtx = ctx;
+            ttLoginCtxExpires = Date.now() + 3600000;
             console.log('[TT] Login OK after CAPTCHA!');
-            await ctx.close();
             return { success: true, method: 'captcha_solved' };
           }
         }
@@ -2328,12 +2346,11 @@ async function ttLogin() {
     // Verify session is actually valid (verifyTTSession navigates to @me)
     const validSession = await verifyTTSession(page);
     if (validSession) {
-      // Save localStorage for session transfer (TikTok stores auth tokens there)
-      let lsData = '{}';
-      try { lsData = await page.evaluate(() => JSON.stringify(localStorage)); } catch(e) { console.log('[TT] localStorage save error:', e.message.substring(0, 80)); }
-      sessions.tt = { cookies: await ctx.cookies(), loggedIn: true, expiresAt: Date.now() + 3600000, localStorage: lsData };
-      console.log('[TT] Login OK!');
-      await ctx.close();
+      sessions.tt = { cookies: await ctx.cookies(), loggedIn: true, expiresAt: Date.now() + 3600000, localStorage: null };
+      // Keep context alive for DM reuse (TikTok auth doesn't transfer between contexts)
+      ttLoginCtx = ctx;
+      ttLoginCtxExpires = Date.now() + 3600000;
+      console.log('[TT] Login OK! Context kept alive for DM');
       return { success: true };
     }
 
@@ -2392,29 +2409,22 @@ async function ttSendDM(targetUsername, message, useProxy = true) {
   if (!loginResult.success) return loginResult;
 
   console.log('[TT] Sending DM to @' + targetUsername);
-  const ctx = await createContext(false, useProxy);
-  const page = await ctx.newPage();
-  await page.addInitScript(STEALTH_JS);
-
-  // Navigate to tiktok.com first to set domain for cookies
-  await page.goto('https://www.tiktok.com', { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
-  await ctx.addCookies(sessions.tt.cookies);
   
-  // Restore localStorage (TikTok stores auth tokens here)
-  if (sessions.tt.localStorage) {
-    try {
-      await page.evaluate((lsJson) => {
-        const items = JSON.parse(lsJson);
-        for (const [key, value] of Object.entries(items)) {
-          try { localStorage.setItem(key, value); } catch(e) {}
-        }
-      }, sessions.tt.localStorage);
-      console.log('[TT] Restored localStorage');
-    } catch(e) {
-      console.log('[TT] localStorage restore error:', e.message.substring(0, 80));
-    }
+  // Reuse login context if available (TikTok auth doesn't transfer between contexts)
+  let ctx, page;
+  const reuseCtx = ttLoginCtx && ttLoginCtx.isConnected() && Date.now() < ttLoginCtxExpires;
+  if (reuseCtx) {
+    console.log('[TT] Reusing login context for DM');
+    ctx = ttLoginCtx;
+    page = await ctx.newPage();
+    await page.addInitScript(STEALTH_JS);
   } else {
-    console.log('[TT] WARNING: No localStorage saved from login');
+    console.log('[TT] Login context expired, creating new one');
+    ctx = await createContext(false, useProxy);
+    page = await ctx.newPage();
+    await page.addInitScript(STEALTH_JS);
+    await page.goto('https://www.tiktok.com', { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
+    await ctx.addCookies(sessions.tt.cookies);
   }
 
   try {
@@ -2430,7 +2440,7 @@ async function ttSendDM(targetUsername, message, useProxy = true) {
     // Check if redirected to login
     if (profileUrl.includes('/login') || profileTitle.toLowerCase().includes('login') || profileTitle.toLowerCase().includes('tiktok - make')) {
       const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
-      await ctx.close();
+      if (!reuseCtx) await ctx.close();
       sessions.tt = { cookies: null, loggedIn: false, expiresAt: 0 };
       return { success: false, error: 'Sessao TT expirada, refaz login', screenshot: ss };
     }
@@ -2627,21 +2637,21 @@ async function ttSendDM(targetUsername, message, useProxy = true) {
         const afterText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
         console.log('[TT] After send text:', afterText.substring(0, 200));
 
-        await ctx.close();
+        if (!reuseCtx) await ctx.close();
         return { success: true, platform: 'TikTok', recipient: targetUsername, method: 'browser_ui', screenshot: afterSs };
       } else {
         // Chat input not found - might need to handle a different UI state
         const noInputSs = await page.screenshot({ encoding: 'base64', fullPage: false });
         const noInputText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
         console.log('[TT] No chat input found. Page text:', noInputText.substring(0, 200));
-        await ctx.close();
+        if (!reuseCtx) await ctx.close();
         return { success: false, error: 'Chat input nao encontrado apos clicar Message', url: page.url(), pageText: noInputText.substring(0, 500), screenshot: noInputSs };
       }
     }
 
     // === METHOD 2: API fallback ===
     if (!userId) {
-      await ctx.close();
+      if (!reuseCtx) await ctx.close();
       return { success: false, error: 'Nenhum botao de mensagem encontrado e userId nao detectado para @' + targetUsername, screenshot: debugSs };
     }
 
@@ -2693,7 +2703,7 @@ async function ttSendDM(targetUsername, message, useProxy = true) {
     console.log('[TT] API result:', JSON.stringify(sendResult).substring(0, 500));
     const sendParsed = typeof sendResult.sendBody === 'string' ? (() => { try { return JSON.parse(sendResult.sendBody); } catch(e) { return {}; }})() : {};
     if (sendParsed.status_code === '0' || sendParsed.data || sendParsed.message_id) {
-      await ctx.close();
+      if (!reuseCtx) await ctx.close();
       return { success: true, platform: 'TikTok', recipient: targetUsername, method: 'api' };
     }
 
@@ -2705,11 +2715,11 @@ async function ttSendDM(targetUsername, message, useProxy = true) {
     const inboxSs = await page.screenshot({ encoding: 'base64', fullPage: false });
     console.log('[TT] Inbox text:', inboxText.substring(0, 200));
 
-    await ctx.close();
+    if (!reuseCtx) await ctx.close();
     return { success: false, error: 'Todos metodos falharam para @' + targetUsername, apiDetails: sendResult, screenshot: inboxSs };
   } catch (err) {
     console.error('[TT] Send DM error:', err.message);
-    try { await ctx.close(); } catch(e) {}
+    try { if (!reuseCtx) await ctx.close(); } catch(e) {}
     return { success: false, error: err.message };
   }
 }
