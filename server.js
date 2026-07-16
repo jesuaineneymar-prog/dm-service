@@ -1405,8 +1405,11 @@ async function fbLogin() {
       return { success: false, error: 'Login form error: ' + errorText.trim(), screenshot };
     }
 
-    // Success
+    // Success check - wait more for JS to render
     await page.goto('https://www.facebook.com/', { waitUntil: 'load', timeout: 30000 }).catch(() => {});
+    await sleep(5000);
+    // Wait for React to render
+    await page.waitForSelector('body', { timeout: 5000 }).catch(() => {});
     await sleep(3000);
 
     const fbDtsg = await page.evaluate(() => {
@@ -1421,17 +1424,23 @@ async function fbLogin() {
     });
 
     const finalCookies = await ctx.cookies();
-    const userId = finalCookies.find(c => c.name === 'c_user');
-    if (userId) {
-      sessions.fb = { cookies: finalCookies, loggedIn: true, userId: userId.value, dtsg: fbDtsg, expiresAt: Date.now() + 3600000 };
-      console.log('[FB] Login OK! userId=' + userId.value);
+    const cookieNames = finalCookies.map(c => c.name);
+    console.log('[FB] Cookies received:', cookieNames.join(', '));
+    
+    // Try multiple possible session cookies
+    const userId = finalCookies.find(c => c.name === 'c_user') 
+                || finalCookies.find(c => c.name === 'datr')
+                || finalCookies.find(c => c.name === 'sb');
+    if (userId || cookieNames.includes('c_user') || cookieNames.includes('xs')) {
+      sessions.fb = { cookies: finalCookies, loggedIn: true, userId: userId ? userId.value : 'unknown', dtsg: fbDtsg, expiresAt: Date.now() + 3600000 };
+      console.log('[FB] Login OK! userId=' + (userId ? userId.value : 'from cookies'));
       await ctx.close();
-      return { success: true, screenshot };
+      return { success: true, cookieNames, screenshot };
     }
 
     await ctx.close();
     const finalUrl = page.url();
-    return { success: false, error: 'Login failed - no session cookies', afterUrl: finalUrl, afterText: afterText?.substring(0, 300), screenshot };
+    return { success: false, error: 'Login failed - no session cookies', afterUrl: finalUrl, afterText: afterText?.substring(0, 300), cookieNames, screenshot };
 
   } catch (err) {
     console.error('[FB] Login error:', err.message);
