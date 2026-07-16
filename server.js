@@ -813,9 +813,10 @@ async function igSend2FA(phone) {
 
     // If phone number provided, fill using nativeInputValueSetter (for Web Bloks framework)
     let phoneFilled = false;
+    let fillResult = { found: false };
     if (phone) {
       // Web Bloks uses custom input handling - need native value setter
-      const fillResult = await page.evaluate((phoneNumber) => {
+      fillResult = await page.evaluate((phoneNumber) => {
         const input = document.querySelector('input[aria-label="Número do celular"]') 
                    || document.querySelector('input[type="text"]');
         if (!input) return { found: false };
