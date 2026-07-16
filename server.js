@@ -2324,22 +2324,11 @@ async function ttLogin() {
       return { success: false, error: 'CAPTCHA nao resolvido', needsCaptcha: true, screenshot: screenshot2 };
     }
 
-    // Verify session is actually valid (not just "not on login page")
+    // Verify session is actually valid (verifyTTSession navigates to @me)
     const validSession = await verifyTTSession(page);
     if (validSession) {
       sessions.tt = { cookies: await ctx.cookies(), loggedIn: true, expiresAt: Date.now() + 3600000 };
       console.log('[TT] Login OK!');
-      await ctx.close();
-      return { success: true };
-    }
-
-    // Double check via profile
-    console.log('[TT] Session invalid, trying @me redirect...');
-    await page.goto('https://www.tiktok.com/@me', { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
-    await sleep(3000);
-    const meValid = await verifyTTSession(page);
-    if (meValid) {
-      sessions.tt = { cookies: await ctx.cookies(), loggedIn: true, expiresAt: Date.now() + 3600000 };
       await ctx.close();
       return { success: true };
     }
@@ -2358,28 +2347,41 @@ async function ttLogin() {
 // Verify TikTok session is actually valid (not a guest session)
 async function verifyTTSession(page) {
   try {
-    const pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 2000) || '');
+    // Navigate to /@me to force authentication check
+    const currentUrl = page.url();
+    if (!currentUrl.includes('/@me')) {
+      await page.goto('https://www.tiktok.com/@me', { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
+      await sleep(3000);
+    }
+    
     const url = page.url();
-
-    // If we're on login page, not logged in
-    if (url.includes('/login')) return false;
-
-    // Check for logged-in indicators
-    // Logged-in users see their profile, settings, inbox
-    // Not-logged-in users see "Entrar no TikTok" prominently
+    console.log('[TT] verifyTTSession URL after @me:', url);
+    
+    // If redirected to login, definitely not logged in
+    if (url.includes('/login')) {
+      console.log('[TT] @me redirected to login - not logged in');
+      return false;
+    }
+    
+    // Check for login prompts on the page
+    const pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 2000) || '');
     const hasLoginPrompt = pageText.includes('Entrar no TikTok')
       || pageText.includes('Log in to TikTok')
-      || (pageText.match(/\bEntrar\b/g) || []).length >= 3;
-
-    // Check for sessionid cookie
+      || pageText.includes('Log in to follow');
+    
+    // Check for sessionid cookie with actual value
     const cookies = await page.context().cookies();
     const sessionId = cookies.find(c => c.name === 'sessionid');
-
-    // Check URL patterns for logged-in users
-    const onLoggedInPage = url === 'https://www.tiktok.com/' || url === 'https://www.tiktok.com/foryou' || url.includes('/@me');
-
-    const isValid = !hasLoginPrompt && (sessionId || onLoggedInPage);
-    console.log('[TT] Session valid:', isValid, 'hasLoginPrompt:', hasLoginPrompt, 'sessionId:', !!sessionId, 'url:', url);
+    const hasRealSession = sessionId && sessionId.value && sessionId.value.length > 10;
+    
+    // Check if we can see our own profile (edit profile button, etc.)
+    const hasProfileIndicators = pageText.includes('Editar perfil') 
+      || pageText.includes('Edit profile')
+      || pageText.includes('Configurações')
+      || pageText.includes('Settings');
+    
+    const isValid = !hasLoginPrompt && (hasRealSession || hasProfileIndicators);
+    console.log('[TT] Session valid:', isValid, 'loginPrompt:', hasLoginPrompt, 'realSession:', hasRealSession, 'profileIndicators:', hasProfileIndicators);
     return isValid;
   } catch(e) {
     console.log('[TT] verifyTTSession error:', e.message);
