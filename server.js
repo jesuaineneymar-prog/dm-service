@@ -2371,21 +2371,59 @@ async function ttSendDM(targetUsername, message, useProxy = true) {
     console.log('[TT] Target userId:', userId);
     const cookies = sessions.tt.cookies.map(c => c.name + '=' + c.value).join('; ');
 
-    // Get msToken from cookies
+    // Get msToken and verifyFp from cookies/page
     const msToken = sessions.tt.cookies.find(c => c.name === 'msToken');
     const ttwid = sessions.tt.cookies.find(c => c.name === 'ttwid');
+    
+    // Extract verifyFp from page JavaScript
+    let verifyFp = '';
+    try {
+      verifyFp = await page.evaluate(() => {
+        // Try to get from window
+        if (window.byted_acrawler) return window.byted_acrawler.sign || '';
+        // Try from __NEXT_DATA__ or scripts
+        for (const s of document.querySelectorAll('script')) {
+          const m = s.textContent.match(/verifyFp['":\s]+['"]([^'"]+)['"]/);
+          if (m) return m[1];
+        }
+        // Try from cookies
+        return document.cookie.split('; ').find(c => c.startsWith('s_v_web_id='))?.replace('s_v_web_id=', '') || '';
+      });
+    } catch(e) {}
 
-    // Method 1: API - first create chat room, then send message
-    const sendResult = await page.evaluate(async ({ cookies, userId, message, msToken, ttwid }) => {
+    // Get a fresh msToken from the page if not in cookies
+    let freshMsToken = msToken ? msToken.value : '';
+    if (!freshMsToken) {
+      try {
+        freshMsToken = await page.evaluate(() => {
+          // msToken is often in window.__msToken or a meta tag
+          if (window.__msToken) return window.__msToken;
+          const meta = document.querySelector('meta[name="msToken"]');
+          if (meta) return meta.getAttribute('content');
+          return '';
+        });
+      } catch(e) {}
+    }
+
+    console.log('[TT] verifyFp:', verifyFp ? 'found' : 'missing', 'msToken:', freshMsToken ? 'found' : 'missing');
+
+    // Method 1: API with proper parameters
+    const sendResult = await page.evaluate(async ({ cookies, userId, message, msToken, verifyFp }) => {
       const headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Cookie': cookies };
-      if (msToken) headers['X-Ms-Token'] = msToken.value;
+      if (msToken) headers['X-Ms-Token'] = msToken;
       
       // Step 1: Create or get chat room
       try {
+        const createParams = new URLSearchParams({
+          to_user_id: userId,
+          from: 'webapp',
+          count: '1',
+          verifyFp: verifyFp || ''
+        });
         const createResp = await fetch('https://www.tiktok.com/api/chat/create/', {
           method: 'POST',
           headers,
-          body: 'to_user_id=' + userId + '&from=webapp',
+          body: createParams.toString(),
           credentials: 'include'
         });
         const createBody = await createResp.text();
@@ -2398,18 +2436,27 @@ async function ttSendDM(targetUsername, message, useProxy = true) {
         } catch(e) {}
         
         // Step 2: Send message (with or without room_id)
-        const msgBody = 'recipient_user_id=' + userId + '&message_type=text&content=' + encodeURIComponent(message) + '&client_message_id=' + crypto.randomUUID() + (roomId ? '&room_id=' + roomId : '');
+        const sendParams = new URLSearchParams({
+          recipient_user_id: userId,
+          message_type: 'text',
+          content: message,
+          client_message_id: crypto.randomUUID(),
+          from: 'webapp'
+        });
+        if (roomId) sendParams.append('room_id', roomId);
+        if (verifyFp) sendParams.append('verifyFp', verifyFp);
+        
         const sendResp = await fetch('https://www.tiktok.com/api/chat/send_message/', {
           method: 'POST',
           headers,
-          body: msgBody,
+          body: sendParams.toString(),
           credentials: 'include'
         });
         const sendBody = await sendResp.text();
         console.log('[TT] Send msg response:', sendBody.substring(0, 500));
-        return { createStatus: createResp.status, createBody: createBody.substring(0, 300), sendStatus: sendResp.status, sendBody: sendBody.substring(0, 500), roomId };
+        return { createStatus: createResp.status, createBody: createBody.substring(0, 300), sendStatus: sendResp.status, sendBody: sendBody.substring(0, 500), roomId, verifyFp: verifyFp ? 'included' : 'missing' };
       } catch(e) { return { error: e.message }; }
-    }, { cookies, userId, message, msToken: msToken ? { value: msToken.value } : null, ttwid });
+    }, { cookies, userId, message, msToken: freshMsToken, verifyFp });
 
     console.log('[TT] API result:', JSON.stringify(sendResult).substring(0, 500));
 
@@ -2420,24 +2467,98 @@ async function ttSendDM(targetUsername, message, useProxy = true) {
       return { success: true, platform: 'TikTok', recipient: targetUsername, recipientUid: userId, method: 'api', apiResponse: sendResult.sendBody?.substring(0, 200) };
     }
 
-    // Method 2: UI
+    // Method 2: UI - navigate to profile and click Message
+    console.log('[TT] Trying UI method...');
     await page.goto('https://www.tiktok.com/@' + encodeURIComponent(targetUsername), { waitUntil: 'load', timeout: 30000 }).catch(() => {});
-    await sleep(2000);
+    await sleep(3000);
 
-    const msgBtn = await page.$('div[data-e2e="user-post-item-message"]') || await page.$('button:has-text("Message")');
+    // Look for Message button - try many selectors
+    const msgBtnSelectors = [
+      'div[data-e2e="user-post-item-message"]',
+      'button[data-e2e="user-post-item-message"]',
+      'div:has-text("Message")',
+      'button:has-text("Message")',
+      'div:has-text("Enviar mensagem")',
+      'button:has-text("Enviar mensagem")',
+      'a[href*="/messages"]',
+      '[data-e2e="profile-icon-message"]'
+    ];
+    
+    let msgBtn = null;
+    for (const sel of msgBtnSelectors) {
+      try {
+        msgBtn = await page.$(sel);
+        if (msgBtn) {
+          const isVisible = await msgBtn.isVisible({ timeout: 2000 }).catch(() => false);
+          if (isVisible) {
+            console.log('[TT] Found Message button:', sel);
+            break;
+          }
+          msgBtn = null;
+        }
+      } catch(e) {}
+    }
+    
+    // Also try clicking via text match
+    if (!msgBtn) {
+      try {
+        msgBtn = await page.getByText('Message', { exact: false }).first().elementHandle().catch(() => null);
+      } catch(e) {}
+    }
+
     if (msgBtn) {
       await msgBtn.click();
-      await sleep(3000);
-      const msgInput = await page.$('div[contenteditable="true"]') || await page.$('textarea[data-e2e="chat-input"]');
+      console.log('[TT] Clicked Message button, waiting for chat...');
+      await sleep(5000);
+      
+      // Try to find message input
+      const msgInputSelectors = [
+        'div[contenteditable="true"]',
+        'textarea[data-e2e="chat-input"]',
+        'textarea[placeholder*="message" i]',
+        'textarea[placeholder*="mensagem" i]',
+        'div[contenteditable="true"][data-e2e="chat-input"]',
+        'input[type="text"][data-e2e="chat-input"]'
+      ];
+      
+      let msgInput = null;
+      for (const sel of msgInputSelectors) {
+        try {
+          msgInput = await page.$(sel);
+          if (msgInput) {
+            const isVisible = await msgInput.isVisible({ timeout: 2000 }).catch(() => false);
+            if (isVisible) break;
+            msgInput = null;
+          }
+        } catch(e) {}
+      }
+      
       if (msgInput) {
         await msgInput.click();
+        await sleep(500);
         await msgInput.fill(message);
+        await sleep(500);
         await page.keyboard.press('Enter');
+        console.log('[TT] Message sent via UI!');
         await sleep(2000);
         await ctx.close();
         return { success: true, platform: 'TikTok', recipient: targetUsername, recipientUid: userId, method: 'browser_ui' };
+      } else {
+        console.log('[TT] Message input not found after clicking Message button');
+        // Take screenshot for debugging
+        const uiSs = await page.screenshot({ encoding: 'base64', fullPage: false });
+        const uiText = await page.evaluate(() => document.body?.innerText?.substring(0, 300) || '');
+        await ctx.close();
+        return { success: false, error: 'Message input not found', url: page.url(), pageText: uiText, screenshot: uiSs };
       }
     }
+
+    // Method 3: Try via inbox page
+    console.log('[TT] Trying inbox page method...');
+    await page.goto('https://www.tiktok.com/messages', { waitUntil: 'load', timeout: 30000 }).catch(() => {});
+    await sleep(3000);
+    const inboxText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
+    console.log('[TT] Inbox page text:', inboxText.substring(0, 200));
 
     await ctx.close();
     return { success: false, error: 'All DM methods failed for @' + targetUsername, apiDetails: sendResult };
