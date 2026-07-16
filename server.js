@@ -797,32 +797,73 @@ async function igSend2FA(phone) {
     console.log('[IG] 2FA page text:', pageText.substring(0, 300));
     console.log('[IG] 2FA URL:', page.url());
 
+    // Debug: dump all interactive elements
+    const debugInfo = await page.evaluate(() => {
+      const inputs = [...document.querySelectorAll('input')].map(i => ({
+        type: i.type, name: i.name, id: i.id, placeholder: i.placeholder,
+        ariaLabel: i.getAttribute('aria-label'), value: i.value, visible: i.offsetParent !== null
+      }));
+      const clickables = [...document.querySelectorAll('button, [role="button"], a, [type="submit"], div.x1lliihq')].map(e => ({
+        tag: e.tagName, text: e.innerText?.substring(0, 50), role: e.getAttribute('role'),
+        type: e.getAttribute('type'), className: e.className?.substring(0, 80), visible: e.offsetParent !== null
+      }));
+      return { inputs, clickables };
+    });
+    console.log('[IG] 2FA debug:', JSON.stringify(debugInfo).substring(0, 1000));
+
     // If phone number provided, look for phone input field and fill it
+    let phoneFilled = false;
     if (phone) {
       const phoneSelectors = [
         'input[type="tel"]', 'input[name="phone"]', 'input[name="phoneNumber"]',
-        'input[name="email"]', 'input[inputmode="tel"]', 'input[inputmode="email"]',
-        'input[autocomplete="tel"]', 'input[autocomplete="email"]',
+        'input[inputmode="tel"]', 'input[autocomplete="tel"]',
         'input[placeholder*="número" i]', 'input[placeholder*="phone" i]',
-        'input[placeholder*="email" i]', 'input[placeholder*="Número"]',
+        'input[placeholder*="Número"]', 'input[aria-label*="Número" i]',
+        'input[aria-label*="celular" i]', 'input[aria-label*="phone" i]',
         'input[type="text"]'
       ];
       for (const sel of phoneSelectors) {
         try {
           const el = await page.$(sel);
           if (el && await el.isVisible()) {
-            console.log('[IG] Found input:', sel, '- filling with phone:', phone);
-            await el.click();
-            await sleep(300);
-            await el.fill(phone);
-            await sleep(1000);
-            break;
+            console.log('[IG] Found input:', sel);
+            await el.click({ clickCount: 3 }); // select all
+            await sleep(200);
+            await el.fill(''); // clear
+            await sleep(200);
+            await el.type(phone, { delay: 50 }); // type char by char
+            await sleep(1500);
+            // Verify it was filled
+            const val = await el.inputValue();
+            console.log('[IG] Input value after fill:', val);
+            if (val && val.length > 3) {
+              phoneFilled = true;
+              break;
+            }
           }
         } catch(e) { continue; }
       }
     }
 
-    // Click send/continue button (try button, div[role=button], a, text=)
+    if (!phoneFilled && phone) {
+      // Fallback: use page.type on the first visible input
+      try {
+        const firstInput = await page.$('input:visible');
+        if (firstInput) {
+          await firstInput.click({ clickCount: 3 });
+          await sleep(200);
+          await page.keyboard.type(phone, { delay: 50 });
+          await sleep(1000);
+          const val = await firstInput.inputValue();
+          console.log('[IG] Fallback input value:', val);
+          phoneFilled = val && val.length > 3;
+        }
+      } catch(e) {}
+    }
+
+    console.log('[IG] phoneFilled:', phoneFilled);
+
+    // Click send/continue button
     const sendSelectors = [
       'button:has-text("Enviar código")', 'button:has-text("Enviar")', 'button:has-text("Send code")', 'button:has-text("Send")',
       'button:has-text("Receber código")', 'button:has-text("Continuar")', 'button:has-text("Continue")',
@@ -830,22 +871,55 @@ async function igSend2FA(phone) {
       'div[role="button"]:has-text("Continuar")', 'div[role="button"]:has-text("Enviar")',
       'div[role="button"]:has-text("Enviar código")', 'div[role="button"]:has-text("Next")',
       'a:has-text("Continuar")', 'a:has-text("Enviar")', 'a:has-text("Next")',
-      'text=Continuar', 'text=Enviar código', 'text=Enviar', 'text=Next', 'text=Continue'
     ];
+    let clicked = false;
     for (const sel of sendSelectors) {
       try {
         const btn = await page.$(sel);
         if (btn && await btn.isVisible()) {
-          console.log('[IG] Clicking send button:', sel);
+          console.log('[IG] Clicking button:', sel);
           await btn.click();
-          await sleep(5000);
-          const afterSs = await page.screenshot({ encoding: 'base64', fullPage: false });
-          const afterText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
-          return { success: true, message: 'Código enviado. Verifica o teu telefone.', screenshot: afterSs, pageText: afterText };
+          clicked = true;
+          break;
         }
       } catch(e) { continue; }
     }
-    return { success: false, error: 'Botão de envio não encontrado', screenshot, pageText: pageText.substring(0, 500) };
+
+    // If no standard selector worked, try text-based click
+    if (!clicked) {
+      try {
+        await page.click('text=Continuar', { timeout: 3000 });
+        console.log('[IG] Clicked text=Continuar');
+        clicked = true;
+      } catch(e) {
+        console.log('[IG] text=Continuar failed:', e.message);
+      }
+    }
+
+    if (!clicked) {
+      return { success: false, error: 'Botão de envio não encontrado', screenshot, pageText: pageText.substring(0, 500), debugInfo };
+    }
+
+    await sleep(6000);
+    const afterSs = await page.screenshot({ encoding: 'base64', fullPage: false });
+    const afterText = await page.evaluate(() => document.body?.innerText?.substring(0, 800) || '');
+    const afterUrl = page.url();
+    console.log('[IG] After click URL:', afterUrl);
+    console.log('[IG] After click text:', afterText.substring(0, 300));
+
+    // Check if page changed (code entry page)
+    const hasCodeInput = await page.$('input[maxlength="6"]') || await page.$('input[inputmode="numeric"]') || await page.$('input[name="verificationCode"]');
+    if (hasCodeInput) {
+      return { success: true, message: 'Página de código 2FA atingida. Verifica o teu telefone.', screenshot: afterSs, pageText: afterText };
+    }
+
+    // If page text changed, it progressed
+    if (afterText !== pageText) {
+      return { success: true, message: 'Página avançou. Verifica o estado.', screenshot: afterSs, pageText: afterText };
+    }
+
+    return { success: false, error: 'Página não avançou após clicar Continuar. O número pode estar errado ou a página requer outra ação.', screenshot: afterSs, pageText: afterText, phoneFilled, debugInfo };
+
   } catch(e) {
     return { success: false, error: e.message };
   }
