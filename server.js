@@ -907,18 +907,35 @@ async function igSend2FA(phone) {
     console.log('[IG] After click URL:', afterUrl);
     console.log('[IG] After click text:', afterText.substring(0, 300));
 
-    // Check if page changed (code entry page)
-    const hasCodeInput = await page.$('input[maxlength="6"]') || await page.$('input[inputmode="numeric"]') || await page.$('input[name="verificationCode"]');
-    if (hasCodeInput) {
-      return { success: true, message: 'Página de código 2FA atingida. Verifica o teu telefone.', screenshot: afterSs, pageText: afterText };
+    // Always include debug info in response
+    const result = { screenshot: afterSs, pageText: afterText, afterUrl, phoneFilled, debugInfo };
+
+    // Check if we're now on a code entry page (look for 6-digit code input)
+    const codeInputs = await page.$$('input[maxlength="6"]');
+    let realCodeInput = false;
+    for (const ci of codeInputs) {
+      if (await ci.isVisible()) { realCodeInput = true; break; }
+    }
+    if (!realCodeInput) {
+      const numInput = await page.$('input[inputmode="numeric"]');
+      if (numInput && await numInput.isVisible()) realCodeInput = true;
+    }
+    if (!realCodeInput) {
+      const vcInput = await page.$('input[name="verificationCode"]');
+      if (vcInput && await vcInput.isVisible()) realCodeInput = true;
+    }
+
+    if (realCodeInput) {
+      return { success: true, message: 'Página de código 2FA atingida. Verifica o teu telefone.', ...result };
     }
 
     // If page text changed, it progressed
     if (afterText !== pageText) {
-      return { success: true, message: 'Página avançou. Verifica o estado.', screenshot: afterSs, pageText: afterText };
+      return { success: true, message: 'Página avançou. Verifica o estado.', ...result };
     }
 
-    return { success: false, error: 'Página não avançou após clicar Continuar. O número pode estar errado ou a página requer outra ação.', screenshot: afterSs, pageText: afterText, phoneFilled, debugInfo };
+    return { success: false, error: 'Página não avançou após clicar Continuar. O número pode estar errado ou a página requer outra ação.', ...result };
+
 
   } catch(e) {
     return { success: false, error: e.message };
