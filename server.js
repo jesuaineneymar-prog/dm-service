@@ -2312,7 +2312,8 @@ async function ttLogin() {
           // Verify session is actually valid by checking for logged-in indicators
           const validSession = await verifyTTSession(page);
           if (validSession) {
-            sessions.tt = { cookies: await ctx.cookies(), loggedIn: true, expiresAt: Date.now() + 3600000 };
+            const lsData = await page.evaluate(() => { try { return JSON.stringify(localStorage); } catch(e) { return '{}'; } });
+            sessions.tt = { cookies: await ctx.cookies(), loggedIn: true, expiresAt: Date.now() + 3600000, localStorage: lsData };
             console.log('[TT] Login OK after CAPTCHA!');
             await ctx.close();
             return { success: true, method: 'captcha_solved' };
@@ -2328,7 +2329,8 @@ async function ttLogin() {
     const validSession = await verifyTTSession(page);
     if (validSession) {
       // Save localStorage for session transfer (TikTok stores auth tokens there)
-      const lsData = await page.evaluate(() => JSON.stringify(localStorage));
+      let lsData = '{}';
+      try { lsData = await page.evaluate(() => JSON.stringify(localStorage)); } catch(e) { console.log('[TT] localStorage save error:', e.message.substring(0, 80)); }
       sessions.tt = { cookies: await ctx.cookies(), loggedIn: true, expiresAt: Date.now() + 3600000, localStorage: lsData };
       console.log('[TT] Login OK!');
       await ctx.close();
