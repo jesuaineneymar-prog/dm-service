@@ -766,6 +766,7 @@ async function igLoginInternal() {
     if (errorEl) loginError = (await errorEl.textContent().catch(() => '')).trim();
     if (!loginError) {
       const errorPatterns = [
+        /senha incorreta/i, /Senha incorreta/i, /password.*incorrect/i,
         /as informações de login.*incorretas/i, /the (password|username|information) you (entered|provided) (is )?(incorrect|wrong)/i,
         /your (password|username) (was )?incorrect/i, /couldn't log you in/i, /não foi possível fazer login/i,
         /usuário não encontrado/i, /user not found/i
