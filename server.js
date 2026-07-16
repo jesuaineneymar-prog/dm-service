@@ -1603,13 +1603,74 @@ async function fbSend2FA() {
   try {
     const page = fb2FA.page;
     const currentUrl = page.url();
-    const pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 1500) || '');
     console.log('[FB send-2fa] URL:', currentUrl);
-    console.log('[FB send-2fa] Text:', pageText.substring(0, 400));
 
-    // Try to click "Get a code" / "Send code" / "Obter um código" / "Enviar código"
+    // Wait for page content to load (FB 2FA is JS-rendered)
+    await sleep(3000);
+    await page.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => {});
+    
+    // Try to get text - check main page and iframes
+    let pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 1500) || '');
+    console.log('[FB send-2fa] Main page text:', pageText.substring(0, 300));
+
+    // Check if content is in an iframe
+    if (!pageText || pageText.length < 20) {
+      console.log('[FB send-2fa] Main page empty, checking iframes...');
+      const frames = page.frames();
+      for (const frame of frames) {
+        try {
+          const frameText = await frame.evaluate(() => document.body?.innerText?.substring(0, 1500) || '');
+          if (frameText.length > 20) {
+            console.log('[FB send-2fa] Found text in frame:', frame.url().substring(0, 80), frameText.substring(0, 200));
+            pageText = frameText;
+            break;
+          }
+        } catch(e) {}
+      }
+    }
+
+    // If still empty, try waiting longer
+    if (!pageText || pageText.length < 20) {
+      console.log('[FB send-2fa] Still empty, waiting 5s more...');
+      await sleep(5000);
+      pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 1500) || '');
+      // Check all frames again
+      const frames = page.frames();
+      for (const frame of frames) {
+        try {
+          const ft = await frame.evaluate(() => document.body?.innerText?.substring(0, 1500) || '');
+          if (ft.length > pageText.length) pageText = ft;
+        } catch(e) {}
+      }
+      console.log('[FB send-2fa] After wait text:', pageText.substring(0, 300));
+    }
+
+    // Take screenshot for debugging
+    const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
+
+    // If the code input is already visible, just tell user to verify
+    const hasCodeInput = await page.$('input[name="approvals_code"]') 
+      || await page.$('input[inputmode="numeric"]')
+      || await page.$('#approvals_code');
+    
+    // Check in all frames too
+    let codeInputInFrame = false;
+    if (!hasCodeInput) {
+      for (const frame of page.frames()) {
+        try {
+          const hasInput = await frame.$('input[name="approvals_code"], input[inputmode="numeric"], #approvals_code, input[type="text"]').catch(() => null);
+          if (hasInput) { codeInputInFrame = true; break; }
+        } catch(e) {}
+      }
+    }
+
+    if (hasCodeInput || codeInputInFrame || pageText.includes('Enter login code') || pageText.includes('código de login') || pageText.includes('authentication code')) {
+      return { success: true, message: 'Pagina 2FA pronta. O código pode já ter sido enviado para o teu telefone. Chame /fb/verify-2fa {code} com o código recebido.', url: page.url(), pageText: pageText.substring(0, 500), screenshot: ss };
+    }
+
+    // Try to click "Get a code" / "Send code" links
     let clicked = false;
-    const codeLinkTexts = ['Get a code', 'Obter um código', 'Send code', 'Enviar código', 'Resend code', 'Reenviar código'];
+    const codeLinkTexts = ['Get a code', 'Obter um código', 'Send code', 'Enviar código', 'Resend code', 'Reenviar código', 'Text me a code', 'Enviar SMS'];
     
     for (const linkText of codeLinkTexts) {
       try {
@@ -1623,56 +1684,70 @@ async function fbSend2FA() {
       } catch(e) {}
     }
 
-    // Also try clicking links with those texts
+    // Try in all frames
     if (!clicked) {
-      const linkResult = await page.evaluate((texts) => {
-        const links = document.querySelectorAll('a, [role="link"], button, [role="button"]');
-        for (const link of links) {
-          const t = (link.innerText || '').trim().toLowerCase();
-          for (const search of texts) {
-            if (t.includes(search.toLowerCase())) {
-              link.click();
-              return { clicked: true, text: link.innerText.trim().substring(0, 50) };
+      for (const frame of page.frames()) {
+        const linkResult = await frame.evaluate((texts) => {
+          const els = document.querySelectorAll('a, [role="link"], button, [role="button"], span, div');
+          for (const el of els) {
+            const t = (el.innerText || '').trim().toLowerCase();
+            for (const s of texts) {
+              if (t.includes(s.toLowerCase()) && t.length < 100) {
+                el.click();
+                return { clicked: true, text: el.innerText.trim().substring(0, 50) };
+              }
             }
           }
+          return { clicked: false };
+        }, codeLinkTexts).catch(() => ({ clicked: false }));
+        if (linkResult.clicked) {
+          clicked = true;
+          console.log('[FB send-2fa] Clicked in frame:', linkResult.text);
+          break;
         }
-        return { clicked: false };
-      }, codeLinkTexts);
-      if (linkResult.clicked) {
-        clicked = true;
-        console.log('[FB send-2fa] Clicked via JS:', linkResult.text);
       }
     }
 
-    // Try Continue button if no code link found (checkpoint flow)
+    // Try submit/continue button in all frames
     if (!clicked) {
-      try {
-        const contBtn = page.locator('button[id="checkpointSubmitButton"], button[name="submit"], #login_form button[type="submit"]').first();
-        if (await contBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-          await contBtn.click({ timeout: 5000 });
-          clicked = true;
-          console.log('[FB send-2fa] Clicked submit/continue button');
-        }
-      } catch(e) {}
+      for (const frame of page.frames()) {
+        try {
+          const btns = await frame.$$('button, [role="button"], input[type="submit"]');
+          for (const btn of btns) {
+            const txt = await btn.innerText().catch(() => '') || await btn.getAttribute('value').catch(() => '') || '';
+            if (/continue|continuar|submit|enviar|get code|send/i.test(txt)) {
+              await btn.click();
+              clicked = true;
+              console.log('[FB send-2fa] Clicked button in frame:', txt);
+              break;
+            }
+          }
+          if (clicked) break;
+        } catch(e) {}
+      }
     }
 
-    await sleep(6000);
+    await sleep(5000);
     const afterUrl = page.url();
     const afterText = await page.evaluate(() => document.body?.innerText?.substring(0, 1000) || '');
-    const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
+    const afterFrames = page.frames();
+    let fullAfterText = afterText;
+    for (const frame of afterFrames) {
+      try {
+        const ft = await frame.evaluate(() => document.body?.innerText?.substring(0, 1000) || '');
+        if (ft.length > fullAfterText.length) fullAfterText = ft;
+      } catch(e) {}
+    }
+    
     console.log('[FB send-2fa] After URL:', afterUrl);
-    console.log('[FB send-2fa] After text:', afterText.substring(0, 300));
+    console.log('[FB send-2fa] After text:', fullAfterText.substring(0, 300));
 
-    // Check if code input appeared
-    const hasCodeInput = await page.$('input[name="approvals_code"]') 
-      || await page.$('input[inputmode="numeric"]')
-      || await page.$('#approvals_code');
-
-    if (hasCodeInput || afterText.includes('Enter login code') || afterText.includes('enter the code') || afterText.includes('código de login')) {
-      return { success: true, message: 'Código 2FA enviado (ou campo de código disponível). Verifica o telefone e chame /fb/verify-2fa {code}.', url: afterUrl, pageText: afterText.substring(0, 500), screenshot: ss };
+    if (fullAfterText.includes('Enter login code') || fullAfterText.includes('código de login') || fullAfterText.includes('code has been sent') || fullAfterText.includes('código foi enviado')) {
+      return { success: true, message: 'Código 2FA enviado! Verifica o telefone e chame /fb/verify-2fa {code}.', url: afterUrl, pageText: fullAfterText.substring(0, 500), screenshot: ss };
     }
 
-    return { success: clicked, message: clicked ? 'Botão clicado mas estado incerto. Verifica o telefone.' : 'Nenhum botão de envio de código encontrado.', url: afterUrl, pageText: afterText.substring(0, 500), screenshot: ss };
+    // Even if we couldn't find text, the code might have been sent already
+    return { success: clicked, message: clicked ? 'Botão clicado. Verifica o telefone para o código 2FA e chame /fb/verify-2fa {code}.' : 'Nenhum botão encontrado, mas a página 2FA está ativa. Verifica o telefone e tenta /fb/verify-2fa {code}.', url: afterUrl, pageText: fullAfterText.substring(0, 500), screenshot: ss, needs2FA: true };
 
   } catch(e) {
     return { success: false, error: e.message };
@@ -1689,21 +1764,24 @@ async function fbVerify2FA(code) {
     const currentUrl = page.url();
     console.log('[FB verify-2fa] URL:', currentUrl, 'code:', code);
 
-    // Find code input
+    // Find code input - check main page and all frames
     const codeSelectors = [
       'input[name="approvals_code"]',
       '#approvals_code', 
       'input[inputmode="numeric"]',
       'input[type="text"][name*="code"]',
       'input[name="code"]',
-      'input[autocomplete="one-time-code"]'
+      'input[autocomplete="one-time-code"]',
+      'input[type="text"]'
     ];
 
     let filled = false;
+    let targetFrame = null;
+
+    // First try main page
     for (const sel of codeSelectors) {
       const input = await page.$(sel).catch(() => null);
       if (input) {
-        // Use nativeInputValueSetter for React compatibility
         await page.evaluate((sel, code) => {
           const el = document.querySelector(sel);
           if (el) {
@@ -1715,23 +1793,36 @@ async function fbVerify2FA(code) {
           }
         }, sel, code);
         filled = true;
-        console.log('[FB verify-2fa] Filled code input:', sel);
+        console.log('[FB verify-2fa] Filled code input on main page:', sel);
         break;
       }
     }
 
+    // Try all frames
     if (!filled) {
-      // Last resort: try any visible input
-      const inputs = await page.$$('input[type="text"], input:not([type])');
-      for (const input of inputs) {
-        try {
-          if (await input.isVisible({ timeout: 1000 }).catch(() => false)) {
-            await input.fill(code);
-            filled = true;
-            console.log('[FB verify-2fa] Filled generic input');
-            break;
-          }
-        } catch(e) {}
+      for (const frame of page.frames()) {
+        for (const sel of codeSelectors) {
+          try {
+            const input = await frame.$(sel).catch(() => null);
+            if (input) {
+              await frame.evaluate((sel, code) => {
+                const el = document.querySelector(sel);
+                if (el) {
+                  const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                  nativeSetter.call(el, code);
+                  el.dispatchEvent(new Event('focus', { bubbles: true }));
+                  el.dispatchEvent(new Event('input', { bubbles: true }));
+                  el.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+              }, sel, code);
+              filled = true;
+              targetFrame = frame;
+              console.log('[FB verify-2fa] Filled code input in frame:', frame.url().substring(0, 60), sel);
+              break;
+            }
+          } catch(e) {}
+        }
+        if (filled) break;
       }
     }
 
@@ -1742,29 +1833,57 @@ async function fbVerify2FA(code) {
 
     await sleep(1000);
 
-    // Click submit/continue
+    // Click submit/continue - try main page and all frames
     let submitted = false;
-    
-    // Method 1: checkpointSubmitButton
-    try {
-      const submitBtn = page.locator('button#checkpointSubmitButton, button[name="submit"], #login_form button[type="submit"]').first();
-      if (await submitBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await submitBtn.click({ timeout: 5000 });
-        submitted = true;
-        console.log('[FB verify-2fa] Clicked submit button');
-      }
-    } catch(e) {}
+    const submitSelectors = [
+      'button#checkpointSubmitButton',
+      'button[name="submit"]',
+      '#login_form button[type="submit"]',
+      'button[type="submit"]'
+    ];
 
-    // Method 2: Continue button
+    // Try main page first
+    for (const sel of submitSelectors) {
+      try {
+        const btn = page.locator(sel).first();
+        if (await btn.isVisible({ timeout: 2000 }).catch(() => false)) {
+          await btn.click({ timeout: 5000 });
+          submitted = true;
+          console.log('[FB verify-2fa] Clicked submit on main page:', sel);
+          break;
+        }
+      } catch(e) {}
+    }
+
+    // Try continue/text button on main page
     if (!submitted) {
       try {
         await page.getByRole('button', { name: /continue|continuar|enviar|submit/i }).first().click({ timeout: 5000 });
         submitted = true;
-        console.log('[FB verify-2fa] Clicked Continue button');
+        console.log('[FB verify-2fa] Clicked Continue on main page');
       } catch(e) {}
     }
 
-    // Method 3: Enter key
+    // Try all frames
+    if (!submitted) {
+      for (const frame of page.frames()) {
+        try {
+          const btns = await frame.$$('button, [role="button"], input[type="submit"]');
+          for (const btn of btns) {
+            const txt = await btn.innerText().catch(() => '') || await btn.getAttribute('value').catch(() => '') || '';
+            if (/continue|continuar|submit|enviar|save|salvar/i.test(txt) && txt.length < 50) {
+              await btn.click();
+              submitted = true;
+              console.log('[FB verify-2fa] Clicked button in frame:', txt);
+              break;
+            }
+          }
+          if (submitted) break;
+        } catch(e) {}
+      }
+    }
+
+    // Last resort: Enter key on main page
     if (!submitted) {
       await page.keyboard.press('Enter');
       submitted = true;
@@ -2199,4 +2318,4 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('Capsolver: ' + (CAPSOLVER_KEY ? 'configured' : 'MISSING'));
   console.log('Platforms: IG (2FA+CAPTCHA), FB (CAPTCHA), TikTok (CAPTCHA)');
   console.log('========================================');
-});// trigger restart
+});
