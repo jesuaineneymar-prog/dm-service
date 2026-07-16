@@ -630,10 +630,25 @@ async function igLoginInternal() {
       };
     }
 
-    // Fill username
+    // Fill username with nativeInputValueSetter (Web Bloks)
     console.log('[IG] Filling username:', CREDS.ig.user);
     try {
-      await page.fill(userSel, CREDS.ig.user);
+      const userFillResult = await page.evaluate((username) => {
+        const input = document.querySelector('input[name="username"]')
+                   || document.querySelector('input[aria-label="Número de celular, nome de usuário ou email"]')
+                   || document.querySelector('input[autocomplete="username"]')
+                   || document.querySelector('input[type="text"]');
+        if (!input) return { found: false };
+        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        nativeSetter.call(input, username);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        return { found: true, value: input.value };
+      }, CREDS.ig.user);
+      console.log('[IG] Username fill result:', JSON.stringify(userFillResult));
+      if (!userFillResult.found || !userFillResult.value) {
+        await page.fill(userSel, CREDS.ig.user);
+      }
     } catch(e) {
       const el = await page.$(userSel);
       await el.click();
@@ -653,9 +668,26 @@ async function igLoginInternal() {
     if (!passSel) { await page.keyboard.press('Tab'); await sleep(300); passSel = 'input:focus'; }
 
     if (passSel) {
-      console.log('[IG] Filling password...');
-      const el = await page.$(passSel);
-      if (el) { await el.click(); await sleep(300); await el.type(CREDS.ig.pass, { delay: 30 }); }
+      console.log('[IG] Filling password with nativeInputValueSetter...');
+      // Web Bloks needs native setter (same as phone input)
+      const passFillResult = await page.evaluate((pwd) => {
+        const input = document.querySelector('input[name="password"]') 
+                   || document.querySelector('input[type="password"]')
+                   || document.querySelector('input[aria-label="Senha"]');
+        if (!input) return { found: false };
+        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        nativeSetter.call(input, pwd);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        return { found: true, value: input.value };
+      }, CREDS.ig.pass);
+      console.log('[IG] Password fill result:', JSON.stringify(passFillResult));
+      
+      // Fallback to .type() if native setter didn't stick
+      if (!passFillResult.found || !passFillResult.value) {
+        const el = await page.$(passSel);
+        if (el) { await el.click(); await sleep(300); await el.type(CREDS.ig.pass, { delay: 30 }); }
+      }
     }
 
     await sleep(800 + Math.random() * 500);
@@ -1151,16 +1183,34 @@ async function fbLogin() {
     });
 
     const finalCookies = await ctx.cookies();
+    const cookieNames = finalCookies.map(c => c.name);
+    console.log('[FB] Cookie names:', cookieNames.join(', '));
     const userId = finalCookies.find(c => c.name === 'c_user');
-    if (userId) {
-      sessions.fb = { cookies: finalCookies, loggedIn: true, userId: userId.value, dtsg: fbDtsg, expiresAt: Date.now() + 3600000 };
-      console.log('[FB] Login OK! userId=' + userId.value);
+    const xsCookie = finalCookies.find(c => c.name === 'xs');
+    if (userId || xsCookie) {
+      sessions.fb = { cookies: finalCookies, loggedIn: true, userId: userId ? userId.value : null, dtsg: fbDtsg, expiresAt: Date.now() + 3600000 };
+      console.log('[FB] Login OK! userId=' + (userId ? userId.value : 'null') + ' xs=' + (xsCookie ? 'yes' : 'no'));
+      await ctx.close();
+      return { success: true, screenshot };
+    }
+
+    // Extra wait and retry cookie check
+    console.log('[FB] No c_user/xs yet, waiting more...');
+    await sleep(5000);
+    const retryCookies = await ctx.cookies();
+    const retryNames = retryCookies.map(c => c.name);
+    console.log('[FB] Retry cookies:', retryNames.join(', '));
+    const retryUser = retryCookies.find(c => c.name === 'c_user');
+    const retryXs = retryCookies.find(c => c.name === 'xs');
+    if (retryUser || retryXs) {
+      sessions.fb = { cookies: retryCookies, loggedIn: true, userId: retryUser ? retryUser.value : null, dtsg: fbDtsg, expiresAt: Date.now() + 3600000 };
+      console.log('[FB] Login OK on retry!');
       await ctx.close();
       return { success: true, screenshot };
     }
 
     await ctx.close();
-    return { success: false, error: 'Login failed - no session cookies', screenshot };
+    return { success: false, error: 'Login failed - no session cookies. Cookies: ' + cookieNames.join(', '), screenshot };
 
   } catch (err) {
     console.error('[FB] Login error:', err.message);
