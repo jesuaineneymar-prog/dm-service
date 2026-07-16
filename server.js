@@ -896,15 +896,104 @@ async function igSend2FA(phone) {
   }
   try {
     const page = ig2FA.page;
-    // Try to click "Send SMS" button
-    const sendBtn = await page.$('button:has-text("Enviar")') || await page.$('button:has-text("Send")') || await page.$('button[type="submit"]');
-    if (sendBtn) {
-      await sendBtn.click();
-      await sleep(3000);
-      const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });
-      return { success: true, message: 'SMS enviado. Verifique o teu telefone.', screenshot };
+    const pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 1000) || '');
+    const currentUrl = page.url();
+    console.log('[IG send-2fa] URL:', currentUrl);
+    console.log('[IG send-2fa] Text:', pageText.substring(0, 300));
+
+    // If phone number provided, fill using nativeInputValueSetter
+    if (phone) {
+      const fillResult = await page.evaluate((phoneNumber) => {
+        const input = document.querySelector('input[aria-label="Número do celular"]') 
+                   || document.querySelector('input[type="text"]')
+                   || document.querySelector('input[name="email"]')
+                   || document.querySelector('input');
+        if (!input) return { found: false };
+        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        nativeSetter.call(input, phoneNumber);
+        input.dispatchEvent(new Event('focus', { bubbles: true }));
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        return { found: true, value: input.value };
+      }, phone);
+      console.log('[IG send-2fa] Fill result:', JSON.stringify(fillResult));
+      await sleep(1500);
     }
-    return { success: false, error: 'Botão de envio não encontrado' };
+
+    // Click Continuar using JavaScript (most reliable for Web Bloks)
+    let clicked = false;
+    const clickResult = await page.evaluate(() => {
+      const buttons = document.querySelectorAll('[role="button"], button, div[role="button"]');
+      for (const btn of buttons) {
+        const text = (btn.innerText || '').trim();
+        if (text === 'Continuar' || text === 'Enviar código' || text === 'Enviar') {
+          btn.click();
+          return { clicked: true, text: text };
+        }
+      }
+      // Fallback: click any visible submit
+      const submitBtn = document.querySelector('button[type="submit"]');
+      if (submitBtn) { submitBtn.click(); return { clicked: true, text: 'submit' }; }
+      return { clicked: false };
+    });
+    clicked = clickResult.clicked;
+    console.log('[IG send-2fa] Click result:', JSON.stringify(clickResult));
+
+    if (!clicked) {
+      // Last resort: Playwright locator
+      try {
+        await page.getByRole('button', { name: 'Continuar' }).click({ timeout: 5000 });
+        clicked = true;
+        console.log('[IG send-2fa] Clicked via Playwright getByRole');
+      } catch(e) {
+        console.log('[IG send-2fa] Playwright click failed:', e.message);
+      }
+    }
+
+    if (!clicked) {
+      const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
+      return { success: false, error: 'Botão não encontrado', pageText: pageText.substring(0, 500), url: currentUrl, screenshot: ss };
+    }
+
+    // Wait for page to change
+    await sleep(6000);
+    const afterUrl = page.url();
+    const afterText = await page.evaluate(() => document.body?.innerText?.substring(0, 1000) || '');
+    const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
+    console.log('[IG send-2fa] After URL:', afterUrl);
+    console.log('[IG send-2fa] After text:', afterText.substring(0, 300));
+
+    // Check if we need to click Continuar again (2-click flow)
+    if (afterText.includes('Enviamos um código') && afterText.includes('Continuar')) {
+      console.log('[IG send-2fa] Clicking Continuar again to send SMS');
+      await page.evaluate(() => {
+        const buttons = document.querySelectorAll('[role="button"]');
+        for (const btn of buttons) {
+          if ((btn.innerText || '').trim() === 'Continuar') { btn.click(); return; }
+        }
+      });
+      await sleep(5000);
+      const finalText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
+      const finalSs = await page.screenshot({ encoding: 'base64', fullPage: false });
+      return { success: true, message: 'Código SMS enviado! Verifica o telefone.', url: page.url(), pageText: finalText, screenshot: finalSs };
+    }
+
+    // Check if we're now on a code entry page
+    const hasCodeInput = await page.$('input[aria-label="Insira o código"]') 
+      || await page.$('input[inputmode="numeric"]') 
+      || await page.$('input[maxlength="6"]');
+    
+    if (hasCodeInput || afterText.includes('Insira o código') || afterText.includes('código de verificação')) {
+      return { success: true, message: 'Página de código atingida. Verifica o telefone.', url: afterUrl, pageText: afterText.substring(0, 500), screenshot: ss };
+    }
+
+    // Page progressed but unclear state
+    if (afterUrl !== currentUrl) {
+      return { success: true, message: 'Página avançou. Verifica o estado.', url: afterUrl, pageText: afterText.substring(0, 500), screenshot: ss };
+    }
+
+    return { success: false, error: 'Página não avançou após clicar Continuar.', url: afterUrl, pageText: afterText.substring(0, 500), screenshot: ss };
+
   } catch(e) {
     return { success: false, error: e.message };
   }
@@ -917,20 +1006,49 @@ async function igVerify2FA(code) {
   try {
     const page = ig2FA.page;
     const ctx = ig2FA.context;
+    const currentUrl = page.url();
+    console.log('[IG verify-2fa] URL:', currentUrl);
 
-    // Find code input
-    const codeInput = await page.$('input[name="verificationCode"]') || await page.$('input[inputmode="numeric"]') || await page.$('input[maxlength="6"]') || await page.$('input[type="text"]');
-    if (!codeInput) {
-      return { success: false, error: 'Campo de código não encontrado', screenshot: await page.screenshot({ encoding: 'base64' }).catch(() => '') };
+    // Find code input - try nativeInputValueSetter first (Web Bloks)
+    const codeInputSel = 'input[aria-label="Insira o código"]'
+      || 'input[name="verificationCode"]'
+      || 'input[inputmode="numeric"]'
+      || 'input[maxlength="6"]';
+    
+    const fillResult = await page.evaluate((code) => {
+      const input = document.querySelector('input[aria-label="Insira o código"]')
+                 || document.querySelector('input[name="verificationCode"]')
+                 || document.querySelector('input[inputmode="numeric"]')
+                 || document.querySelector('input[maxlength="6"]')
+                 || document.querySelector('input[type="text"]');
+      if (!input) return { found: false };
+      const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      nativeSetter.call(input, code);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      return { found: true, value: input.value };
+    }, code);
+    console.log('[IG verify-2fa] Fill result:', JSON.stringify(fillResult));
+    await sleep(1500);
+
+    if (!fillResult.found) {
+      return { success: false, error: 'Campo de código não encontrado', url: currentUrl, pageText: await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '') };
     }
 
-    await codeInput.fill(code);
-    await sleep(1000);
-
-    // Submit
-    const submitBtn = await page.$('button[type="submit"]') || await page.$('button:has-text("Confirmar")') || await page.$('button:has-text("Submit")') || await page.$('button:has-text("Next")');
-    if (submitBtn) await submitBtn.click();
-    else await page.keyboard.press('Enter');
+    // Submit via JS click (Web Bloks compatible)
+    const submitResult = await page.evaluate(() => {
+      const buttons = document.querySelectorAll('[role="button"], button');
+      for (const btn of buttons) {
+        const text = (btn.innerText || '').trim();
+        if (text === 'Continuar' || text === 'Confirmar' || text === 'Enviar' || text === 'Next' || text === 'Submeter') {
+          btn.click();
+          return { clicked: true, text };
+        }
+      }
+      document.querySelector('button[type="submit"]')?.click();
+      return { clicked: false };
+    });
+    console.log('[IG verify-2fa] Submit:', JSON.stringify(submitResult));
 
     await sleep(8000);
     await page.waitForLoadState('domcontentloaded', { timeout: 30000 }).catch(() => {});
