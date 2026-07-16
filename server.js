@@ -984,75 +984,156 @@ async function igVerify2FA(code) {
     const page = ig2FA.page;
     const ctx = ig2FA.context;
 
-    // Debug current page state
+    // Debug: dump ALL elements on the page to understand structure
+    const pageDebug = await page.evaluate(() => {
+      const allElements = document.querySelectorAll('*');
+      const interesting = [];
+      for (const el of allElements) {
+        const tag = el.tagName;
+        if (['INPUT', 'TEXTAREA', 'SELECT', 'IFRAME'].includes(tag)) {
+          interesting.push({ tag, type: el.type, name: el.name, id: el.id, placeholder: el.placeholder, 
+            ariaLabel: el.getAttribute('aria-label'), value: el.value, visible: el.offsetParent !== null,
+            maxLength: el.maxLength, inputMode: el.inputMode });
+        }
+        if (el.contentEditable === 'true' || el.getAttribute('contenteditable') === 'true') {
+          interesting.push({ tag, contentEditable: true, text: el.innerText?.substring(0, 50), className: el.className?.substring(0, 60), visible: el.offsetParent !== null });
+        }
+        if (el.getAttribute('role') === 'textbox' || el.getAttribute('role') === 'search') {
+          interesting.push({ tag, role: el.getAttribute('role'), ariaLabel: el.getAttribute('aria-label'), className: el.className?.substring(0, 60), visible: el.offsetParent !== null });
+        }
+        // Check for Web Bloks input patterns
+        if (el.className && typeof el.className === 'string' && (el.className.includes('input') || el.className.includes('field') || el.className.includes('code'))) {
+          if (['DIV', 'SPAN', 'LABEL'].includes(tag) && el.offsetParent !== null) {
+            interesting.push({ tag, className: el.className.substring(0, 80), text: el.innerText?.substring(0, 30), role: el.getAttribute('role') });
+          }
+        }
+      }
+      return interesting;
+    });
+    console.log('[IG] Verify page elements:', JSON.stringify(pageDebug).substring(0, 2000));
+
     const pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
     const pageUrl = page.url();
     console.log('[IG] Verify 2FA page:', pageUrl);
     console.log('[IG] Verify 2FA text:', pageText.substring(0, 300));
 
-    // Find code input - try standard inputs first
-    let codeInput = await page.$('input[name="verificationCode"]') || await page.$('input[inputmode="numeric"]') || await page.$('input[maxlength="6"]');
+    let codeEntered = false;
 
-    if (!codeInput) {
-      // Web Bloks: look for any visible input (might be dynamically created)
-      const allInputs = await page.$$('input');
-      for (const inp of allInputs) {
-        if (await inp.isVisible()) {
-          codeInput = inp;
-          break;
-        }
-      }
-    }
-
+    // Approach 1: Standard input elements
+    const codeInput = await page.$('input[name="verificationCode"]') || await page.$('input[inputmode="numeric"]') || await page.$('input[maxlength="6"]');
     if (codeInput) {
-      console.log('[IG] Found code input, filling with native setter');
-      // Use native setter for Web Bloks compatibility
-      await page.evaluate((code) => {
-        const input = document.querySelector('input[name="verificationCode"]') 
-                   || document.querySelector('input[inputmode="numeric"]') 
-                   || document.querySelector('input[maxlength="6"]')
-                   || document.querySelector('input:visible');
-        if (input) {
-          const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-          nativeSetter.call(input, code);
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-          input.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-      }, code);
-      await sleep(1000);
-    } else {
-      // No input element found - try keyboard typing on the page
-      console.log('[IG] No code input found, trying keyboard approach');
-      // Click on the "Insira o código" area first
-      try {
-        await page.getByText('Insira o código').click({ timeout: 3000 });
-        await sleep(500);
-        await page.keyboard.type(code, { delay: 100 });
-        await sleep(1000);
-      } catch(e) {
-        console.log('[IG] Keyboard approach failed:', e.message);
-        return { success: false, error: 'Campo de código não encontrado', pageText, pageUrl, screenshot: await page.screenshot({ encoding: 'base64' }).catch(() => '') };
+      console.log('[IG] Found standard code input');
+      const nativeSetter = `Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set`;
+      await page.evaluate((c, ns) => {
+        const input = document.querySelector('input[name="verificationCode"]') || document.querySelector('input[inputmode="numeric"]') || document.querySelector('input[maxlength="6"]');
+        if (input) { eval(ns).call(input, c); input.dispatchEvent(new Event('input', {bubbles:true})); input.dispatchEvent(new Event('change', {bubbles:true})); }
+      }, code, nativeSetter);
+      codeEntered = true;
+    }
+
+    // Approach 2: contenteditable element
+    if (!codeEntered) {
+      const ce = await page.$('[contenteditable="true"]');
+      if (ce && await ce.isVisible()) {
+        console.log('[IG] Found contenteditable, using execCommand');
+        await ce.click();
+        await sleep(300);
+        await page.evaluate(() => document.execCommand('selectAll'));
+        await page.evaluate(() => document.execCommand('delete'));
+        await page.keyboard.type(code, { delay: 80 });
+        codeEntered = true;
       }
     }
 
-    // Submit - click Continuar button (Web Bloks div[role=button])
+    // Approach 3: role="textbox"
+    if (!codeEntered) {
+      const textbox = await page.$('[role="textbox"]');
+      if (textbox && await textbox.isVisible()) {
+        console.log('[IG] Found role=textbox');
+        await textbox.click();
+        await sleep(300);
+        await page.keyboard.type(code, { delay: 80 });
+        codeEntered = true;
+      }
+    }
+
+    // Approach 4: Click the code label area, then type (Web Bloks may create input on focus)
+    if (!codeEntered) {
+      console.log('[IG] Trying click-on-label + keyboard approach');
+      // Try clicking on different areas where the code input might be
+      const clickTargets = [
+        'text=Insira o código',
+        'text=Insira um código', 
+        'label:has-text("código")',
+      ];
+      for (const target of clickTargets) {
+        try {
+          const el = page.locator(target).first();
+          if (await el.isVisible({ timeout: 2000 })) {
+            await el.click();
+            await sleep(800);
+            // After clicking, check if an input appeared
+            const newInput = await page.$('input:visible');
+            if (newInput) {
+              console.log('[IG] Input appeared after clicking:', target);
+              const val = await newInput.inputValue();
+              console.log('[IG] Input current value:', val);
+              // Use native setter
+              await page.evaluate((c) => {
+                const inp = document.querySelector('input:visible');
+                if (inp) {
+                  const s = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                  s.call(inp, c);
+                  inp.dispatchEvent(new Event('input', {bubbles:true}));
+                  inp.dispatchEvent(new Event('change', {bubbles:true}));
+                }
+              }, code);
+              codeEntered = true;
+              break;
+            }
+            // Try typing directly
+            await page.keyboard.type(code, { delay: 80 });
+            codeEntered = true;
+            break;
+          }
+        } catch(e) { continue; }
+      }
+    }
+
+    // Approach 5: Click on the page center area and type (last resort)
+    if (!codeEntered) {
+      console.log('[IG] Last resort: click center + type');
+      const viewport = page.viewportSize();
+      await page.mouse.click(viewport.width / 2, viewport.height / 2 - 30);
+      await sleep(500);
+      await page.keyboard.type(code, { delay: 80 });
+      codeEntered = true;
+    }
+
+    console.log('[IG] codeEntered:', codeEntered);
+    await sleep(1500);
+
+    // Submit - click Continuar
     let submitted = false;
     try {
       const continueBtn = page.getByRole('button', { name: 'Continuar' });
       if (await continueBtn.isVisible()) {
         await continueBtn.click();
         submitted = true;
+        console.log('[IG] Submitted via getByRole Continuar');
       }
     } catch(e) {}
 
     if (!submitted) {
-      const submitBtn = await page.$('button[type="submit"]') || await page.$('button:has-text("Confirmar")') || await page.$('button:has-text("Next")');
-      if (submitBtn) { await submitBtn.click(); submitted = true; }
+      const submitSelectors = ['button[type="submit"]', 'button:has-text("Confirmar")', 'button:has-text("Next")', 'div[role="button"]:has-text("Continuar")'];
+      for (const sel of submitSelectors) {
+        try {
+          const btn = page.locator(sel).first();
+          if (await btn.isVisible()) { await btn.click(); submitted = true; break; }
+        } catch(e) {}
+      }
     }
-
-    if (!submitted) {
-      await page.keyboard.press('Enter');
-    }
+    if (!submitted) await page.keyboard.press('Enter');
 
     await sleep(8000);
     await page.waitForLoadState('domcontentloaded', { timeout: 30000 }).catch(() => {});
@@ -1080,15 +1161,20 @@ async function igVerify2FA(code) {
     }
 
     if (!afterUrl.includes('login') && !afterUrl.includes('challenge') && !afterUrl.includes('2fa') && !afterUrl.includes('password/reset')) {
-      // Login success!
       const cookies = await ctx.cookies();
       await saveIGSession(cookies);
       await close2FAContext();
       return { success: true, message: 'Login OK com 2FA!', screenshot };
     }
 
+    // Check if code was wrong (page still shows same content)
+    if (afterText.includes('código incorreto') || afterText.includes('incorrect code') || afterText.includes('wrong code')) {
+      await close2FAContext();
+      return { success: false, error: 'Código incorreto. Tente novamente.', screenshot, afterUrl, afterText };
+    }
+
     await close2FAContext();
-    return { success: false, error: '2FA verificação falhou. URL: ' + afterUrl, screenshot, afterUrl, afterText };
+    return { success: false, error: '2FA verificação falhou. URL: ' + afterUrl, screenshot, afterUrl, afterText, pageDebug };
 
   } catch(e) {
     console.error('[IG] 2FA verify error:', e.message);
@@ -1693,6 +1779,36 @@ app.post('/ig/verify-2fa', authMiddleware, async (req, res) => {
     const { code } = req.body;
     if (!code || !/^\d{4,8}$/.test(code)) return res.status(400).json({ success: false, error: 'Codigo invalido (4-8 digitos)' });
     const result = await igVerify2FA(code); res.json(result);
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// Debug endpoint - inspect 2FA page without closing context
+app.post('/ig/2fa-debug', authMiddleware, async (req, res) => {
+  try {
+    if (!ig2FA.active || !ig2FA.page) return res.json({ active: false, error: 'Nenhum contexto 2FA ativo' });
+    const page = ig2FA.page;
+    const pageDebug = await page.evaluate(() => {
+      const allElements = document.querySelectorAll('*');
+      const interesting = [];
+      for (const el of allElements) {
+        const tag = el.tagName;
+        if (['INPUT', 'TEXTAREA', 'SELECT', 'IFRAME'].includes(tag)) {
+          interesting.push({ tag, type: el.type, name: el.name, id: el.id, placeholder: el.placeholder,
+            ariaLabel: el.getAttribute('aria-label'), value: el.value, visible: el.offsetParent !== null,
+            maxLength: el.maxLength, inputMode: el.inputMode });
+        }
+        if (el.contentEditable === 'true' || el.getAttribute('contenteditable') === 'true') {
+          interesting.push({ tag, contentEditable: true, text: el.innerText?.substring(0, 50), className: el.className?.substring(0, 60), visible: el.offsetParent !== null });
+        }
+        if (el.getAttribute('role') === 'textbox' || el.getAttribute('role') === 'search' || el.getAttribute('role') === 'button') {
+          interesting.push({ tag, role: el.getAttribute('role'), text: el.innerText?.substring(0, 40), ariaLabel: el.getAttribute('aria-label'), className: el.className?.substring(0, 60), visible: el.offsetParent !== null });
+        }
+      }
+      return interesting;
+    });
+    const pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 800) || '');
+    const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });
+    res.json({ active: true, url: page.url(), pageText, pageDebug, hasScreenshot: true });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
