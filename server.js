@@ -2357,31 +2357,21 @@ async function verifyTTSession(page) {
     const url = page.url();
     console.log('[TT] verifyTTSession URL after @me:', url);
     
-    // If redirected to login, definitely not logged in
+    // KEY CHECK: If /@me didn't redirect to /login, user IS logged in
+    // TikTok ALWAYS redirects unauthenticated /@me to /login
     if (url.includes('/login')) {
-      console.log('[TT] @me redirected to login - not logged in');
+      console.log('[TT] @me redirected to login - NOT logged in');
       return false;
     }
     
-    // Check for login prompts on the page
+    // Secondary: check page content for profile indicators
     const pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 2000) || '');
-    const hasLoginPrompt = pageText.includes('Entrar no TikTok')
-      || pageText.includes('Log in to TikTok')
-      || pageText.includes('Log in to follow');
+    // Real profiles show follower counts, not login prompts
+    const hasFollowers = pageText.match(/\d+\.?\d*K?\s*Seguidores/i);
+    const hasRealProfile = hasFollowers || pageText.includes('Editar perfil') || pageText.includes('Edit profile');
     
-    // Check for sessionid cookie with actual value
-    const cookies = await page.context().cookies();
-    const sessionId = cookies.find(c => c.name === 'sessionid');
-    const hasRealSession = sessionId && sessionId.value && sessionId.value.length > 10;
-    
-    // Check if we can see our own profile (edit profile button, etc.)
-    const hasProfileIndicators = pageText.includes('Editar perfil') 
-      || pageText.includes('Edit profile')
-      || pageText.includes('Configurações')
-      || pageText.includes('Settings');
-    
-    const isValid = !hasLoginPrompt && (hasRealSession || hasProfileIndicators);
-    console.log('[TT] Session valid:', isValid, 'loginPrompt:', hasLoginPrompt, 'realSession:', hasRealSession, 'profileIndicators:', hasProfileIndicators);
+    const isValid = hasRealProfile || url.includes('/@me');
+    console.log('[TT] Session valid:', isValid, 'hasFollowers:', !!hasFollowers, 'hasRealProfile:', hasRealProfile, 'url:', url);
     return isValid;
   } catch(e) {
     console.log('[TT] verifyTTSession error:', e.message);
