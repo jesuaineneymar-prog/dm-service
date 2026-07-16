@@ -554,8 +554,10 @@ function createContext(mobile = false, useProxy = false) {
 // ============================================
 
 async function igLogin() {
-  // NO caching - fresh login every time
-  sessions.ig = { cookies: null, loggedIn: false, dsUserId: null, igD: null, csrftoken: null, sessionId: null, expiresAt: 0 };
+  if (sessions.ig.loggedIn && sessions.ig.cookies && Date.now() < sessions.ig.expiresAt) {
+    console.log('[IG] Using cached session');
+    return { success: true, cached: true, sessionId: sessions.ig.sessionId };
+  }
   return igLoginInternal();
 }
 
@@ -701,24 +703,21 @@ async function igLoginInternal() {
 
     const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });
 
-    // Check for 2FA
+    // Check for 2FA (improved detection for Web Bloks)
     const is2FAPage = await detectIG2FAPage(page);
     if (is2FAPage) {
       console.log('[IG] 2FA page detected!');
       ig2FA.active = true; ig2FA.context = ctx; ig2FA.page = page; ig2FA.createdAt = Date.now();
-      return { success: false, needs2FA: true, message: '2FA requerido. Chame /ig/verify-2fa com o código.', screenshot };
+      return { success: false, needs2FA: true, message: '2FA requerido. Chame /ig/send-2fa para enviar o SMS.', screenshot };
     }
 
-    // Check for "Receber código"
+    // Additional 2FA check: if we're still on a challenge URL with Continuar button
     const pageTextAfter = await page.evaluate(() => document.body?.innerText?.substring(0, 2000) || '');
-    if (pageTextAfter.includes('Receber código') || pageTextAfter.includes('receber um código')) {
-      console.log('[IG] "Receber código" detected...');
-      try {
-        await page.click('text=Receber código', { timeout: 5000 });
-        await sleep(5000);
-        ig2FA.active = true; ig2FA.context = ctx; ig2FA.page = page; ig2FA.createdAt = Date.now();
-        return { success: false, needs2FA: true, message: 'Instagram pediu código SMS. Chame /ig/verify-2fa {code}.', screenshot };
-      } catch(e) {}
+    const stillOnChallenge = afterUrl.includes('challenge') || afterUrl.includes('two_factor');
+    if (stillOnChallenge) {
+      console.log('[IG] Still on challenge URL, treating as 2FA');
+      ig2FA.active = true; ig2FA.context = ctx; ig2FA.page = page; ig2FA.createdAt = Date.now();
+      return { success: false, needs2FA: true, message: '2FA/challenge detectado. Chame /ig/send-2fa para enviar o SMS.', screenshot };
     }
 
     // Login success
@@ -776,12 +775,30 @@ async function igLoginInternal() {
 async function detectIG2FAPage(page) {
   const url = page.url();
   if (url.includes('two_factor') || url.includes('2fa')) return true;
-  const has2FAElements = await page.evaluate(() => {
-    const text = document.body?.innerText || '';
-    const hasCodeInput = !!document.querySelector('input[name="verificationCode"], input[inputmode="numeric"], input[maxlength="6"]');
-    return (text.includes('código de verificação') || text.includes('verification code') || text.includes('enter the code') || text.includes('Digite o código')) && hasCodeInput;
-  }).catch(() => false);
-  return has2FAElements;
+  // Web Bloks 2FA: detect by text patterns BEFORE code input appears
+  // The page shows phone number + Continuar button, code input only appears AFTER SMS sent
+  const pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 3000) || '').catch(() => '');
+  const url2 = page.url();
+  console.log('[IG] detect2FA URL:', url2, 'text snippet:', pageText.substring(0, 300));
+  
+  // Strong indicators of 2FA page (Web Bloks framework)
+  const is2FA = pageText.includes('verificação de duas etapas') 
+    || pageText.includes('two-factor authentication')
+    || pageText.includes('Enter your security code')
+    || pageText.includes('Digite o código de segurança')
+    || pageText.includes('Insira o código')
+    || pageText.includes('Enviamos um código')
+    || (pageText.includes('código de verificação') && !pageText.includes('Esqueceu a senha'))
+    || pageText.includes('verification code')
+    || pageText.includes('enter the code')
+    || pageText.includes('Digite o código')
+    // Web Bloks shows masked phone + Continuar on 2FA page
+    || (pageText.includes('Continuar') && pageText.match(/\+\d{1,3}\s*\*{3,}/))
+    || (pageText.includes('Continuar') && pageText.includes('Número do celular') && url2.includes('challenge'))
+    // Code input exists (standard flow)
+    || (await page.$('input[name="verificationCode"], input[inputmode="numeric"][aria-label*="código"], input[maxlength="6"][inputmode="numeric"]').catch(() => null));
+  
+  return is2FA;
 }
 
 async function igSend2FA(phone) {
@@ -790,185 +807,15 @@ async function igSend2FA(phone) {
   }
   try {
     const page = ig2FA.page;
-    const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });
-    const pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 1000) || '');
-    console.log('[IG] 2FA page text:', pageText.substring(0, 300));
-    console.log('[IG] 2FA URL:', page.url());
-
-    // Debug: dump all interactive elements
-    const debugInfo = await page.evaluate(() => {
-      const inputs = [...document.querySelectorAll('input')].map(i => ({
-        type: i.type, name: i.name, id: i.id, placeholder: i.placeholder,
-        ariaLabel: i.getAttribute('aria-label'), value: i.value, visible: i.offsetParent !== null
-      }));
-      const clickables = [...document.querySelectorAll('button, [role="button"], a, [type="submit"], div.x1lliihq')].map(e => ({
-        tag: e.tagName, text: e.innerText?.substring(0, 50), role: e.getAttribute('role'),
-        type: e.getAttribute('type'), className: e.className?.substring(0, 80), visible: e.offsetParent !== null
-      }));
-      return { inputs, clickables };
-    });
-    console.log('[IG] 2FA debug:', JSON.stringify(debugInfo).substring(0, 1000));
-
-    // If phone number provided, fill using nativeInputValueSetter (for Web Bloks framework)
-    let phoneFilled = false;
-    let fillResult = { found: false };
-    if (phone) {
-      // Web Bloks uses custom input handling - need native value setter
-      fillResult = await page.evaluate((phoneNumber) => {
-        const input = document.querySelector('input[aria-label="Número do celular"]') 
-                   || document.querySelector('input[type="text"]');
-        if (!input) return { found: false };
-        
-        // Use native input value setter to bypass framework
-        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-        nativeSetter.call(input, phoneNumber);
-        
-        // Dispatch all possible events that Web Bloks might listen to
-        input.dispatchEvent(new Event('focus', { bubbles: true }));
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-        input.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: phoneNumber[phoneNumber.length-1] }));
-        input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: phoneNumber[phoneNumber.length-1] }));
-        
-        return { found: true, value: input.value, tagName: input.tagName };
-      }, phone);
-      
-      console.log('[IG] Native fill result:', JSON.stringify(fillResult));
-      phoneFilled = fillResult.found && fillResult.value && fillResult.value.length > 3;
-      
-      // Verify from Playwright side
-      if (fillResult.found) {
-        await sleep(1000);
-        const pwVal = await page.locator('input[aria-label="Número do celular"]').inputValue().catch(() => '');
-        console.log('[IG] Playwright inputValue:', pwVal);
-        if (pwVal && pwVal.length > 3) phoneFilled = true;
-      }
-
-      // If native setter didn't work, try Playwright locator fill
-      if (!phoneFilled && fillResult.found) {
-        try {
-          const inputLocator = page.locator('input[aria-label="Número do celular"]');
-          await inputLocator.click();
-          await sleep(300);
-          await inputLocator.pressSequentially(phone, { delay: 100 });
-          await sleep(1000);
-          const val = await inputLocator.inputValue();
-          console.log('[IG] pressSequentially value:', val);
-          phoneFilled = val && val.length > 3;
-        } catch(e) {
-          console.log('[IG] pressSequentially failed:', e.message);
-        }
-      }
+    // Try to click "Send SMS" button
+    const sendBtn = await page.$('button:has-text("Enviar")') || await page.$('button:has-text("Send")') || await page.$('button[type="submit"]');
+    if (sendBtn) {
+      await sendBtn.click();
+      await sleep(3000);
+      const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });
+      return { success: true, message: 'SMS enviado. Verifique o teu telefone.', screenshot };
     }
-
-    console.log('[IG] phoneFilled:', phoneFilled);
-
-    // Click send/continue button - prefer locator for React compatibility
-    let clicked = false;
-
-    // Try Playwright locator with getByRole first (most reliable for React)
-    try {
-      const continueBtn = page.getByRole('button', { name: 'Continuar' });
-      if (await continueBtn.isVisible()) {
-        console.log('[IG] Clicking via getByRole: Continuar');
-        await continueBtn.click();
-        clicked = true;
-      }
-    } catch(e) {
-      console.log('[IG] getByRole failed:', e.message);
-    }
-
-    if (!clicked) {
-      const sendSelectors = [
-        'button:has-text("Enviar código")', 'button:has-text("Enviar")', 'button:has-text("Send code")', 'button:has-text("Send")',
-        'button:has-text("Receber código")', 'button:has-text("Continuar")', 'button:has-text("Continue")',
-        'button[type="submit"]', 'button:has-text("Next")', 'button:has-text("Próximo")',
-        'div[role="button"]:has-text("Continuar")', 'div[role="button"]:has-text("Enviar")',
-        'a:has-text("Continuar")', 'a:has-text("Enviar")',
-      ];
-      for (const sel of sendSelectors) {
-        try {
-          const locator = page.locator(sel).first();
-          if (await locator.isVisible()) {
-            console.log('[IG] Clicking via locator:', sel);
-            await locator.click();
-            clicked = true;
-            break;
-          }
-        } catch(e) { continue; }
-      }
-    }
-
-    if (!clicked) {
-      try {
-        await page.getByText('Continuar').click({ timeout: 3000 });
-        console.log('[IG] Clicked via getByText: Continuar');
-        clicked = true;
-      } catch(e) {
-        console.log('[IG] getByText failed:', e.message);
-      }
-    }
-
-    if (!clicked) {
-      return { success: false, error: 'Botão de envio não encontrado', screenshot, pageText: pageText.substring(0, 500), debugInfo };
-    }
-
-    await sleep(6000);
-    const afterSs = await page.screenshot({ encoding: 'base64', fullPage: false });
-    const afterText = await page.evaluate(() => document.body?.innerText?.substring(0, 800) || '');
-    const afterUrl = page.url();
-    console.log('[IG] After click URL:', afterUrl);
-    console.log('[IG] After click text:', afterText.substring(0, 300));
-
-    // Always include debug info in response
-    const result = { screenshot: afterSs, pageText: afterText, afterUrl, phoneFilled, fillResult, debugInfo };
-
-    // Check if we're now on a code entry page
-    // Web Bloks pages might not have standard input elements
-    // Detect by page text: "Insira o código" or "Enviamos um código"
-    let isCodeEntryPage = afterText.includes('Insira o código') || afterText.includes('Enviamos um código') || afterText.includes('Enter the code');
-    
-    // Also check for standard code inputs
-    if (!isCodeEntryPage) {
-      const codeInputs = await page.$$('input[maxlength="6"]');
-      for (const ci of codeInputs) {
-        if (await ci.isVisible()) { isCodeEntryPage = true; break; }
-      }
-    }
-    if (!isCodeEntryPage) {
-      const numInput = await page.$('input[inputmode="numeric"]');
-      if (numInput && await numInput.isVisible()) isCodeEntryPage = true;
-    }
-    if (!isCodeEntryPage) {
-      const vcInput = await page.$('input[name="verificationCode"]');
-      if (vcInput && await vcInput.isVisible()) isCodeEntryPage = true;
-    }
-
-    if (isCodeEntryPage) {
-      // If we see "Enviamos um código" but also "Continuar", need to click again
-      if (afterText.includes('Enviamos um código') && afterText.includes('Continuar')) {
-        console.log('[IG] On confirmation page, clicking Continuar to actually send code');
-        try {
-          await page.getByRole('button', { name: 'Continuar' }).click({ timeout: 5000 });
-          await sleep(5000);
-          const finalText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
-          const finalSs = await page.screenshot({ encoding: 'base64', fullPage: false });
-          return { success: true, message: 'Código SMS enviado! Verifica o teu telefone.', screenshot: finalSs, pageText: finalText, afterUrl: page.url() };
-        } catch(e) {
-          console.log('[IG] Second continue click failed:', e.message);
-        }
-      }
-      return { success: true, message: 'Página de código 2FA atingida. Verifica o teu telefone.', ...result };
-    }
-
-    // If page text changed, it progressed
-    if (afterText !== pageText) {
-      return { success: true, message: 'Página avançou. Verifica o estado.', ...result };
-    }
-
-    return { success: false, error: 'Página não avançou após clicar Continuar. O número pode estar errado ou a página requer outra ação.', ...result };
-
-
+    return { success: false, error: 'Botão de envio não encontrado' };
   } catch(e) {
     return { success: false, error: e.message };
   }
@@ -982,138 +829,26 @@ async function igVerify2FA(code) {
     const page = ig2FA.page;
     const ctx = ig2FA.context;
 
-    // Debug: dump ALL elements on the page to understand structure
-    const pageDebug = await page.evaluate(() => {
-      const allElements = document.querySelectorAll('*');
-      const interesting = [];
-      for (const el of allElements) {
-        const tag = el.tagName;
-        if (['INPUT', 'TEXTAREA', 'SELECT', 'IFRAME'].includes(tag)) {
-          interesting.push({ tag, type: el.type, name: el.name, id: el.id, placeholder: el.placeholder, 
-            ariaLabel: el.getAttribute('aria-label'), value: el.value, visible: el.offsetParent !== null,
-            maxLength: el.maxLength, inputMode: el.inputMode });
-        }
-        if (el.contentEditable === 'true' || el.getAttribute('contenteditable') === 'true') {
-          interesting.push({ tag, contentEditable: true, text: el.innerText?.substring(0, 50), className: el.className?.substring(0, 60), visible: el.offsetParent !== null });
-        }
-        if (el.getAttribute('role') === 'textbox' || el.getAttribute('role') === 'search') {
-          interesting.push({ tag, role: el.getAttribute('role'), ariaLabel: el.getAttribute('aria-label'), className: el.className?.substring(0, 60), visible: el.offsetParent !== null });
-        }
-        // Check for Web Bloks input patterns
-        if (el.className && typeof el.className === 'string' && (el.className.includes('input') || el.className.includes('field') || el.className.includes('code'))) {
-          if (['DIV', 'SPAN', 'LABEL'].includes(tag) && el.offsetParent !== null) {
-            interesting.push({ tag, className: el.className.substring(0, 80), text: el.innerText?.substring(0, 30), role: el.getAttribute('role') });
-          }
-        }
-      }
-      return interesting;
-    });
-    console.log('[IG] Verify page elements:', JSON.stringify(pageDebug).substring(0, 2000));
-
-    const pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
-    const pageUrl = page.url();
-    console.log('[IG] Verify 2FA page:', pageUrl);
-    console.log('[IG] Verify 2FA text:', pageText.substring(0, 300));
-
-    let codeEntered = false;
-
-    // Direct approach: target the known Web Bloks code input
-    try {
-      const codeLocator = page.locator('input[aria-label="Insira o código"]');
-      if (await codeLocator.isVisible({ timeout: 3000 })) {
-        console.log('[IG] Found code input by aria-label, using native setter');
-        await codeLocator.click();
-        await sleep(300);
-        // Use native value setter for Web Bloks
-        await page.evaluate((c) => {
-          const input = document.querySelector('input[aria-label="Insira o código"]');
-          if (input) {
-            const s = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-            s.call(input, c);
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-        }, code);
-        await sleep(1500);
-        const val = await codeLocator.inputValue();
-        console.log('[IG] Code input value after fill:', val);
-        codeEntered = val && val.length >= 4;
-      }
-    } catch(e) {
-      console.log('[IG] aria-label approach failed:', e.message);
+    // Find code input
+    const codeInput = await page.$('input[name="verificationCode"]') || await page.$('input[inputmode="numeric"]') || await page.$('input[maxlength="6"]') || await page.$('input[type="text"]');
+    if (!codeInput) {
+      return { success: false, error: 'Campo de código não encontrado', screenshot: await page.screenshot({ encoding: 'base64' }).catch(() => '') };
     }
 
-    // Fallback: try any inputmode=numeric input
-    if (!codeEntered) {
-      try {
-        const numInput = page.locator('input[inputmode="numeric"]').first();
-        if (await numInput.isVisible({ timeout: 2000 })) {
-          console.log('[IG] Found inputmode=numeric input');
-          await numInput.click();
-          await sleep(300);
-          await page.evaluate((c) => {
-            const input = document.querySelector('input[inputmode="numeric"]');
-            if (input) {
-              const s = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-              s.call(input, c);
-              input.dispatchEvent(new Event('input', { bubbles: true }));
-              input.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-          }, code);
-          await sleep(1000);
-          codeEntered = true;
-        }
-      } catch(e) {}
-    }
+    await codeInput.fill(code);
+    await sleep(1000);
 
-    // Fallback: keyboard typing on focused input
-    if (!codeEntered) {
-      try {
-        const anyInput = page.locator('input:visible').first();
-        if (await anyInput.isVisible({ timeout: 2000 })) {
-          console.log('[IG] Fallback: typing on first visible input');
-          await anyInput.click();
-          await sleep(200);
-          await page.keyboard.type(code, { delay: 80 });
-          await sleep(1000);
-          codeEntered = true;
-        }
-      } catch(e) {}
-    }
-
-    console.log('[IG] codeEntered:', codeEntered);
-    await sleep(1500);
-
-    // Submit - click Continuar
-    let submitted = false;
-    try {
-      const continueBtn = page.getByRole('button', { name: 'Continuar' });
-      if (await continueBtn.isVisible()) {
-        await continueBtn.click();
-        submitted = true;
-        console.log('[IG] Submitted via getByRole Continuar');
-      }
-    } catch(e) {}
-
-    if (!submitted) {
-      const submitSelectors = ['button[type="submit"]', 'button:has-text("Confirmar")', 'button:has-text("Next")', 'div[role="button"]:has-text("Continuar")'];
-      for (const sel of submitSelectors) {
-        try {
-          const btn = page.locator(sel).first();
-          if (await btn.isVisible()) { await btn.click(); submitted = true; break; }
-        } catch(e) {}
-      }
-    }
-    if (!submitted) await page.keyboard.press('Enter');
+    // Submit
+    const submitBtn = await page.$('button[type="submit"]') || await page.$('button:has-text("Confirmar")') || await page.$('button:has-text("Submit")') || await page.$('button:has-text("Next")');
+    if (submitBtn) await submitBtn.click();
+    else await page.keyboard.press('Enter');
 
     await sleep(8000);
     await page.waitForLoadState('domcontentloaded', { timeout: 30000 }).catch(() => {});
 
     const afterUrl = page.url();
     const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });
-    const afterText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
     console.log('[IG] After 2FA URL:', afterUrl);
-    console.log('[IG] After 2FA text:', afterText.substring(0, 200));
 
     // Check CAPTCHA after 2FA
     if (afterUrl.includes('challenge') || afterUrl.includes('captcha') || afterUrl.includes('verify')) {
@@ -1131,21 +866,16 @@ async function igVerify2FA(code) {
       }
     }
 
-    if (!afterUrl.includes('login') && !afterUrl.includes('challenge') && !afterUrl.includes('2fa') && !afterUrl.includes('password/reset')) {
+    if (!afterUrl.includes('login') && !afterUrl.includes('challenge') && !afterUrl.includes('2fa')) {
+      // Login success!
       const cookies = await ctx.cookies();
       await saveIGSession(cookies);
       await close2FAContext();
       return { success: true, message: 'Login OK com 2FA!', screenshot };
     }
 
-    // Check if code was wrong (page still shows same content)
-    if (afterText.includes('código incorreto') || afterText.includes('incorrect code') || afterText.includes('wrong code')) {
-      await close2FAContext();
-      return { success: false, error: 'Código incorreto. Tente novamente.', screenshot, afterUrl, afterText };
-    }
-
     await close2FAContext();
-    return { success: false, error: '2FA verificação falhou. URL: ' + afterUrl, screenshot, afterUrl, afterText, pageDebug };
+    return { success: false, error: '2FA verificação falhou. URL: ' + afterUrl, screenshot };
 
   } catch(e) {
     console.error('[IG] 2FA verify error:', e.message);
@@ -1308,8 +1038,10 @@ async function igSendDM(targetUsername, message, useProxy = true) {
 // ============================================
 
 async function fbLogin() {
-  // NO caching - fresh login every time
-  sessions.fb = { cookies: null, loggedIn: false, userId: null, dtsg: null, expiresAt: 0 };
+  if (sessions.fb.loggedIn && sessions.fb.cookies && Date.now() < sessions.fb.expiresAt) {
+    console.log('[FB] Using cached session');
+    return { success: true, cached: true };
+  }
 
   console.log('[FB] Starting browser login...');
   const useProxy = !!getProxyAddress();
@@ -1319,7 +1051,7 @@ async function fbLogin() {
   await page.addInitScript(STEALTH_JS);
 
   try {
-    await page.goto('https://www.facebook.com/login/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto('https://www.facebook.com/login/', { waitUntil: 'load', timeout: 45000 });
     await sleep(2000);
     const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });
 
@@ -1356,9 +1088,7 @@ async function fbLogin() {
     await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
 
     const afterUrl = page.url();
-    const afterText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
     console.log('[FB] After login URL:', afterUrl);
-    console.log('[FB] After login text:', afterText.substring(0, 200));
 
     // Check for CAPTCHA
     if (afterUrl.includes('captcha') || afterUrl.includes('challenge') || afterUrl.includes('checkpoint')) {
@@ -1405,11 +1135,8 @@ async function fbLogin() {
       return { success: false, error: 'Login form error: ' + errorText.trim(), screenshot };
     }
 
-    // Success check - wait more for JS to render
+    // Success
     await page.goto('https://www.facebook.com/', { waitUntil: 'load', timeout: 30000 }).catch(() => {});
-    await sleep(5000);
-    // Wait for React to render
-    await page.waitForSelector('body', { timeout: 5000 }).catch(() => {});
     await sleep(3000);
 
     const fbDtsg = await page.evaluate(() => {
@@ -1424,23 +1151,16 @@ async function fbLogin() {
     });
 
     const finalCookies = await ctx.cookies();
-    const cookieNames = finalCookies.map(c => c.name);
-    console.log('[FB] Cookies received:', cookieNames.join(', '));
-    
-    // Try multiple possible session cookies
-    const userId = finalCookies.find(c => c.name === 'c_user') 
-                || finalCookies.find(c => c.name === 'datr')
-                || finalCookies.find(c => c.name === 'sb');
-    if (userId || cookieNames.includes('c_user') || cookieNames.includes('xs')) {
-      sessions.fb = { cookies: finalCookies, loggedIn: true, userId: userId ? userId.value : 'unknown', dtsg: fbDtsg, expiresAt: Date.now() + 3600000 };
-      console.log('[FB] Login OK! userId=' + (userId ? userId.value : 'from cookies'));
+    const userId = finalCookies.find(c => c.name === 'c_user');
+    if (userId) {
+      sessions.fb = { cookies: finalCookies, loggedIn: true, userId: userId.value, dtsg: fbDtsg, expiresAt: Date.now() + 3600000 };
+      console.log('[FB] Login OK! userId=' + userId.value);
       await ctx.close();
-      return { success: true, cookieNames, screenshot };
+      return { success: true, screenshot };
     }
 
     await ctx.close();
-    const finalUrl = page.url();
-    return { success: false, error: 'Login failed - no session cookies', afterUrl: finalUrl, afterText: afterText?.substring(0, 300), cookieNames, screenshot };
+    return { success: false, error: 'Login failed - no session cookies', screenshot };
 
   } catch (err) {
     console.error('[FB] Login error:', err.message);
@@ -1535,8 +1255,10 @@ async function fbSendDM(targetUsername, message, useProxy = true) {
 // ============================================
 
 async function ttLogin() {
-  // NO caching - fresh login every time
-  sessions.tt = { cookies: null, loggedIn: false, expiresAt: 0 };
+  if (sessions.tt.loggedIn && sessions.tt.cookies && Date.now() < sessions.tt.expiresAt) {
+    console.log('[TT] Using cached session');
+    return { success: true, cached: true };
+  }
 
   console.log('[TT] Starting browser login...');
   const useProxy = !!getProxyAddress();
@@ -1746,11 +1468,8 @@ app.post('/ig/login', authMiddleware, async (req, res) => {
 });
 
 app.post('/ig/send-2fa', authMiddleware, async (req, res) => {
-  try {
-    const { phone } = req.body || {};
-    const result = await igSend2FA(phone);
-    res.json(result);
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  try { const result = await igSend2FA(); res.json(result); }
+  catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.post('/ig/verify-2fa', authMiddleware, async (req, res) => {
@@ -1758,36 +1477,6 @@ app.post('/ig/verify-2fa', authMiddleware, async (req, res) => {
     const { code } = req.body;
     if (!code || !/^\d{4,8}$/.test(code)) return res.status(400).json({ success: false, error: 'Codigo invalido (4-8 digitos)' });
     const result = await igVerify2FA(code); res.json(result);
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
-});
-
-// Debug endpoint - inspect 2FA page without closing context
-app.post('/ig/2fa-debug', authMiddleware, async (req, res) => {
-  try {
-    if (!ig2FA.active || !ig2FA.page) return res.json({ active: false, error: 'Nenhum contexto 2FA ativo' });
-    const page = ig2FA.page;
-    const pageDebug = await page.evaluate(() => {
-      const allElements = document.querySelectorAll('*');
-      const interesting = [];
-      for (const el of allElements) {
-        const tag = el.tagName;
-        if (['INPUT', 'TEXTAREA', 'SELECT', 'IFRAME'].includes(tag)) {
-          interesting.push({ tag, type: el.type, name: el.name, id: el.id, placeholder: el.placeholder,
-            ariaLabel: el.getAttribute('aria-label'), value: el.value, visible: el.offsetParent !== null,
-            maxLength: el.maxLength, inputMode: el.inputMode });
-        }
-        if (el.contentEditable === 'true' || el.getAttribute('contenteditable') === 'true') {
-          interesting.push({ tag, contentEditable: true, text: el.innerText?.substring(0, 50), className: el.className?.substring(0, 60), visible: el.offsetParent !== null });
-        }
-        if (el.getAttribute('role') === 'textbox' || el.getAttribute('role') === 'search' || el.getAttribute('role') === 'button') {
-          interesting.push({ tag, role: el.getAttribute('role'), text: el.innerText?.substring(0, 40), ariaLabel: el.getAttribute('aria-label'), className: el.className?.substring(0, 60), visible: el.offsetParent !== null });
-        }
-      }
-      return interesting;
-    });
-    const pageText = await page.evaluate(() => document.body?.innerText?.substring(0, 800) || '');
-    const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });
-    res.json({ active: true, url: page.url(), pageText, pageDebug, hasScreenshot: true });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
@@ -1871,29 +1560,6 @@ app.post('/clear', authMiddleware, async (req, res) => {
   if (browserNoProxy) { await browserNoProxy.close().catch(() => {}); browserNoProxy = null; }
   if (browserWithProxy) { await browserWithProxy.close().catch(() => {}); browserWithProxy = null; }
   res.json({ success: true, message: 'Todas as sessoes limpas' });
-});
-
-// Test all 3 platforms login at once
-app.post('/test-all', authMiddleware, async (req, res) => {
-  try {
-    const results = {};
-    
-    // Run FB and TT in parallel (IG needs sequential 2FA)
-    const [fbResult, ttResult] = await Promise.allSettled([
-      fbLogin().catch(e => ({ success: false, error: e.message })),
-      ttLogin().catch(e => ({ success: false, error: e.message }))
-    ]);
-    
-    results.facebook = fbResult.status === 'fulfilled' ? fbResult.value : { success: false, error: fbResult.reason?.message };
-    results.tiktok = ttResult.status === 'fulfilled' ? ttResult.value : { success: false, error: ttResult.reason?.message };
-    
-    // Clean results (remove screenshots for brevity)
-    for (const k of ['facebook', 'tiktok']) {
-      delete results[k]?.screenshot;
-    }
-    
-    res.json({ success: true, results });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ============================================
