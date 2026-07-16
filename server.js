@@ -2313,6 +2313,29 @@ async function ttLogin() {
     const afterUrl = page.url();
     console.log('[TT] After login URL:', afterUrl);
 
+    // Debug: screenshot and text right after login click
+    const afterLoginSs = await page.screenshot({ encoding: 'base64', fullPage: false });
+    const afterLoginText = await page.evaluate(() => document.body?.innerText?.substring(0, 1000) || '');
+    console.log('[TT] After login text:', afterLoginText.substring(0, 300));
+
+    // Check for post-login states: CAPTCHA, SMS verification, error messages
+    const postLoginError = afterLoginText.match(/senha incorreta|password.*incorrect|username.*not found|usuário não encontrado|account.*locked|suspicious.*activity|verify.*phone/i);
+    if (postLoginError) {
+      console.log('[TT] Login error detected:', postLoginError[0]);
+      await ctx.close();
+      return { success: false, error: 'TT login: ' + postLoginError[0], url: afterUrl, pageText: afterLoginText.substring(0, 500), screenshot: afterLoginSs };
+    }
+    
+    // Check for "verify your phone" or "confirm your identity" pages
+    const needsVerification = afterUrl.includes('verify') || afterUrl.includes('confirm') 
+      || afterLoginText.includes('verifique') || afterLoginText.includes('verify your')
+      || afterLoginText.includes('confirm your') || afterLoginText.includes('send code');
+    if (needsVerification) {
+      console.log('[TT] Phone verification required');
+      await ctx.close();
+      return { success: false, error: 'TT requer verificacao de telefone', url: afterUrl, pageText: afterLoginText.substring(0, 500), screenshot: afterLoginSs, needsVerification: true };
+    }
+
     // CAPTCHA detection + solving
     if (afterUrl.includes('verify') || afterUrl.includes('captcha') || afterUrl.includes('challenge')) {
       console.log('[TT] CAPTCHA detected! Solving...');
