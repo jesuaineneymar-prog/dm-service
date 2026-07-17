@@ -2442,71 +2442,39 @@ async function ttLoginUserPass() {
       
       if (!targetInput) return { found: false, inputCount: allInputs.length };
       
-      // Click to focus, then use native setter
-      targetInput.focus();
-      targetInput.click();
-      const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-      nativeSetter.call(targetInput, username);
-      targetInput.dispatchEvent(new Event('input', { bubbles: true }));
-      targetInput.dispatchEvent(new Event('change', { bubbles: true }));
-      targetInput.dispatchEvent(new Event('blur', { bubbles: true }));
-      return { found: true, value: targetInput.value, type: targetInput.type, name: targetInput.name };
+      // Return info about found input, don't fill yet
+      return { found: true, type: targetInput.type, name: targetInput.name, placeholder: targetInput.placeholder };
     }, CREDS.tt.user);
-    console.log('[TT UP] Fill user result:', JSON.stringify(fillUserResult));
-    await sleep(800);
-
-    if (!fillUserResult.found) {
+    console.log('[TT UP] Found input:', JSON.stringify(fillUserResult));
+    
+    // Fill username using Playwright's type() for proper React event handling
+    const userEl = await page.$('input[name="username"]') || await page.$('input[placeholder*="mail"]') || await page.$('input[placeholder*="user"]');
+    if (userEl) {
+      await userEl.click({ force: true });
+      await sleep(300);
+      await userEl.fill('');
+      await sleep(200);
+      await userEl.type(CREDS.tt.user, { delay: 50 });
+      console.log('[TT UP] Username typed via Playwright');
+    } else {
       const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
       const txt = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
       await ctx.close();
-      return { success: false, error: 'Campo de username nao encontrado no TikTok', url: urlAfterTab, pageText: txt.substring(0, 300), inputsFound: inputDebug, screenshot: ss };
+      return { success: false, error: 'Campo de username nao encontrado no TikTok (Playwright)', url: urlAfterTab, pageText: txt.substring(0, 300), inputsFound: inputDebug, screenshot: ss };
     }
+    await sleep(800);
 
-    // Find and fill password using page.evaluate (same robust approach)
-    await sleep(500);
-    const fillPassResult = await page.evaluate((password) => {
-      const passInput = document.querySelector('input[type="password"]') || document.querySelector('input[name="password"]');
-      if (!passInput) return { found: false };
-      passInput.focus();
-      passInput.click();
-      // For password fields, use nativeInputValueSetter
-      const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-      nativeSetter.call(passInput, password);
-      passInput.dispatchEvent(new Event('input', { bubbles: true }));
-      passInput.dispatchEvent(new Event('change', { bubbles: true }));
-      return { found: true, len: passInput.value.length };
-    }, CREDS.tt.pass);
-    console.log('[TT UP] Fill pass result:', JSON.stringify(fillPassResult));
-    
-    if (!fillPassResult.found) {
-      console.log('[TT UP] No password field found - may need to go to password step');
-      // Try clicking "Entrar" to advance to password page
-      const nextTexts = ['Próximo', 'Next', 'Continuar', 'Continue'];
-      for (const txt of nextTexts) {
-        try {
-          const el = page.getByRole('button').filter({ hasText: txt }).first();
-          const box = await el.boundingBox({ timeout: 2000 }).catch(() => null);
-          if (box && box.width > 30) {
-            await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-            console.log('[TT UP] Clicked next button:', txt);
-            await sleep(3000);
-            break;
-          }
-        } catch(e) {}
-      }
-      
-      // Retry password fill
-      const fillPass2 = await page.evaluate((password) => {
-        const passInput = document.querySelector('input[type="password"]');
-        if (!passInput) return { found: false };
-        passInput.focus();
-        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-        nativeSetter.call(passInput, password);
-        passInput.dispatchEvent(new Event('input', { bubbles: true }));
-        passInput.dispatchEvent(new Event('change', { bubbles: true }));
-        return { found: true, len: passInput.value.length };
-      }, CREDS.tt.pass);
-      console.log('[TT UP] Fill pass retry:', JSON.stringify(fillPass2));
+    // Fill password using Playwright's type() for proper React event handling
+    const passEl = await page.$('input[type="password"]');
+    if (passEl) {
+      await passEl.click({ force: true });
+      await sleep(300);
+      await passEl.fill('');
+      await sleep(200);
+      await passEl.type(CREDS.tt.pass, { delay: 50 });
+      console.log('[TT UP] Password typed via Playwright, len:', CREDS.tt.pass.length);
+    } else {
+      console.log('[TT UP] No password field found');
     }
     await sleep(800);
 
