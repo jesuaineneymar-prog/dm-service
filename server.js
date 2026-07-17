@@ -753,38 +753,49 @@ async function igLoginInternal() {
     }
     await sleep(500 + Math.random() * 500);
 
-    // Find and fill password - try Playwright fill() first, then nativeInputValueSetter
-    console.log('[IG] Filling password...');
+    // Find and fill password - use nativeInputValueSetter FIRST (Web Bloks requires it)
+    // Playwright fill() does NOT work with IG's Web Bloks framework for password fields
+    console.log('[IG] Filling password with nativeInputValueSetter...');
+    let passFillOk = false;
     try {
-      const passEl = await page.$('input[name="password"]') || await page.$('input[type="password"]') || await page.$('input[aria-label="Senha"]');
-      if (passEl) {
-        await passEl.click({ force: true });
-        await sleep(300);
-        await passEl.fill(CREDS.ig.pass);
-        console.log('[IG] Password filled via Playwright fill(), len:', CREDS.ig.pass.length);
-        
-        // Verify fill
-        const passVal = await page.evaluate(() => {
-          const i = document.querySelector('input[name="password"]') || document.querySelector('input[type="password"]');
-          return i ? { val: i.value, len: i.value.length } : null;
-        });
-        console.log('[IG] Password field after fill:', JSON.stringify(passVal));
-      }
-    } catch(e) {
-      console.log('[IG] Password fill error:', e.message.substring(0, 80));
-      // Fallback: nativeInputValueSetter
       const passFillResult = await page.evaluate((password) => {
         const input = document.querySelector('input[name="password"]') 
                    || document.querySelector('input[type="password"]')
                    || document.querySelector('input[aria-label="Senha"]');
         if (!input) return { found: false };
+        // Focus the input first
+        input.focus();
         const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
         nativeSetter.call(input, password);
         input.dispatchEvent(new Event('input', { bubbles: true }));
         input.dispatchEvent(new Event('change', { bubbles: true }));
+        input.dispatchEvent(new Event('blur', { bubbles: true }));
         return { found: true, value: input.value, len: input.value.length };
       }, CREDS.ig.pass);
-      console.log('[IG] Password fill fallback result:', JSON.stringify(passFillResult));
+      console.log('[IG] Password nativeInputValueSetter result:', JSON.stringify(passFillResult));
+      if (passFillResult.found && passFillResult.len === CREDS.ig.pass.length) {
+        passFillOk = true;
+      }
+    } catch(e) {
+      console.log('[IG] Password nativeInputValueSetter error:', e.message.substring(0, 80));
+    }
+
+    // Fallback: Playwright fill() + type()
+    if (!passFillOk) {
+      console.log('[IG] Password nativeInputValueSetter failed, trying Playwright fill()...');
+      try {
+        const passEl = await page.$('input[name="password"]') || await page.$('input[type="password"]') || await page.$('input[aria-label="Senha"]');
+        if (passEl) {
+          await passEl.click({ force: true });
+          await sleep(300);
+          await passEl.fill('');
+          await sleep(100);
+          await passEl.type(CREDS.ig.pass, { delay: 30 });
+          console.log('[IG] Password filled via type(), len:', CREDS.ig.pass.length);
+        }
+      } catch(e) {
+        console.log('[IG] Password type() error:', e.message.substring(0, 80));
+      }
     }
     await sleep(500);
 
