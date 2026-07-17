@@ -2488,10 +2488,11 @@ async function ttLoginUserPass() {
     console.log('[TT UP] After login URL:', afterUrl);
     console.log('[TT UP] After login text:', afterText.substring(0, 400));
 
-    // Check for errors
-    if (afterText.includes('ocorreu um erro') || afterText.includes('error occurred') || 
-        afterText.includes('Tente novamente') || afterText.includes('Too many attempts') ||
-        afterText.includes('muita frequência')) {
+    // Check for errors (case-insensitive)
+    const afterTextLower = afterText.toLowerCase();
+    if (afterTextLower.includes('ocorreu um erro') || afterTextLower.includes('error occurred') || 
+        afterTextLower.includes('tente novamente') || afterTextLower.includes('too many attempts') ||
+        afterTextLower.includes('muita frequência') || afterTextLower.includes('tente mais tarde')) {
       await ctx.close();
       return { success: false, error: 'TT login erro: ' + afterText.substring(0, 200), url: afterUrl, screenshot: ss };
     }
