@@ -880,16 +880,36 @@ async function igLoginInternal() {
             const codeLink = page.getByText('Receber código', { exact: false }).first();
             const codeBox = await codeLink.boundingBox({ timeout: 3000 }).catch(() => null);
             if (codeBox) {
+              // Click with navigation wait
+              const navPromise = page.waitForNavigation({ timeout: 15000 }).catch(e => console.log('[IG] Nav timeout:', e.message.substring(0, 50)));
               await page.mouse.click(codeBox.x + codeBox.width / 2, codeBox.y + codeBox.height / 2);
               console.log('[IG] Clicked "Receber código"');
-              await sleep(8000);
+              await navPromise;
+              await sleep(5000);
               await page.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => {});
               
+              // Check if page/context is still alive
+              let pageAlive = false;
+              try { await page.url(); pageAlive = true; } catch(e) { console.log('[IG] Page is dead after navigation'); }
+              
+              if (!pageAlive) {
+                console.log('[IG] Page closed after Receber código click. IG may have opened a new page.');
+                // Check if a new page opened in the same context
+                const pages = ctx.pages();
+                if (pages.length > 0) {
+                  page = pages[pages.length - 1];
+                  console.log('[IG] Found new page:', page.url());
+                } else {
+                  await ctx.close();
+                  return { success: false, error: 'IG fechou a página após clicar "Receber código". Tente novamente.' };
+                }
+              }
+              
               const codeUrl = page.url();
-              const codeText = await page.evaluate(() => document.body?.innerText?.substring(0, 1500) || '');
-              const codeSs = await page.screenshot({ encoding: 'base64', fullPage: false });
+              const codeText = await page.evaluate(() => document.body?.innerText?.substring(0, 1500) || '').catch(() => '');
+              const codeSs = await page.screenshot({ encoding: 'base64', fullPage: false }).catch(() => '');
               console.log('[IG] After "Receber código" URL:', codeUrl);
-              console.log('[IG] After "Receber código" text:', codeText.substring(0, 400));
+              console.log('[IG] After "Receber código" text:', (codeText || '').substring(0, 400));
               
               // Check if password reset (BAD)
               if (codeUrl.includes('password/reset') || codeText.includes('Redefinir sua senha') || codeText.includes('Reset your password')) {
