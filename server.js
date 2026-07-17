@@ -551,6 +551,22 @@ async function checkAndSolveCaptcha(page, submitSelector) {
 // BROWSER MANAGEMENT (Dual: with/without proxy)
 // ============================================
 
+// --- Log buffer for debugging ---
+const LOG_BUFFER = [];
+const MAX_LOG = 200;
+function log(msg) {
+  const ts = new Date().toISOString().substring(11, 19);
+  const line = ts + ' ' + msg;
+  LOG_BUFFER.push(line);
+  if (LOG_BUFFER.length > MAX_LOG) LOG_BUFFER.shift();
+  console.log(msg);
+}
+// Override console.log/error to also capture in buffer
+const origLog = console.log;
+const origError = console.error;
+console.log = (...args) => { origLog(...args); log(args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')); };
+console.error = (...args) => { origError(...args); log('ERR: ' + args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')); };
+
 async function getBrowser(useProxy = false) {
   if (useProxy) {
     if (browserWithProxy && browserWithProxy.isConnected()) return browserWithProxy;
@@ -3222,6 +3238,10 @@ app.get('/health', (req, res) => {
     },
     ig2FA: ig2FA.active ? 'waiting_for_code' : 'none'
   });
+});
+
+app.get('/debug/logs', authMiddleware, (req, res) => {
+  res.json({ logs: LOG_BUFFER.slice(-50) });
 });
 
 // --- INSTAGRAM ROUTES ---
