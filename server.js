@@ -818,7 +818,31 @@ async function igLoginInternal() {
 
     const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });
 
-    // *** CHECK FOR ERRORS FIRST (before 2FA) - "Senha incorreta" must be caught here ***
+    // *** CRITICAL FIX: Check 2FA FIRST (before error detection) ***
+    // IG often shows 2FA pages that contain text like "senha incorreta" or "tente novamente"
+    // The old code checked errors first and clicked "Receber código" (forgot password link)
+    // which navigated away from the 2FA page. Now we check 2FA first.
+    
+    // Check 1: URL-based 2FA detection (most reliable)
+    if (afterUrl.includes('challenge') || afterUrl.includes('two_factor') || afterUrl.includes('2fa')) {
+      // Check if it's a CAPTCHA challenge (not 2FA)
+      const isCaptchaChallenge = afterUrl.includes('captcha') || pageTextAfter.includes('Prove you') || pageTextAfter.includes('Prove that you') || (pageTextAfter.includes('security code') && pageTextAfter.includes('image'));
+      if (!isCaptchaChallenge) {
+        console.log('[IG] Challenge URL detected, treating as 2FA');
+        ig2FA.active = true; ig2FA.context = ctx; ig2FA.page = page; ig2FA.createdAt = Date.now();
+        return { success: false, needs2FA: true, message: '2FA/challenge detectado. Chame /ig/send-2fa para enviar o SMS.', screenshot, url: afterUrl };
+      }
+    }
+
+    // Check 2: Text-based 2FA detection (Web Bloks framework)
+    const is2FA = await detectIG2FAPage(page);
+    if (is2FA) {
+      console.log('[IG] 2FA page detected by text/content analysis!');
+      ig2FA.active = true; ig2FA.context = ctx; ig2FA.page = page; ig2FA.createdAt = Date.now();
+      return { success: false, needs2FA: true, message: '2FA requerido. Chame /ig/send-2fa para enviar o SMS.', screenshot };
+    }
+
+    // Check 3: Only NOW check for login errors (2FA has been ruled out)
     let loginError = '';
     const errorEl = await page.$('#slfErrorAlert') || await page.$('[id*="Error"]') || await page.$('[role="alert"]');
     if (errorEl) loginError = (await errorEl.textContent().catch(() => '')).trim();
@@ -838,50 +862,8 @@ async function igLoginInternal() {
       const isRealError = !ignorePatterns.some(p => loginError.toLowerCase().includes(p));
       if (isRealError) {
         console.log('[IG] Login error detected:', loginError);
-        
-        // If IG offers "receba um código" (receive a code) alongside the password error,
-        // this might be IG's way of offering login via code for suspicious logins.
-        // Click "Receber código" to try this flow instead of giving up.
-        if (pageTextAfter.includes('receba um código') || pageTextAfter.includes('Receber código')) {
-          console.log('[IG] Code option available, clicking "Receber código"...');
-          try {
-            const codeLink = page.getByText('Receber código', { exact: false }).first();
-            const codeBox = await codeLink.boundingBox({ timeout: 3000 }).catch(() => null);
-            if (codeBox) {
-              await page.mouse.click(codeBox.x + codeBox.width / 2, codeBox.y + codeBox.height / 2);
-              console.log('[IG] Clicked "Receber código"');
-              await sleep(6000);
-              await page.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => {});
-              
-              const codeUrl = page.url();
-              const codeText = await page.evaluate(() => document.body?.innerText?.substring(0, 1000) || '');
-              const codeSs = await page.screenshot({ encoding: 'base64', fullPage: false });
-              console.log('[IG] After "Receber código" URL:', codeUrl);
-              console.log('[IG] After "Receber código" text:', codeText.substring(0, 300));
-              
-              // Check if we're now on a code verification page or password reset
-              if (codeUrl.includes('password/reset') || codeText.includes('Redefinir sua senha') || codeText.includes('Reset your password')) {
-                console.log('[IG] "Receber código" went to password reset, not login code. Aborting.');
-                await ctx.close();
-                return { success: false, error: 'IG bloqueou login (IP datacenter). "Receber código" foi para reset de senha.', screenshot: codeSs, url: codeUrl, pageText: codeText.substring(0, 500) };
-              }
-              
-              // If it looks like a verification/code page, save context
-              ig2FA.active = true; ig2FA.context = ctx; ig2FA.page = page; ig2FA.createdAt = Date.now();
-              return { success: false, needs2FA: true, message: 'IG ofereceu login por código. Chame /ig/send-2fa para enviar.', screenshot: codeSs, url: codeUrl, pageText: codeText.substring(0, 500) };
-            }
-          } catch(e) {
-            console.log('[IG] "Receber código" click failed:', e.message.substring(0, 80));
-          }
-        }
-        
-        // Check if this might actually be a 2FA page with a misleading error text
-        const is2FA = await detectIG2FAPage(page);
-        if (is2FA) {
-          console.log('[IG] Despite error text, 2FA page also detected. Treating as 2FA.');
-          ig2FA.active = true; ig2FA.context = ctx; ig2FA.page = page; ig2FA.createdAt = Date.now();
-          return { success: false, needs2FA: true, message: '2FA requerido. Chame /ig/send-2fa para enviar o SMS.', screenshot };
-        }
+        // DO NOT click "Receber código" - that's the forgot password link, not 2FA
+        // 2FA was already checked above and ruled out, so this is a genuine login error
         if (CREDS.ig.email && !CREDS.ig.user.includes('@')) {
           console.log('[IG] Username failed, retrying with email:', CREDS.ig.email);
           await ctx.close();
@@ -910,21 +892,7 @@ async function igLoginInternal() {
       }
     }
 
-    // Check for 2FA (improved detection for Web Bloks)
-    const is2FAPage = await detectIG2FAPage(page);
-    if (is2FAPage) {
-      console.log('[IG] 2FA page detected!');
-      ig2FA.active = true; ig2FA.context = ctx; ig2FA.page = page; ig2FA.createdAt = Date.now();
-      return { success: false, needs2FA: true, message: '2FA requerido. Chame /ig/send-2fa para enviar o SMS.', screenshot };
-    }
-
-    // Additional 2FA check: if we're still on a challenge URL with Continuar button
-    const stillOnChallenge = afterUrl.includes('challenge') || afterUrl.includes('two_factor');
-    if (stillOnChallenge) {
-      console.log('[IG] Still on challenge URL, treating as 2FA');
-      ig2FA.active = true; ig2FA.context = ctx; ig2FA.page = page; ig2FA.createdAt = Date.now();
-      return { success: false, needs2FA: true, message: '2FA/challenge detectado. Chame /ig/send-2fa para enviar o SMS.', screenshot };
-    }
+    // (2FA and challenge checks already done above, no need to repeat here)
 
     // Login success
     if (!afterUrl.includes('/accounts/login') && !afterUrl.includes('challenge')) {
@@ -2718,7 +2686,9 @@ async function ttLoginPhone() {
       }
     }
 
-    await sleep(8000);
+    // Wait longer for SMS to actually send (TikTok can be slow)
+    console.log('[TT Phone] Waiting for SMS to send (15s)...');
+    await sleep(15000);
     await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
 
     const afterUrl = page.url();
@@ -2726,23 +2696,31 @@ async function ttLoginPhone() {
     console.log('[TT Phone] After send code URL:', afterUrl);
     console.log('[TT Phone] After send code text:', afterText.substring(0, 300));
 
-    // Check for code verification page
+    // Check for rate limiting FIRST (most common issue)
+    const rateLimitPatterns = [
+      'muita frequência', 'ocorreu um erro', 'error occurred',
+      'too many', 'tente novamente mais tarde', 'tente mais tarde',
+      'too frequently', 'wait a moment', 'aguarde um momento'
+    ];
+    const isRateLimited = rateLimitPatterns.some(p => afterText.toLowerCase().includes(p));
+    if (isRateLimited) {
+      const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
+      console.log('[TT Phone] Rate limited detected!');
+      await ctx.close();
+      return { success: false, error: 'TT rate limited. Aguarda pelo menos 30 minutos antes de tentar novamente.', url: afterUrl, pageText: afterText.substring(0, 500), screenshot: ss };
+    }
+
+    // Check for code verification page - ONLY if there's ACTUALLY a code input
     const hasCodeInput = await page.$('input[inputmode="numeric"]') || await page.$('input[name="code"]');
-    if (hasCodeInput || afterText.includes('código') || afterText.includes('Insira o código') || afterText.includes('Enter code') || afterUrl.includes('verify')) {
-      console.log('[TT Phone] Code verification page - saving context');
+    const hasVerifyText = afterText.includes('Insira o código') || afterText.includes('Enter code') || afterText.includes('verification code');
+    if (hasCodeInput && hasVerifyText) {
+      console.log('[TT Phone] Code verification page CONFIRMED - saving context');
       ttVerify.active = true;
       ttVerify.context = ctx;
       ttVerify.page = page;
       ttVerify.createdAt = Date.now();
       const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
       return { success: false, needsVerification: true, message: 'Código enviado para o telefone! Chame /tt/verify-code {code}.', url: afterUrl, pageText: afterText.substring(0, 500), screenshot: ss };
-    }
-
-    // Check for errors
-    if (afterText.includes('ocorreu um erro') || afterText.includes('error occurred') || afterText.includes('muita frequência')) {
-      const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
-      await ctx.close();
-      return { success: false, error: 'TT erro ao enviar codigo. Tente novamente mais tarde.', url: afterUrl, pageText: afterText.substring(0, 500), screenshot: ss };
     }
 
     // Check if login succeeded directly
@@ -2754,12 +2732,12 @@ async function ttLoginPhone() {
       return { success: true };
     }
 
+    // Unknown state - take screenshot and close (don't save context if we can't confirm verification is needed)
     const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
-    ttVerify.active = true;
-    ttVerify.context = ctx;
-    ttVerify.page = page;
-    ttVerify.createdAt = Date.now();
-    return { success: false, needsVerification: true, message: 'Estado desconhecido. Chame /tt/verify-code {code}.', url: afterUrl, pageText: afterText.substring(0, 500), screenshot: ss };
+    console.log('[TT Phone] Unknown state after send code');
+    await ctx.close();
+    return { success: false, error: 'TT estado desconhecido após enviar código. O SMS pode não ter sido enviado.', url: afterUrl, pageText: afterText.substring(0, 500), screenshot: ss };
+
 
   } catch (err) {
     console.error('[TT Phone] Login error:', err.message);
