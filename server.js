@@ -2711,7 +2711,37 @@ async function ttLoginPhone() {
     }
 
     // Fill phone number
-    const phoneInput = await page.$('input[type="tel"]') || await page.$('input[name="phone"]');
+    // TT may not use type="tel" - find any visible input on the phone page
+    let phoneInput = await page.$('input[type="tel"]') 
+      || await page.$('input[name="phone"]')
+      || await page.$('input[name="mobile"]');
+    
+    // Debug: log all inputs
+    const allInputs = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll('input')).map(i => ({
+        type: i.type, name: i.name, placeholder: i.placeholder, id: i.id,
+        visible: i.offsetParent !== null,
+        className: (i.className || '').substring(0, 60)
+      }));
+    });
+    console.log('[TT Phone] All inputs:', JSON.stringify(allInputs));
+    
+    // Fallback: first visible text-like input (phone pages usually have only one)
+    if (!phoneInput) {
+      for (const inp of allInputs) {
+        if (inp.visible && (inp.type === 'text' || inp.type === 'tel' || inp.type === '' || inp.type === 'number')) {
+          // Skip if it looks like a search or language input
+          if (inp.placeholder && (inp.placeholder.toLowerCase().includes('search') || inp.placeholder.toLowerCase().includes('language'))) continue;
+          if (inp.name === 'q') continue;
+          phoneInput = await page.$('input[name="' + inp.name + '"]') || await page.$('#' + inp.id);
+          if (phoneInput) {
+            console.log('[TT Phone] Found input via fallback:', JSON.stringify(inp));
+            break;
+          }
+        }
+      }
+    }
+    
     if (!phoneInput) {
       const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
       const txt = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
