@@ -753,9 +753,26 @@ async function igLoginInternal() {
     }
     await sleep(500 + Math.random() * 500);
 
-    // Find and fill password using nativeInputValueSetter (same approach as username - most reliable for Web Bloks)
-    console.log('[IG] Filling password with nativeInputValueSetter...');
+    // Find and fill password - try Playwright fill() first, then nativeInputValueSetter
+    console.log('[IG] Filling password...');
     try {
+      const passEl = await page.$('input[name="password"]') || await page.$('input[type="password"]') || await page.$('input[aria-label="Senha"]');
+      if (passEl) {
+        await passEl.click({ force: true });
+        await sleep(300);
+        await passEl.fill(CREDS.ig.pass);
+        console.log('[IG] Password filled via Playwright fill(), len:', CREDS.ig.pass.length);
+        
+        // Verify fill
+        const passVal = await page.evaluate(() => {
+          const i = document.querySelector('input[name="password"]') || document.querySelector('input[type="password"]');
+          return i ? { val: i.value, len: i.value.length } : null;
+        });
+        console.log('[IG] Password field after fill:', JSON.stringify(passVal));
+      }
+    } catch(e) {
+      console.log('[IG] Password fill error:', e.message.substring(0, 80));
+      // Fallback: nativeInputValueSetter
       const passFillResult = await page.evaluate((password) => {
         const input = document.querySelector('input[name="password"]') 
                    || document.querySelector('input[type="password"]')
@@ -767,26 +784,7 @@ async function igLoginInternal() {
         input.dispatchEvent(new Event('change', { bubbles: true }));
         return { found: true, value: input.value, len: input.value.length };
       }, CREDS.ig.pass);
-      console.log('[IG] Password fill result:', JSON.stringify(passFillResult));
-      if (!passFillResult.found || !passFillResult.value) {
-        // Fallback: click + type
-        console.log('[IG] nativeInputValueSetter failed for password, using click + type fallback');
-        const passEl = await page.$('input[name="password"]') || await page.$('input[type="password"]');
-        if (passEl) {
-          await passEl.click({ force: true });
-          await sleep(200);
-          await passEl.fill('');
-          await sleep(200);
-          await passEl.type(CREDS.ig.pass, { delay: 50 });
-        }
-      }
-    } catch(e) {
-      console.log('[IG] Password fill error:', e.message.substring(0, 80));
-      const passEl = await page.$('input[name="password"]') || await page.$('input[type="password"]');
-      if (passEl) {
-        await passEl.click({ force: true });
-        await passEl.type(CREDS.ig.pass, { delay: 50 });
-      }
+      console.log('[IG] Password fill fallback result:', JSON.stringify(passFillResult));
     }
     await sleep(500);
 
