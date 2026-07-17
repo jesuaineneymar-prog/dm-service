@@ -742,25 +742,23 @@ async function igLoginInternal() {
     if (!passSel) { await page.keyboard.press('Tab'); await sleep(300); passSel = 'input:focus'; }
 
     if (passSel) {
-      console.log('[IG] Filling password with nativeInputValueSetter...');
-      // Web Bloks needs native setter (same as phone input)
-      const passFillResult = await page.evaluate((pwd) => {
-        const input = document.querySelector('input[name="password"]') 
-                   || document.querySelector('input[type="password"]')
-                   || document.querySelector('input[aria-label="Senha"]');
-        if (!input) return { found: false };
-        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-        nativeSetter.call(input, pwd);
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-        return { found: true, value: input.value };
-      }, CREDS.ig.pass);
-      console.log('[IG] Password fill result:', JSON.stringify(passFillResult));
-      
-      // Fallback to .type() if native setter didn't stick
-      if (!passFillResult.found || !passFillResult.value) {
-        const el = await page.$(passSel);
-        if (el) { await el.click(); await sleep(300); await el.type(CREDS.ig.pass, { delay: 30 }); }
+      console.log('[IG] Filling password via click + type (most reliable for Web Bloks)...');
+      const el = await page.$(passSel);
+      if (el) {
+        await el.click({ force: true });
+        await sleep(300);
+        await el.fill(''); // Clear any existing value
+        await sleep(200);
+        // Type character by character to ensure Web Bloks picks up every keystroke
+        await el.type(CREDS.ig.pass, { delay: 40 });
+        console.log('[IG] Password typed, length:', CREDS.ig.pass.length);
+        await sleep(500);
+        // Verify
+        const passVal = await page.evaluate(() => {
+          const i = document.querySelector('input[name="password"]') || document.querySelector('input[type="password"]');
+          return i ? { val: i.value, len: i.value.length } : null;
+        });
+        console.log('[IG] Password field after type:', JSON.stringify(passVal));
       }
     }
 
