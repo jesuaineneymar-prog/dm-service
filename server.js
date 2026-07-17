@@ -2346,32 +2346,46 @@ async function ttLoginUserPass() {
     }
 
     // Wait for username input to appear
-    await sleep(2000);
+    await sleep(3000);
     
-    // Find and fill username
+    // Debug: log all inputs on the page
+    const inputDebug = await page.evaluate(() => {
+      const inputs = document.querySelectorAll('input');
+      return Array.from(inputs).map(i => ({ type: i.type, name: i.name, placeholder: i.placeholder, visible: i.offsetParent !== null, id: i.id, className: i.className?.substring(0, 60) }));
+    });
+    console.log('[TT UP] All inputs on page:', JSON.stringify(inputDebug));
+
+    // Find and fill username - try ANY visible input that's not tel/hidden
+    let userInput = null;
+    
+    // Specific selectors first
     const userInputSelectors = [
-      'input[type="text"]',
       'input[name="username"]',
+      'input[autocomplete="username"]',
       'input[placeholder*="username"]',
       'input[placeholder*="user"]',
       'input[placeholder*="email"]',
-      'input[autocomplete="username"]'
+      'input[placeholder*="e-mail"]',
+      'input[type="text"]',
+      'input[type="email"]',
+      'input:not([type])'  // input with no type attribute defaults to text
     ];
     
-    let userInput = null;
     for (const sel of userInputSelectors) {
       try {
         const el = await page.$(sel);
-        if (el && await el.isVisible()) { userInput = el; console.log('[TT UP] Found username input:', sel); break; }
+        if (el && await el.isVisible().catch(() => false)) { userInput = el; console.log('[TT UP] Found username input:', sel); break; }
       } catch(e) { continue; }
     }
     
     if (!userInput) {
-      // Try getting first visible input
+      // Last resort: get first visible input that's not tel/hidden/submit
       const allInputs = await page.$$('input');
       for (const inp of allInputs) {
         const type = await inp.getAttribute('type').catch(() => 'text');
-        if (type !== 'tel' && type !== 'hidden' && await inp.isVisible().catch(() => false)) {
+        const vis = await inp.isVisible().catch(() => false);
+        console.log('[TT UP] Fallback check input type:', type, 'visible:', vis);
+        if (type !== 'tel' && type !== 'hidden' && type !== 'submit' && type !== 'checkbox' && vis) {
           userInput = inp;
           console.log('[TT UP] Using fallback input, type:', type);
           break;
