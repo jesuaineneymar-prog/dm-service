@@ -2263,6 +2263,7 @@ async function ttLogin() {
 async function ttLoginUserPass() {
   console.log('[TT] Trying username/password login...');
   const useProxy = !!getProxyAddress();
+  const br = await getBrowser(useProxy);
   const ctx = await createContext(false, useProxy);
   const page = await ctx.newPage();
   await page.addInitScript(STEALTH_JS);
@@ -2535,6 +2536,7 @@ async function ttLoginUserPass() {
 async function ttLoginPhone() {
   console.log('[TT Phone] Starting phone login...');
   const useProxy = !!getProxyAddress();
+  const br = await getBrowser(useProxy);
   const ctx = await createContext(false, useProxy);
   const page = await ctx.newPage();
   await page.addInitScript(STEALTH_JS);
