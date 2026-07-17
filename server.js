@@ -2316,35 +2316,34 @@ async function ttLogin() {
     }
 
     // After clicking the tab, TT now shows phone-first login.
-    // We need to click "Entrar com senha" to switch to username+password mode
+    // Step 1: Click "Entrar com nome de usuário ou e-mail" to switch to username mode
     await sleep(2000);
-    let switchedToPassword = false;
     
-    // Try clicking "Entrar com senha" link
-    const pwdSwitchTexts = ['Entrar com senha', 'Log in with password', 'Login with password'];
-    for (const txt of pwdSwitchTexts) {
+    const usernameTabTexts = ['Entrar com nome de usuário ou e-mail', 'Log in with username or email'];
+    for (const txt of usernameTabTexts) {
       try {
         const el = page.getByText(txt, { exact: false }).first();
         const box = await el.boundingBox({ timeout: 3000 }).catch(() => null);
         if (box && box.width > 10) {
           await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-          switchedToPassword = true;
-          console.log('[TT] Clicked password mode:', txt);
+          console.log('[TT] Clicked username/email tab:', txt);
           await sleep(3000);
           break;
         }
       } catch(e) {}
     }
     
-    // Also try clicking "Entrar com nome de usuário ou e-mail" if password mode not found
-    if (!switchedToPassword) {
+    // Step 2: Now look for "Entrar com senha" to switch to password mode (on username tab)
+    const pwdSwitchTexts = ['Entrar com senha', 'Log in with password'];
+    for (const txt of pwdSwitchTexts) {
       try {
-        const userTab = page.getByText('nome de usuário', { exact: false }).first();
-        const box = await userTab.boundingBox({ timeout: 3000 }).catch(() => null);
+        const el = page.getByText(txt, { exact: false }).first();
+        const box = await el.boundingBox({ timeout: 3000 }).catch(() => null);
         if (box && box.width > 10) {
           await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-          console.log('[TT] Clicked username tab');
-          await sleep(2000);
+          console.log('[TT] Clicked password mode:', txt);
+          await sleep(3000);
+          break;
         }
       } catch(e) {}
     }
