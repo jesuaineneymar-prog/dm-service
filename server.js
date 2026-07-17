@@ -866,8 +866,64 @@ async function igLoginInternal() {
       const isRealError = !ignorePatterns.some(p => loginError.toLowerCase().includes(p));
       if (isRealError) {
         console.log('[IG] Login error detected:', loginError);
-        // DO NOT click "Receber código" - that's the forgot password link, not 2FA
-        // 2FA was already checked above and ruled out, so this is a genuine login error
+        
+        // IG often shows "Senha incorreta" + "receba um código para entrar" for suspicious logins
+        // (IP datacenter detected). The "Receber código" here is a LOGIN CODE flow, not password reset.
+        // Only try if we see the specific "receba um código para entrar" context (not "Esqueceu a senha")
+        const hasLoginCodeOffer = pageTextAfter.includes('receba um código para entrar') 
+          || (pageTextAfter.includes('Receber código') && pageTextAfter.includes('senha'));
+        
+        if (hasLoginCodeOffer) {
+          console.log('[IG] Login code offer detected (suspicious login). Clicking "Receber código"...');
+          try {
+            // Find the "Receber código" that's part of the error message, NOT "Esqueceu a senha"
+            const codeLink = page.getByText('Receber código', { exact: false }).first();
+            const codeBox = await codeLink.boundingBox({ timeout: 3000 }).catch(() => null);
+            if (codeBox) {
+              await page.mouse.click(codeBox.x + codeBox.width / 2, codeBox.y + codeBox.height / 2);
+              console.log('[IG] Clicked "Receber código"');
+              await sleep(8000);
+              await page.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => {});
+              
+              const codeUrl = page.url();
+              const codeText = await page.evaluate(() => document.body?.innerText?.substring(0, 1500) || '');
+              const codeSs = await page.screenshot({ encoding: 'base64', fullPage: false });
+              console.log('[IG] After "Receber código" URL:', codeUrl);
+              console.log('[IG] After "Receber código" text:', codeText.substring(0, 400));
+              
+              // Check if password reset (BAD)
+              if (codeUrl.includes('password/reset') || codeText.includes('Redefinir sua senha') || codeText.includes('Reset your password')) {
+                console.log('[IG] "Receber código" went to password reset. This is a dead end.');
+                await ctx.close();
+                return { success: false, error: 'IG bloqueou login (IP datacenter). Redirecionou para reset de senha em vez de código de login.', screenshot: codeSs, url: codeUrl, pageText: codeText.substring(0, 500) };
+              }
+              
+              // Check if it's a code entry page (GOOD) - look for code input or verification text
+              const hasCodeInput = await page.$('input[aria-label*="código"]') 
+                || await page.$('input[inputmode="numeric"]')
+                || await page.$('input[maxlength="6"]');
+              const hasVerifyText = codeText.includes('código de verificação') 
+                || codeText.includes('Insira o código')
+                || codeText.includes('Enviamos um código')
+                || codeText.includes('digite o código');
+              
+              if (hasCodeInput || hasVerifyText || codeUrl.includes('challenge')) {
+                console.log('[IG] Code entry page reached! Saving 2FA context.');
+                ig2FA.active = true; ig2FA.context = ctx; ig2FA.page = page; ig2FA.createdAt = Date.now();
+                return { success: false, needs2FA: true, message: 'IG oferece login por código (IP suspeito). Verifica o telefone e chame /ig/verify-2fa {code}.', screenshot: codeSs, url: codeUrl, pageText: codeText.substring(0, 500) };
+              }
+              
+              // Unclear state - save context anyway
+              console.log('[IG] Unclear state after "Receber código", saving context');
+              ig2FA.active = true; ig2FA.context = ctx; ig2FA.page = page; ig2FA.createdAt = Date.now();
+              return { success: false, needs2FA: true, message: 'Página mudou após "Receber código". Verifica o telefone.', screenshot: codeSs, url: codeUrl, pageText: codeText.substring(0, 500) };
+            }
+          } catch(e) {
+            console.log('[IG] "Receber código" click failed:', e.message.substring(0, 80));
+          }
+        }
+        
+        // Genuine login error with no recovery option
         if (CREDS.ig.email && !CREDS.ig.user.includes('@')) {
           console.log('[IG] Username failed, retrying with email:', CREDS.ig.email);
           await ctx.close();
