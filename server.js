@@ -49,6 +49,14 @@ let fb2FA = {
 let ttLoginCtx = null;
 let ttLoginCtxExpires = 0;
 
+// TT phone verification context
+let ttVerify = {
+  active: false,
+  context: null,
+  page: null,
+  createdAt: 0
+};
+
 // --- Credentials ---
 const CREDS = {
   ig: { user: process.env.IG_USER || 'jesuainecristiano78', pass: process.env.IG_PASS || '9adJpLRGPX#YGx$', email: process.env.IG_EMAIL || '' },
@@ -110,6 +118,15 @@ async function close2FAContext() {
     ttLoginCtx = null;
     ttLoginCtxExpires = 0;
   }
+  if (ttVerify.page) {
+    try { await ttVerify.page.close(); } catch(e) {}
+    ttVerify.page = null;
+  }
+  if (ttVerify.context) {
+    try { await ttVerify.context.close(); } catch(e) {}
+    ttVerify.context = null;
+  }
+  ttVerify.active = false;
 }
 
 // --- Stealth injection script ---
@@ -2235,14 +2252,74 @@ async function ttLogin() {
     const loginPageText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
     console.log('[TT] Login page text:', loginPageText.substring(0, 200));
 
-    const usePhoneBtn = await page.$('span:has-text("Use phone / email / username")');
-    if (usePhoneBtn) { await usePhoneBtn.click(); await sleep(2000); }
+    // Click "Usar telefone/e-mail/nome de usuário" (PT-BR) or English equivalent
+    let tabClicked = false;
+    const tabSelectors = [
+      'span:has-text("Usar telefone/e-mail/nome de usuário")',
+      'span:has-text("Use phone / email / username")',
+      'div:has-text("Usar telefone")',
+      'div[data-e2e="login-tab-phone"]',
+      'div[data-e2e="login-tab-email"]',
+    ];
+    for (const sel of tabSelectors) {
+      try {
+        const el = await page.$(sel);
+        if (el) {
+          const box = await el.boundingBox({ timeout: 3000 }).catch(() => null);
+          if (box) {
+            await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+            tabClicked = true;
+            console.log('[TT] Clicked login tab:', sel);
+            await sleep(2000);
+            break;
+          }
+        }
+      } catch(e) {}
+    }
+    // Fallback: click by text content
+    if (!tabClicked) {
+      const clickResult = await page.evaluate(() => {
+        const els = document.querySelectorAll('div, span, p, a, button');
+        for (const el of els) {
+          const t = (el.innerText || '').trim();
+          if (t.includes('telefone') && t.includes('email') && t.includes('usuário')) {
+            el.click();
+            return { clicked: true, text: t.substring(0, 50) };
+          }
+          if (t.includes('phone') && t.includes('email') && t.includes('username')) {
+            el.click();
+            return { clicked: true, text: t.substring(0, 50) };
+          }
+        }
+        return { clicked: false };
+      });
+      if (clickResult.clicked) {
+        tabClicked = true;
+        console.log('[TT] Clicked tab via text:', clickResult.text);
+        await sleep(2000);
+      }
+    }
 
-    const emailTab = await page.$('div[data-e2e="login-tab-email"]');
-    if (emailTab) { await emailTab.click(); await sleep(1000); }
-
-    const userInput = await page.$('input[name="username"]') || await page.$('input[placeholder*="username"]');
-    if (userInput) await userInput.fill(CREDS.tt.user);
+    const userInput = await page.$('input[name="username"]') || await page.$('input[placeholder*="username"]') || await page.$('input[placeholder*="Usuário"]') || await page.$('input[type="text"]');
+    if (userInput) {
+      // Use nativeInputValueSetter for Web Bloks-like frameworks
+      await page.evaluate((val) => {
+        const input = document.querySelector('input[name="username"]') || document.querySelector('input[type="text"]');
+        if (input) {
+          const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+          nativeSetter.call(input, val);
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }, CREDS.tt.user);
+      console.log('[TT] Username filled');
+    } else {
+      console.log('[TT] WARNING: No username input found!');
+      const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
+      const txt = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
+      await ctx.close();
+      return { success: false, error: 'Campo de username nao encontrado', pageText: txt, screenshot: ss };
+    }
 
     const passInput = await page.$('input[name="password"]') || await page.$('input[type="password"]');
     if (passInput) await passInput.fill(CREDS.tt.pass);
@@ -2253,7 +2330,7 @@ async function ttLogin() {
     if (loginBtn) await loginBtn.click();
     else await page.keyboard.press('Enter');
 
-    await sleep(5000);
+    await sleep(6000);
     await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
 
     const afterUrl = page.url();
@@ -2265,21 +2342,46 @@ async function ttLogin() {
     console.log('[TT] After login text:', afterLoginText.substring(0, 300));
 
     // Check for post-login states: CAPTCHA, SMS verification, error messages
-    const postLoginError = afterLoginText.match(/senha incorreta|password.*incorrect|username.*not found|usuário não encontrado|account.*locked|suspicious.*activity|verify.*phone/i);
+    const postLoginError = afterLoginText.match(/senha incorreta|password.*incorrect|username.*not found|usuário não encontrado|account.*locked|suspicious.*activity/i);
     if (postLoginError) {
       console.log('[TT] Login error detected:', postLoginError[0]);
       await ctx.close();
       return { success: false, error: 'TT login: ' + postLoginError[0], url: afterUrl, pageText: afterLoginText.substring(0, 500), screenshot: afterLoginSs };
     }
     
-    // Check for "verify your phone" or "confirm your identity" pages
+    // Check for "verify your phone" or "confirm your identity" pages - SAVE CONTEXT instead of closing
     const needsVerification = afterUrl.includes('verify') || afterUrl.includes('confirm') 
       || afterLoginText.includes('verifique') || afterLoginText.includes('verify your')
-      || afterLoginText.includes('confirm your') || afterLoginText.includes('send code');
+      || afterLoginText.includes('confirm your') || afterLoginText.includes('send code')
+      || afterLoginText.includes('Verificar') || afterLoginText.includes('enviamos')
+      || afterLoginText.includes('Enviar código') || afterLoginText.includes('Send code')
+      || afterLoginText.includes('phone verification') || afterLoginText.includes('verificação');
     if (needsVerification) {
-      console.log('[TT] Phone verification required');
-      await ctx.close();
-      return { success: false, error: 'TT requer verificacao de telefone', url: afterUrl, pageText: afterLoginText.substring(0, 500), screenshot: afterLoginSs, needsVerification: true };
+      console.log('[TT] Phone verification required - saving context');
+      // Try to click "Send code" button first
+      let codeSent = false;
+      const codeBtnTexts = ['Enviar código', 'Send code', 'Enviar', 'Send', 'Enviar SMS', 'Text me a code', 'Obter código'];
+      for (const txt of codeBtnTexts) {
+        try {
+          const el = page.getByText(txt, { exact: false }).first();
+          const box = await el.boundingBox({ timeout: 2000 }).catch(() => null);
+          if (box) {
+            await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+            codeSent = true;
+            console.log('[TT] Clicked send code:', txt);
+            break;
+          }
+        } catch(e) {}
+      }
+      if (codeSent) await sleep(5000);
+      
+      ttVerify.active = true;
+      ttVerify.context = ctx;
+      ttVerify.page = page;
+      ttVerify.createdAt = Date.now();
+      const verifySs = await page.screenshot({ encoding: 'base64', fullPage: false });
+      const verifyText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
+      return { success: false, needsVerification: true, message: 'TT requer verificacao de telefone. Chame /tt/verify-code {code} com o código recebido.', url: afterUrl, pageText: verifyText, screenshot: verifySs };
     }
 
     // CAPTCHA detection + solving
@@ -2881,6 +2983,94 @@ app.post('/fb/verify-2fa', authMiddleware, async (req, res) => {
 app.post('/tt/login', authMiddleware, async (req, res) => {
   try { const result = await ttLogin(); res.json(result); }
   catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+app.post('/tt/verify-code', authMiddleware, async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ success: false, error: 'codigo obrigatorio' });
+    if (!ttVerify.active || !ttVerify.page) {
+      return res.status(400).json({ success: false, error: 'Nenhum contexto de verificacao ativo. Chame /tt/login primeiro.' });
+    }
+    const page = ttVerify.page;
+    const ctx = ttVerify.context;
+    
+    // Find the code input and fill it
+    const codeInput = await page.$('input[inputmode="numeric"]') 
+      || await page.$('input[name="code"]') 
+      || await page.$('input[type="text"]')
+      || await page.$('input[placeholder*="code"]')
+      || await page.$('input[placeholder*="código"]');
+    
+    if (!codeInput) {
+      const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
+      const txt = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
+      return res.json({ success: false, error: 'Campo de codigo nao encontrado', pageText: txt, screenshot: ss });
+    }
+    
+    // Fill code using nativeInputValueSetter
+    await page.evaluate((c) => {
+      const input = document.querySelector('input[inputmode="numeric"]') 
+        || document.querySelector('input[name="code"]') 
+        || document.querySelector('input[type="text"]');
+      if (input) {
+        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        nativeSetter.call(input, c);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }, code);
+    
+    await sleep(1000);
+    
+    // Click verify/submit button
+    const verifyBtnTexts = ['Verificar', 'Verify', 'Enviar', 'Submit', 'Continuar', 'Continue', 'Next', 'Próximo'];
+    let clicked = false;
+    for (const txt of verifyBtnTexts) {
+      try {
+        const el = page.getByRole('button').filter({ hasText: txt }).first();
+        const box = await el.boundingBox({ timeout: 2000 }).catch(() => null);
+        if (box) {
+          await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+          clicked = true;
+          break;
+        }
+      } catch(e) {}
+    }
+    if (!clicked) {
+      const submitBtn = await page.$('button[type="submit"]');
+      if (submitBtn) { await submitBtn.click(); clicked = true; }
+    }
+    if (!clicked) await page.keyboard.press('Enter');
+    
+    await sleep(8000);
+    await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
+    
+    const afterUrl = page.url();
+    const afterText = await page.evaluate(() => document.body?.innerText?.substring(0, 1000) || '');
+    const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
+    console.log('[TT verify] After URL:', afterUrl, 'text:', afterText.substring(0, 200));
+    
+    // Check if still on verification page
+    if (afterUrl.includes('verify') || afterUrl.includes('login') || afterText.includes('verifique') || afterText.includes('incorrect')) {
+      return res.json({ success: false, error: 'Verificacao falhou ou codigo incorreto', url: afterUrl, pageText: afterText.substring(0, 500), screenshot: ss });
+    }
+    
+    // Check if login succeeded
+    const validSession = await verifyTTSession(page);
+    if (validSession) {
+      sessions.tt = { cookies: await ctx.cookies(), loggedIn: true, expiresAt: Date.now() + 3600000, localStorage: null };
+      ttLoginCtx = ctx;
+      ttLoginCtxExpires = Date.now() + 3600000;
+      ttVerify.active = false;
+      ttVerify.page = null;
+      ttVerify.context = null;
+      return res.json({ success: true, message: 'TT login OK apos verificacao!' });
+    }
+    
+    // Might need another step
+    return res.json({ success: false, needsVerification: true, message: 'Verificacao pode ter avancado. Estado incerto.', url: afterUrl, pageText: afterText.substring(0, 500), screenshot: ss });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.post('/tt/send', authMiddleware, async (req, res) => {
