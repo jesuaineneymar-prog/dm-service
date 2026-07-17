@@ -2348,82 +2348,91 @@ async function ttLoginUserPass() {
     // Wait for username input to appear
     await sleep(3000);
     
-    // Debug: log all inputs on the page
+    // Debug: log all inputs on the page (including shadow DOM)
     const inputDebug = await page.evaluate(() => {
-      const inputs = document.querySelectorAll('input');
-      return Array.from(inputs).map(i => ({ type: i.type, name: i.name, placeholder: i.placeholder, visible: i.offsetParent !== null, id: i.id, className: i.className?.substring(0, 60) }));
+      const results = [];
+      // Check regular DOM
+      document.querySelectorAll('input').forEach(i => {
+        results.push({ source: 'dom', type: i.type, name: i.name, placeholder: i.placeholder, visible: i.offsetParent !== null, id: i.id });
+      });
+      // Check all shadow roots
+      document.querySelectorAll('*').forEach(el => {
+        if (el.shadowRoot) {
+          el.shadowRoot.querySelectorAll('input').forEach(i => {
+            results.push({ source: 'shadow', type: i.type, name: i.name, placeholder: i.placeholder, visible: i.offsetParent !== null, id: i.id });
+          });
+        }
+      });
+      return results;
     });
-    console.log('[TT UP] All inputs on page:', JSON.stringify(inputDebug));
+    console.log('[TT UP] All inputs:', JSON.stringify(inputDebug));
 
-    // Find and fill username - try ANY visible input that's not tel/hidden
-    let userInput = null;
-    
-    // Specific selectors first
-    const userInputSelectors = [
-      'input[name="username"]',
-      'input[autocomplete="username"]',
-      'input[placeholder*="username"]',
-      'input[placeholder*="user"]',
-      'input[placeholder*="email"]',
-      'input[placeholder*="e-mail"]',
-      'input[type="text"]',
-      'input[type="email"]',
-      'input:not([type])'  // input with no type attribute defaults to text
-    ];
-    
-    for (const sel of userInputSelectors) {
-      try {
-        const el = await page.$(sel);
-        if (el && await el.isVisible().catch(() => false)) { userInput = el; console.log('[TT UP] Found username input:', sel); break; }
-      } catch(e) { continue; }
-    }
-    
-    if (!userInput) {
-      // Last resort: get first visible input that's not tel/hidden/submit
-      const allInputs = await page.$$('input');
+    // Use page.evaluate to find and fill the username input directly
+    // This bypasses any Playwright selector issues with React/Shadow DOM
+    const fillUserResult = await page.evaluate((username) => {
+      // Try all possible ways to find the username input
+      const allInputs = document.querySelectorAll('input');
+      let targetInput = null;
+      
       for (const inp of allInputs) {
-        const type = await inp.getAttribute('type').catch(() => 'text');
-        const vis = await inp.isVisible().catch(() => false);
-        console.log('[TT UP] Fallback check input type:', type, 'visible:', vis);
-        if (type !== 'tel' && type !== 'hidden' && type !== 'submit' && type !== 'checkbox' && vis) {
-          userInput = inp;
-          console.log('[TT UP] Using fallback input, type:', type);
+        const type = (inp.type || 'text').toLowerCase();
+        const placeholder = (inp.placeholder || '').toLowerCase();
+        const name = (inp.name || '').toLowerCase();
+        // Skip tel, hidden, submit, checkbox, password inputs
+        if (type === 'tel' || type === 'hidden' || type === 'submit' || type === 'checkbox' || type === 'password') continue;
+        // Prefer inputs with username/email-related attributes
+        if (name.includes('user') || placeholder.includes('user') || placeholder.includes('email') || placeholder.includes('e-mail') || type === 'email') {
+          targetInput = inp;
           break;
         }
+        // Otherwise use first text-like input
+        if (!targetInput && (type === 'text' || type === 'email' || type === '')) {
+          targetInput = inp;
+        }
       }
-    }
+      
+      if (!targetInput) return { found: false, inputCount: allInputs.length };
+      
+      // Click to focus, then use native setter
+      targetInput.focus();
+      targetInput.click();
+      const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      nativeSetter.call(targetInput, username);
+      targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+      targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+      targetInput.dispatchEvent(new Event('blur', { bubbles: true }));
+      return { found: true, value: targetInput.value, type: targetInput.type, name: targetInput.name };
+    }, CREDS.tt.user);
+    console.log('[TT UP] Fill user result:', JSON.stringify(fillUserResult));
+    await sleep(800);
 
-    if (userInput) {
-      await userInput.click({ force: true });
-      await sleep(300);
-      await userInput.fill('');
-      await sleep(200);
-      await userInput.type(CREDS.tt.user, { delay: 40 });
-      console.log('[TT UP] Username typed:', CREDS.tt.user);
-      await sleep(800);
-    } else {
+    if (!fillUserResult.found) {
       const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
       const txt = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
       await ctx.close();
-      return { success: false, error: 'Campo de username nao encontrado no TikTok', url: urlAfterTab, pageText: txt.substring(0, 300), screenshot: ss };
+      return { success: false, error: 'Campo de username nao encontrado no TikTok', url: urlAfterTab, pageText: txt.substring(0, 300), inputsFound: inputDebug, screenshot: ss };
     }
 
-    // Find and fill password
+    // Find and fill password using page.evaluate (same robust approach)
     await sleep(500);
-    const passInput = await page.$('input[type="password"]') || await page.$('input[name="password"]');
+    const fillPassResult = await page.evaluate((password) => {
+      const passInput = document.querySelector('input[type="password"]') || document.querySelector('input[name="password"]');
+      if (!passInput) return { found: false };
+      passInput.focus();
+      passInput.click();
+      // For password fields, use nativeInputValueSetter
+      const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      nativeSetter.call(passInput, password);
+      passInput.dispatchEvent(new Event('input', { bubbles: true }));
+      passInput.dispatchEvent(new Event('change', { bubbles: true }));
+      return { found: true, len: passInput.value.length };
+    }, CREDS.tt.pass);
+    console.log('[TT UP] Fill pass result:', JSON.stringify(fillPassResult));
     
-    if (passInput) {
-      await passInput.click({ force: true });
-      await sleep(300);
-      await passInput.fill('');
-      await sleep(200);
-      await passInput.type(CREDS.tt.pass, { delay: 40 });
-      console.log('[TT UP] Password typed, length:', CREDS.tt.pass.length);
-      await sleep(800);
-    } else {
+    if (!fillPassResult.found) {
       console.log('[TT UP] No password field found - may need to go to password step');
-      // Try clicking a "Next" or "Continuar" button to advance to password
-      const nextTexts = ['Próximo', 'Next', 'Continuar', 'Continue', 'Entrar'];
+      // Try clicking "Entrar" to advance to password page
+      const nextTexts = ['Próximo', 'Next', 'Continuar', 'Continue'];
       for (const txt of nextTexts) {
         try {
           const el = page.getByRole('button').filter({ hasText: txt }).first();
@@ -2437,16 +2446,20 @@ async function ttLoginUserPass() {
         } catch(e) {}
       }
       
-      // Now look for password field again
-      const passInput2 = await page.$('input[type="password"]');
-      if (passInput2) {
-        await passInput2.click({ force: true });
-        await sleep(300);
-        await passInput2.type(CREDS.tt.pass, { delay: 40 });
-        console.log('[TT UP] Password typed (step 2)');
-        await sleep(800);
-      }
+      // Retry password fill
+      const fillPass2 = await page.evaluate((password) => {
+        const passInput = document.querySelector('input[type="password"]');
+        if (!passInput) return { found: false };
+        passInput.focus();
+        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        nativeSetter.call(passInput, password);
+        passInput.dispatchEvent(new Event('input', { bubbles: true }));
+        passInput.dispatchEvent(new Event('change', { bubbles: true }));
+        return { found: true, len: passInput.value.length };
+      }, CREDS.tt.pass);
+      console.log('[TT UP] Fill pass retry:', JSON.stringify(fillPass2));
     }
+    await sleep(800);
 
     // Submit login
     let submitted = false;
