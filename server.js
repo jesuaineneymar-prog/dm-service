@@ -2447,66 +2447,36 @@ async function ttLoginUserPass() {
     }, CREDS.tt.user);
     console.log('[TT UP] Found input:', JSON.stringify(fillUserResult));
     
-    // Fill username using Playwright's type() for proper React event handling
+    // Fill username using Playwright's fill() for React compatibility
     const userEl = await page.$('input[name="username"]') || await page.$('input[placeholder*="mail"]') || await page.$('input[placeholder*="user"]');
     if (userEl) {
       await userEl.click({ force: true });
       await sleep(300);
-      await userEl.fill('');
-      await sleep(200);
-      await userEl.type(CREDS.tt.user, { delay: 50 });
-      console.log('[TT UP] Username typed via Playwright');
+      await userEl.fill(CREDS.tt.user);
+      console.log('[TT UP] Username filled via Playwright fill()');
     } else {
       const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
       const txt = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
       await ctx.close();
       return { success: false, error: 'Campo de username nao encontrado no TikTok (Playwright)', url: urlAfterTab, pageText: txt.substring(0, 300), inputsFound: inputDebug, screenshot: ss };
     }
-    await sleep(800);
+    await sleep(500);
 
-    // Fill password using Playwright's type() for proper React event handling
+    // Fill password using Playwright's fill()
     const passEl = await page.$('input[type="password"]');
     if (passEl) {
       await passEl.click({ force: true });
       await sleep(300);
-      await passEl.fill('');
-      await sleep(200);
-      await passEl.type(CREDS.tt.pass, { delay: 50 });
-      console.log('[TT UP] Password typed via Playwright, len:', CREDS.tt.pass.length);
+      await passEl.fill(CREDS.tt.pass);
+      console.log('[TT UP] Password filled via Playwright fill(), len:', CREDS.tt.pass.length);
     } else {
       console.log('[TT UP] No password field found');
     }
-    await sleep(800);
+    await sleep(500);
 
-    // Submit login
-    let submitted = false;
-    const submitTexts = ['Entrar', 'Log in', 'Login', 'Sign in'];
-    for (const txt of submitTexts) {
-      try {
-        const el = page.getByRole('button').filter({ hasText: txt }).first();
-        const box = await el.boundingBox({ timeout: 3000 }).catch(() => null);
-        if (box && box.width > 30) {
-          await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-          submitted = true;
-          console.log('[TT UP] Clicked submit:', txt);
-          break;
-        }
-      } catch(e) {}
-    }
-    if (!submitted) {
-      const submitBtn = await page.$('button[data-e2e="login-button"]') || await page.$('button[type="submit"]');
-      if (submitBtn) {
-        try {
-          const box = await submitBtn.boundingBox({ timeout: 3000 });
-          if (box) await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-          else await submitBtn.click({ force: true });
-          submitted = true;
-        } catch(e) {
-          await page.keyboard.press('Enter');
-          submitted = true;
-        }
-      }
-    }
+    // Submit via keyboard Enter (more reliable than clicking buttons)
+    console.log('[TT UP] Submitting via Enter key...');
+    await page.keyboard.press('Enter');
 
     console.log('[TT UP] Waiting for response...');
     await sleep(8000);
