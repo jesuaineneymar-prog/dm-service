@@ -2340,17 +2340,21 @@ async function ttLogin() {
 
     const userInput = await page.$('input[name="username"]') || await page.$('input[placeholder*="username"]') || await page.$('input[placeholder*="Usuário"]') || await page.$('input[placeholder*="email"]') || await page.$('input[placeholder*="E-mail"]') || await page.$('input[type="text"]');
     if (userInput) {
-      // Use nativeInputValueSetter for Web Bloks-like frameworks
-      await page.evaluate((val) => {
-        const input = document.querySelector('input[name="username"]') || document.querySelector('input[type="text"]');
-        if (input) {
-          const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-          nativeSetter.call(input, val);
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-          input.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-      }, CREDS.tt.user);
-      console.log('[TT] Username filled');
+      // Click input first to focus, then type (most compatible with React/SPA)
+      await userInput.click({ force: true });
+      await sleep(300);
+      await userInput.fill('');
+      await sleep(200);
+      await userInput.type(CREDS.tt.user, { delay: 30 });
+      console.log('[TT] Username typed:', CREDS.tt.user);
+      await sleep(500);
+      
+      // Verify it was filled
+      const filledVal = await page.evaluate(() => {
+        const i = document.querySelector('input[name="username"]') || document.querySelector('input[type="text"]');
+        return i ? i.value : 'NOT_FOUND';
+      });
+      console.log('[TT] Username field value after type:', filledVal);
     } else {
       console.log('[TT] WARNING: No username input found!');
       const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
