@@ -61,7 +61,7 @@ let ttVerify = {
 const CREDS = {
   ig: { user: process.env.IG_USER || 'jesuainecristiano78', pass: process.env.IG_PASS || '9adJpLRGPX#YGx$', email: process.env.IG_EMAIL || '' },
   fb: { email: process.env.FB_EMAIL || '+244925049405', pass: process.env.FB_PASS || 'Jesus888#' },
-  tt: { user: process.env.TT_USER || 'batmanjustice5', pass: process.env.TT_PASS || 'Jesus888$' }
+  tt: { user: process.env.TT_USER || 'batmanjustice5', pass: process.env.TT_PASS || 'Jesus888$', phone: process.env.TT_PHONE || '+244925049405' }
 };
 
 // --- Proxy config ---
@@ -2255,319 +2255,190 @@ async function ttLogin() {
     // Wait for SPA to fully render
     await sleep(3000);
     
-    // Click "Usar telefone/e-mail/nome de usuário" (PT-BR) or English equivalent
-    let tabClicked = false;
+    // TikTok now defaults to phone login. Use phone number directly.
+    // The page should already be on phone mode after clicking the initial tab.
+    // If we see a phone input, fill it and click "Enviar código"
     
-    // Method 1: Use Playwright's getByText (most reliable for SPAs)
-    try {
-      const phoneTab = page.getByText('telefone', { exact: false }).first();
-      const tabBox = await phoneTab.boundingBox({ timeout: 5000 });
-      if (tabBox && tabBox.width > 10) {
-        await page.mouse.click(tabBox.x + tabBox.width / 2, tabBox.y + tabBox.height / 2);
-        tabClicked = true;
-        console.log('[TT] Clicked via getByText telefone');
-        await sleep(2500);
-      }
-    } catch(e) {
-      console.log('[TT] getByText telefone failed:', e.message.substring(0, 50));
-    }
+    const currentPageText = await page.evaluate(() => document.body?.innerText?.substring(0, 800) || '');
+    const currentUrl = page.url();
+    console.log('[TT] Page URL:', currentUrl);
+    console.log('[TT] Page text snippet:', currentPageText.substring(0, 300));
     
-    // Method 2: JS click with coordinate simulation (most compatible)
-    if (!tabClicked) {
-      const clickResult = await page.evaluate(() => {
-        const els = document.querySelectorAll('*');
-        for (const el of els) {
-          // Get only DIRECT text (not children text)
-          const directText = Array.from(el.childNodes)
-            .filter(n => n.nodeType === Node.TEXT_NODE)
-            .map(n => n.textContent.trim())
-            .join('');
-          const fullText = (el.innerText || '').trim();
-          // Match: "Usar telefone/e-mail/nome de usuário" or similar
-          if ((directText.includes('telefone') || fullText.includes('telefone')) 
-              && fullText.length < 80 && fullText.length > 10
-              && !el.querySelector('input') && !el.querySelector('button')) {
-            const rect = el.getBoundingClientRect();
-            if (rect.width > 20 && rect.height > 5) {
-              el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: rect.left + rect.width/2, clientY: rect.top + rect.height/2 }));
-              el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: rect.left + rect.width/2, clientY: rect.top + rect.height/2 }));
-              el.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: rect.left + rect.width/2, clientY: rect.top + rect.height/2 }));
-              return { clicked: true, text: fullText.substring(0, 60), x: Math.round(rect.left + rect.width/2), y: Math.round(rect.top + rect.height/2) };
+    // If we're on the initial login page, click "Usar telefone/e-mail/nome de usuário"
+    if (currentUrl === 'https://www.tiktok.com/login' || currentUrl === 'https://www.tiktok.com/login/') {
+      console.log('[TT] On initial login page, clicking phone/email tab...');
+      try {
+        const phoneTab = page.getByText('telefone', { exact: false }).first();
+        const tabBox = await phoneTab.boundingBox({ timeout: 5000 });
+        if (tabBox && tabBox.width > 10) {
+          await page.mouse.click(tabBox.x + tabBox.width / 2, tabBox.y + tabBox.height / 2);
+          console.log('[TT] Clicked phone tab');
+          await sleep(3000);
+        }
+      } catch(e) {
+        console.log('[TT] Phone tab click failed:', e.message.substring(0, 50));
+        // Fallback JS click
+        await page.evaluate(() => {
+          const els = document.querySelectorAll('*');
+          for (const el of els) {
+            const t = (el.innerText || '').trim();
+            if (t.includes('telefone') && t.length < 80 && t.length > 10 && !el.querySelector('input')) {
+              const r = el.getBoundingClientRect();
+              if (r.width > 20) {
+                el.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left+r.width/2, clientY: r.top+r.height/2 }));
+                return;
+              }
             }
           }
-        }
-        return { clicked: false };
-      });
-      if (clickResult.clicked) {
-        tabClicked = true;
-        console.log('[TT] Clicked tab via JS:', clickResult.text, 'at', clickResult.x, clickResult.y);
-        await sleep(2500);
+        });
+        await sleep(3000);
       }
     }
     
-    // Method 3: Last resort - click by known position (TikTok puts this option ~center of page)
-    if (!tabClicked) {
-      const viewSize = page.viewportSize();
-      const centerY = (viewSize ? viewSize.height : 800) / 2;
-      await page.mouse.click(400, centerY + 60);
-      tabClicked = true;
-      console.log('[TT] Clicked approximate position as last resort');
-      await sleep(2500);
-    }
-
-    // After clicking the tab, TT now shows phone-first login.
-    // Step 1: Click "Entrar com nome de usuário ou e-mail" to switch to username mode
-    await sleep(2000);
+    // Now we should be on /login/phone-or-email with phone tab active
+    // Fill the phone number
+    const phoneInput = await page.$('input[type="tel"]') || await page.$('input[name="phone"]') || await page.$('input[placeholder*="phone"]') || await page.$('input[placeholder*="telefone"]');
     
-    const usernameTabTexts = ['Entrar com nome de usuário ou e-mail', 'Log in with username or email'];
-    for (const txt of usernameTabTexts) {
+    if (phoneInput) {
+      // First, we may need to change the country code from US +1 to AO +244
+      // Click the country code selector
+      const countryCodeSel = await page.$('div[data-e2e="country-code-selector"]') || await page.$('[class*="country"]');
+      if (countryCodeSel) {
+        try {
+          const ccBox = await countryCodeSel.boundingBox({ timeout: 3000 });
+          if (ccBox) {
+            await page.mouse.click(ccBox.x + ccBox.width / 2, ccBox.y + ccBox.height / 2);
+            await sleep(2000);
+            // Search for Angola
+            const searchInput = await page.$('input[placeholder*="Search"]') || await page.$('input[placeholder*="search"]') || await page.$('input[type="text"]');
+            if (searchInput) {
+              await searchInput.fill('Angola');
+              await sleep(1500);
+              // Click the Angola option
+              const angolaOpt = page.getByText('Angola', { exact: false }).first();
+              const aoBox = await angolaOpt.boundingBox({ timeout: 3000 }).catch(() => null);
+              if (aoBox) {
+                await page.mouse.click(aoBox.x + aoBox.width / 2, aoBox.y + aoBox.height / 2);
+                await sleep(1000);
+                console.log('[TT] Selected Angola (+244)');
+              }
+            }
+          }
+        } catch(e) {
+          console.log('[TT] Country code change failed:', e.message.substring(0, 50));
+        }
+      }
+      
+      // Type phone number (without country code since we selected it)
+      const phoneOnly = CREDS.tt.phone.replace('+244', '').replace(/^0/, '');
+      await phoneInput.click({ force: true });
+      await sleep(300);
+      await phoneInput.type(phoneOnly, { delay: 30 });
+      console.log('[TT] Phone typed:', phoneOnly);
+      await sleep(500);
+    } else {
+      // No phone input - try username/email flow as fallback
+      console.log('[TT] No phone input, trying username/email tab...');
+      const usernameTabTexts = ['Entrar com nome de usuário ou e-mail', 'Log in with username or email'];
+      for (const txt of usernameTabTexts) {
+        try {
+          const el = page.getByText(txt, { exact: false }).first();
+          const box = await el.boundingBox({ timeout: 3000 }).catch(() => null);
+          if (box && box.width > 10) {
+            await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+            console.log('[TT] Clicked username/email tab');
+            await sleep(3000);
+            break;
+          }
+        } catch(e) {}
+      }
+      
+      const userInput = await page.$('input[type="text"]');
+      if (userInput) {
+        await userInput.click({ force: true });
+        await userInput.type(CREDS.tt.user, { delay: 30 });
+        console.log('[TT] Username typed as fallback');
+      }
+    }
+    
+    // Click "Enviar código" to send verification SMS
+    await sleep(1000);
+    let codeBtnClicked = false;
+    const sendCodeTexts = ['Enviar código', 'Send code', 'Enviar'];
+    for (const txt of sendCodeTexts) {
       try {
-        const el = page.getByText(txt, { exact: false }).first();
+        const el = page.getByRole('button').filter({ hasText: txt }).first();
         const box = await el.boundingBox({ timeout: 3000 }).catch(() => null);
-        if (box && box.width > 10) {
+        if (box && box.width > 30) {
           await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-          console.log('[TT] Clicked username/email tab:', txt);
-          await sleep(3000);
+          codeBtnClicked = true;
+          console.log('[TT] Clicked send code:', txt);
           break;
         }
       } catch(e) {}
     }
     
-    // Debug after tab switch
-    const afterSwitchText = await page.evaluate(() => document.body?.innerText?.substring(0, 800) || '');
-    console.log('[TT] After switch text:', afterSwitchText.substring(0, 300));
-    console.log('[TT] Current URL:', page.url());
-
-    const userInput = await page.$('input[name="username"]') || await page.$('input[placeholder*="username"]') || await page.$('input[placeholder*="Usuário"]') || await page.$('input[placeholder*="email"]') || await page.$('input[placeholder*="E-mail"]') || await page.$('input[type="text"]');
-    if (userInput) {
-      // Click input first to focus, then type (most compatible with React/SPA)
-      await userInput.click({ force: true });
-      await sleep(300);
-      await userInput.fill('');
-      await sleep(200);
-      await userInput.type(CREDS.tt.user, { delay: 30 });
-      console.log('[TT] Username typed:', CREDS.tt.user);
-      await sleep(500);
-      
-      // Verify it was filled
-      const filledVal = await page.evaluate(() => {
-        const i = document.querySelector('input[name="username"]') || document.querySelector('input[type="text"]');
-        return i ? i.value : 'NOT_FOUND';
-      });
-      console.log('[TT] Username field value after type:', filledVal);
-    } else {
-      console.log('[TT] WARNING: No username input found!');
-      const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
-      const txt = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
-      await ctx.close();
-      return { success: false, error: 'Campo de username nao encontrado', pageText: txt, screenshot: ss };
-    }
-
-    // Check if password field is already visible (old flow) or if we need to submit username first (new flow)
-    const passInput = await page.$('input[name="password"]') || await page.$('input[type="password"]');
-    
-    if (!passInput) {
-      // New TT flow: fill username → click Entrar → THEN password page appears
-      console.log('[TT] No password field yet, clicking Entrar to proceed to password page...');
-      await sleep(1000);
-      
-      // Click Entrar button
-      const firstLoginBtn = await page.$('button[data-e2e="login-button"]') || await page.$('button[type="submit"]');
-      if (firstLoginBtn) {
+    if (!codeBtnClicked) {
+      // Try any submit button
+      const submitBtn = await page.$('button[data-e2e="login-button"]') || await page.$('button[type="submit"]');
+      if (submitBtn) {
         try {
-          const btnBox = await firstLoginBtn.boundingBox({ timeout: 3000 });
-          if (btnBox) {
-            await page.mouse.click(btnBox.x + btnBox.width / 2, btnBox.y + btnBox.height / 2);
-          } else {
-            await firstLoginBtn.click({ force: true });
-          }
+          const box = await submitBtn.boundingBox({ timeout: 3000 });
+          if (box) await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+          else await submitBtn.click({ force: true });
+          codeBtnClicked = true;
         } catch(e) {
           await page.keyboard.press('Enter');
+          codeBtnClicked = true;
         }
-      } else {
-        await page.keyboard.press('Enter');
       }
-      
-      // Wait for password page
-      await sleep(5000);
-      await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
-      
-      const afterUsernameUrl = page.url();
-      const afterUsernameText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
-      console.log('[TT] After username submit URL:', afterUsernameUrl);
-      console.log('[TT] After username submit text:', afterUsernameText.substring(0, 200));
-      
-      // Check for errors
-      if (afterUsernameText.includes('ocorreu um erro') || afterUsernameText.includes('error occurred') || afterUsernameText.includes('não encontrado') || afterUsernameText.includes('not found')) {
-        const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
-        await ctx.close();
-        return { success: false, error: 'TT username nao encontrado ou erro', url: afterUsernameUrl, pageText: afterUsernameText, screenshot: ss };
-      }
-      
-      // Check for phone verification at this stage
-      if (afterUsernameUrl.includes('verify') || afterUsernameText.includes('verifique') || afterUsernameText.includes('Enviar código') || afterUsernameText.includes('Send code')) {
-        console.log('[TT] Phone verification after username submit');
-        // Try clicking send code
-        for (const txt of ['Enviar código', 'Send code', 'Enviar']) {
-          try {
-            const el = page.getByText(txt, { exact: false }).first();
-            const box = await el.boundingBox({ timeout: 2000 }).catch(() => null);
-            if (box) { await page.mouse.click(box.x + box.width/2, box.y + box.height/2); await sleep(5000); break; }
-          } catch(e) {}
-        }
-        ttVerify.active = true;
-        ttVerify.context = ctx;
-        ttVerify.page = page;
-        ttVerify.createdAt = Date.now();
-        const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
-        return { success: false, needsVerification: true, message: 'TT requer verificacao de telefone. Chame /tt/verify-code {code}.', url: afterUsernameUrl, pageText: afterUsernameText, screenshot: ss };
-      }
-      
-      // Now look for password input
-      const passInput2 = await page.$('input[name="password"]') || await page.$('input[type="password"]');
-      if (passInput2) {
-        await passInput2.fill(CREDS.tt.pass);
-        console.log('[TT] Password filled on page 2');
-      } else {
-        // No password field after username submit - check what we got
-        const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
-        await ctx.close();
-        return { success: false, error: 'Campo de senha nao encontrado apos username', url: afterUsernameUrl, pageText: afterUsernameText, screenshot: ss };
-      }
-    } else {
-      // Old flow: both fields on same page
-      await passInput.fill(CREDS.tt.pass);
-      console.log('[TT] Password filled (same page)');
-    }
-
-    await sleep(1000);
-
-    // Debug: check state before clicking login
-    const preClickDebug = await page.evaluate(() => {
-      const inputs = Array.from(document.querySelectorAll('input')).map(i => ({ name: i.name, type: i.type, val: i.value ? i.value.substring(0,10) : '', placeholder: (i.placeholder||'').substring(0,30) }));
-      const btns = Array.from(document.querySelectorAll('button')).map(b => ({ text: (b.innerText||'').substring(0,30), disabled: b.disabled, type: b.type, e2e: b.getAttribute('data-e2e') }));
-      return { inputs, btns, url: location.href.substring(0,80) };
-    });
-    console.log('[TT] Pre-click debug:', JSON.stringify(preClickDebug).substring(0, 500));
-
-    // Use force click or mouse.click to bypass disabled state
-    const loginBtn = await page.$('button[data-e2e="login-button"]') || await page.$('button[type="submit"]');
-    if (loginBtn) {
-      try {
-        const btnBox = await loginBtn.boundingBox({ timeout: 3000 });
-        if (btnBox) {
-          await page.mouse.click(btnBox.x + btnBox.width / 2, btnBox.y + btnBox.height / 2);
-          console.log('[TT] Clicked login via mouse at', Math.round(btnBox.x), Math.round(btnBox.y));
-        } else {
-          await loginBtn.click({ force: true });
-        }
-      } catch(e) {
-        console.log('[TT] Login btn click error:', e.message.substring(0, 80));
-        await page.keyboard.press('Enter');
-      }
-    } else {
-      await page.keyboard.press('Enter');
-    }
-
-    await sleep(6000);
-    await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
-
-    const afterUrl = page.url();
-    console.log('[TT] After login URL:', afterUrl);
-
-    // Debug: screenshot and text right after login click
-    const afterLoginSs = await page.screenshot({ encoding: 'base64', fullPage: false });
-    const afterLoginText = await page.evaluate(() => document.body?.innerText?.substring(0, 1000) || '');
-    console.log('[TT] After login text:', afterLoginText.substring(0, 300));
-
-    // Check for post-login states: CAPTCHA, SMS verification, error messages
-    const postLoginError = afterLoginText.match(/senha incorreta|password.*incorrect|username.*not found|usuário não encontrado|account.*locked|suspicious.*activity/i);
-    if (postLoginError) {
-      console.log('[TT] Login error detected:', postLoginError[0]);
-      await ctx.close();
-      return { success: false, error: 'TT login: ' + postLoginError[0], url: afterUrl, pageText: afterLoginText.substring(0, 500), screenshot: afterLoginSs };
     }
     
-    // Check for "verify your phone" or "confirm your identity" pages - SAVE CONTEXT instead of closing
-    const needsVerification = afterUrl.includes('verify') || afterUrl.includes('confirm') 
-      || afterLoginText.includes('verifique') || afterLoginText.includes('verify your')
-      || afterLoginText.includes('confirm your') || afterLoginText.includes('send code')
-      || afterLoginText.includes('Verificar') || afterLoginText.includes('enviamos')
-      || afterLoginText.includes('Enviar código') || afterLoginText.includes('Send code')
-      || afterLoginText.includes('phone verification') || afterLoginText.includes('verificação');
-    if (needsVerification) {
-      console.log('[TT] Phone verification required - saving context');
-      // Try to click "Send code" button first
-      let codeSent = false;
-      const codeBtnTexts = ['Enviar código', 'Send code', 'Enviar', 'Send', 'Enviar SMS', 'Text me a code', 'Obter código'];
-      for (const txt of codeBtnTexts) {
-        try {
-          const el = page.getByText(txt, { exact: false }).first();
-          const box = await el.boundingBox({ timeout: 2000 }).catch(() => null);
-          if (box) {
-            await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-            codeSent = true;
-            console.log('[TT] Clicked send code:', txt);
-            break;
-          }
-        } catch(e) {}
-      }
-      if (codeSent) await sleep(5000);
-      
+    await sleep(8000);
+    await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
+    
+    const afterUrl = page.url();
+    const afterText = await page.evaluate(() => document.body?.innerText?.substring(0, 1000) || '');
+    console.log('[TT] After send code URL:', afterUrl);
+    console.log('[TT] After send code text:', afterText.substring(0, 300));
+    
+    // Check if we're now on a code verification page
+    const hasCodeInput = await page.$('input[inputmode="numeric"]') || await page.$('input[name="code"]') || await page.$('input[placeholder*="código"]');
+    
+    if (hasCodeInput || afterText.includes('código') || afterText.includes('Insira o código') || afterText.includes('Enter code') || afterUrl.includes('verify')) {
+      console.log('[TT] Code verification page - saving context');
       ttVerify.active = true;
       ttVerify.context = ctx;
       ttVerify.page = page;
       ttVerify.createdAt = Date.now();
-      const verifySs = await page.screenshot({ encoding: 'base64', fullPage: false });
-      const verifyText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
-      return { success: false, needsVerification: true, message: 'TT requer verificacao de telefone. Chame /tt/verify-code {code} com o código recebido.', url: afterUrl, pageText: verifyText, screenshot: verifySs };
+      const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
+      return { success: false, needsVerification: true, message: 'Código enviado para o telefone! Chame /tt/verify-code {code} com o código recebido.', url: afterUrl, pageText: afterText.substring(0, 500), screenshot: ss };
     }
-
-    // CAPTCHA detection + solving
-    if (afterUrl.includes('verify') || afterUrl.includes('captcha') || afterUrl.includes('challenge')) {
-      console.log('[TT] CAPTCHA detected! Solving...');
-      const screenshot2 = await page.screenshot({ encoding: 'base64', fullPage: false });
-
-      const captchaResult = await checkAndSolveCaptcha(page, 'button[data-e2e="login-button"]');
-      if (captchaResult.solved) {
-        await sleep(5000);
-        await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
-        const afterCaptchaUrl = page.url();
-        console.log('[TT] After CAPTCHA URL:', afterCaptchaUrl);
-
-        if (!afterCaptchaUrl.includes('login') && !afterCaptchaUrl.includes('verify') && !afterCaptchaUrl.includes('captcha')) {
-          // Verify session is actually valid by checking for logged-in indicators
-          const validSession = await verifyTTSession(page);
-          if (validSession) {
-            const lsData = await page.evaluate(() => { try { return JSON.stringify(localStorage); } catch(e) { return '{}'; } });
-            sessions.tt = { cookies: await ctx.cookies(), loggedIn: true, expiresAt: Date.now() + 3600000, localStorage: lsData };
-            ttLoginCtx = ctx;
-            ttLoginCtxExpires = Date.now() + 3600000;
-            console.log('[TT] Login OK after CAPTCHA!');
-            return { success: true, method: 'captcha_solved' };
-          }
-        }
-      }
-
+    
+    // Check for errors
+    if (afterText.includes('ocorreu um erro') || afterText.includes('error occurred')) {
+      const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
       await ctx.close();
-      return { success: false, error: 'CAPTCHA nao resolvido', needsCaptcha: true, screenshot: screenshot2 };
+      return { success: false, error: 'TT erro ao enviar codigo. Tente novamente mais tarde.', url: afterUrl, pageText: afterText.substring(0, 500), screenshot: ss };
     }
-
-    // Verify session is actually valid (verifyTTSession navigates to @me)
+    
+    // If login succeeded directly (unlikely with phone login)
     const validSession = await verifyTTSession(page);
     if (validSession) {
       sessions.tt = { cookies: await ctx.cookies(), loggedIn: true, expiresAt: Date.now() + 3600000, localStorage: null };
-      // Keep context alive for DM reuse (TikTok auth doesn't transfer between contexts)
       ttLoginCtx = ctx;
       ttLoginCtxExpires = Date.now() + 3600000;
-      console.log('[TT] Login OK! Context kept alive for DM');
       return { success: true };
     }
+    
+    // Unknown state - save context and report
+    const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
+    ttVerify.active = true;
+    ttVerify.context = ctx;
+    ttVerify.page = page;
+    ttVerify.createdAt = Date.now();
+    return { success: false, needsVerification: true, message: 'Estado desconhecido. Verifica se recebeste código. Chame /tt/verify-code {code}.', url: afterUrl, pageText: afterText.substring(0, 500), screenshot: ss };
 
-    const failSs = await page.screenshot({ encoding: 'base64', fullPage: false });
-    const failText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
-    await ctx.close();
-    return { success: false, error: 'Login falhou - sessao invalida', url: page.url(), pageText: failText, screenshot: afterLoginSs, afterLoginUrl: afterUrl, afterLoginText: afterLoginText.substring(0, 500) };
   } catch (err) {
     console.error('[TT] Login error:', err.message);
     try { await ctx.close(); } catch(e) {}
