@@ -2315,7 +2315,45 @@ async function ttLogin() {
       await sleep(2500);
     }
 
-    const userInput = await page.$('input[name="username"]') || await page.$('input[placeholder*="username"]') || await page.$('input[placeholder*="Usuário"]') || await page.$('input[type="text"]');
+    // After clicking the tab, TT now shows phone-first login.
+    // We need to click "Entrar com senha" to switch to username+password mode
+    await sleep(2000);
+    let switchedToPassword = false;
+    
+    // Try clicking "Entrar com senha" link
+    const pwdSwitchTexts = ['Entrar com senha', 'Log in with password', 'Login with password'];
+    for (const txt of pwdSwitchTexts) {
+      try {
+        const el = page.getByText(txt, { exact: false }).first();
+        const box = await el.boundingBox({ timeout: 3000 }).catch(() => null);
+        if (box && box.width > 10) {
+          await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+          switchedToPassword = true;
+          console.log('[TT] Clicked password mode:', txt);
+          await sleep(3000);
+          break;
+        }
+      } catch(e) {}
+    }
+    
+    // Also try clicking "Entrar com nome de usuário ou e-mail" if password mode not found
+    if (!switchedToPassword) {
+      try {
+        const userTab = page.getByText('nome de usuário', { exact: false }).first();
+        const box = await userTab.boundingBox({ timeout: 3000 }).catch(() => null);
+        if (box && box.width > 10) {
+          await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+          console.log('[TT] Clicked username tab');
+          await sleep(2000);
+        }
+      } catch(e) {}
+    }
+    
+    // Debug after tab switch
+    const afterSwitchText = await page.evaluate(() => document.body?.innerText?.substring(0, 800) || '');
+    console.log('[TT] After switch text:', afterSwitchText.substring(0, 300));
+
+    const userInput = await page.$('input[name="username"]') || await page.$('input[placeholder*="username"]') || await page.$('input[placeholder*="Usuário"]') || await page.$('input[placeholder*="email"]') || await page.$('input[type="text"]');
     if (userInput) {
       // Use nativeInputValueSetter for Web Bloks-like frameworks
       await page.evaluate((val) => {
