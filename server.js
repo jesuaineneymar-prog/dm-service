@@ -2333,26 +2333,12 @@ async function ttLogin() {
       } catch(e) {}
     }
     
-    // Step 2: Now look for "Entrar com senha" to switch to password mode (on username tab)
-    const pwdSwitchTexts = ['Entrar com senha', 'Log in with password'];
-    for (const txt of pwdSwitchTexts) {
-      try {
-        const el = page.getByText(txt, { exact: false }).first();
-        const box = await el.boundingBox({ timeout: 3000 }).catch(() => null);
-        if (box && box.width > 10) {
-          await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-          console.log('[TT] Clicked password mode:', txt);
-          await sleep(3000);
-          break;
-        }
-      } catch(e) {}
-    }
-    
     // Debug after tab switch
     const afterSwitchText = await page.evaluate(() => document.body?.innerText?.substring(0, 800) || '');
     console.log('[TT] After switch text:', afterSwitchText.substring(0, 300));
+    console.log('[TT] Current URL:', page.url());
 
-    const userInput = await page.$('input[name="username"]') || await page.$('input[placeholder*="username"]') || await page.$('input[placeholder*="Usuário"]') || await page.$('input[placeholder*="email"]') || await page.$('input[type="text"]');
+    const userInput = await page.$('input[name="username"]') || await page.$('input[placeholder*="username"]') || await page.$('input[placeholder*="Usuário"]') || await page.$('input[placeholder*="email"]') || await page.$('input[placeholder*="E-mail"]') || await page.$('input[type="text"]');
     if (userInput) {
       // Use nativeInputValueSetter for Web Bloks-like frameworks
       await page.evaluate((val) => {
@@ -2373,8 +2359,82 @@ async function ttLogin() {
       return { success: false, error: 'Campo de username nao encontrado', pageText: txt, screenshot: ss };
     }
 
+    // Check if password field is already visible (old flow) or if we need to submit username first (new flow)
     const passInput = await page.$('input[name="password"]') || await page.$('input[type="password"]');
-    if (passInput) await passInput.fill(CREDS.tt.pass);
+    
+    if (!passInput) {
+      // New TT flow: fill username → click Entrar → THEN password page appears
+      console.log('[TT] No password field yet, clicking Entrar to proceed to password page...');
+      await sleep(1000);
+      
+      // Click Entrar button
+      const firstLoginBtn = await page.$('button[data-e2e="login-button"]') || await page.$('button[type="submit"]');
+      if (firstLoginBtn) {
+        try {
+          const btnBox = await firstLoginBtn.boundingBox({ timeout: 3000 });
+          if (btnBox) {
+            await page.mouse.click(btnBox.x + btnBox.width / 2, btnBox.y + btnBox.height / 2);
+          } else {
+            await firstLoginBtn.click({ force: true });
+          }
+        } catch(e) {
+          await page.keyboard.press('Enter');
+        }
+      } else {
+        await page.keyboard.press('Enter');
+      }
+      
+      // Wait for password page
+      await sleep(5000);
+      await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
+      
+      const afterUsernameUrl = page.url();
+      const afterUsernameText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
+      console.log('[TT] After username submit URL:', afterUsernameUrl);
+      console.log('[TT] After username submit text:', afterUsernameText.substring(0, 200));
+      
+      // Check for errors
+      if (afterUsernameText.includes('ocorreu um erro') || afterUsernameText.includes('error occurred') || afterUsernameText.includes('não encontrado') || afterUsernameText.includes('not found')) {
+        const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
+        await ctx.close();
+        return { success: false, error: 'TT username nao encontrado ou erro', url: afterUsernameUrl, pageText: afterUsernameText, screenshot: ss };
+      }
+      
+      // Check for phone verification at this stage
+      if (afterUsernameUrl.includes('verify') || afterUsernameText.includes('verifique') || afterUsernameText.includes('Enviar código') || afterUsernameText.includes('Send code')) {
+        console.log('[TT] Phone verification after username submit');
+        // Try clicking send code
+        for (const txt of ['Enviar código', 'Send code', 'Enviar']) {
+          try {
+            const el = page.getByText(txt, { exact: false }).first();
+            const box = await el.boundingBox({ timeout: 2000 }).catch(() => null);
+            if (box) { await page.mouse.click(box.x + box.width/2, box.y + box.height/2); await sleep(5000); break; }
+          } catch(e) {}
+        }
+        ttVerify.active = true;
+        ttVerify.context = ctx;
+        ttVerify.page = page;
+        ttVerify.createdAt = Date.now();
+        const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
+        return { success: false, needsVerification: true, message: 'TT requer verificacao de telefone. Chame /tt/verify-code {code}.', url: afterUsernameUrl, pageText: afterUsernameText, screenshot: ss };
+      }
+      
+      // Now look for password input
+      const passInput2 = await page.$('input[name="password"]') || await page.$('input[type="password"]');
+      if (passInput2) {
+        await passInput2.fill(CREDS.tt.pass);
+        console.log('[TT] Password filled on page 2');
+      } else {
+        // No password field after username submit - check what we got
+        const ss = await page.screenshot({ encoding: 'base64', fullPage: false });
+        await ctx.close();
+        return { success: false, error: 'Campo de senha nao encontrado apos username', url: afterUsernameUrl, pageText: afterUsernameText, screenshot: ss };
+      }
+    } else {
+      // Old flow: both fields on same page
+      await passInput.fill(CREDS.tt.pass);
+      console.log('[TT] Password filled (same page)');
+    }
 
     await sleep(1000);
 
