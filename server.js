@@ -2640,8 +2640,8 @@ async function ttLoginPhone() {
   await page.addInitScript(STEALTH_JS);
 
   try {
-    // Navigate directly to phone tab URL (TikTok now uses /login/phone-or-email/phone)
-    await page.goto('https://www.tiktok.com/login/phone-or-email/phone', { waitUntil: 'load', timeout: 45000 }).catch(() => {});
+    // Navigate to login page
+    await page.goto('https://www.tiktok.com/login', { waitUntil: 'load', timeout: 45000 }).catch(() => {});
     await sleep(4000);
 
     let currentPageText = await page.evaluate(() => document.body?.innerText?.substring(0, 800) || '');
@@ -2649,19 +2649,36 @@ async function ttLoginPhone() {
     console.log('[TT Phone] Page URL:', currentUrl);
     console.log('[TT Phone] Page text:', currentPageText.substring(0, 300));
 
-    // If we ended up on email tab, switch to phone tab
+    // TikTok redirects to email tab. Switch to phone tab by changing URL
+    if (currentUrl.includes('/email') || !await page.$('input[type="tel"]').catch(() => null)) {
+      console.log('[TT Phone] Switching to phone tab...');
+      
+      // Method 1: Direct URL navigation to phone tab
+      const phoneUrl = currentUrl.replace('/email', '/phone');
+      if (phoneUrl !== currentUrl) {
+        console.log('[TT Phone] Navigating to:', phoneUrl);
+        await page.goto(phoneUrl, { waitUntil: 'load', timeout: 20000 }).catch(() => {});
+        await sleep(3000);
+      }
+      
+      currentUrl = page.url();
+      currentPageText = await page.evaluate(() => document.body?.innerText?.substring(0, 800) || '');
+      console.log('[TT Phone] After URL switch:', currentUrl);
+      console.log('[TT Phone] Text:', currentPageText.substring(0, 200));
+    }
+
+    // Method 2: If still on email tab, click "Entrar com o telefone"
     if (!await page.$('input[type="tel"]').catch(() => null)) {
-      console.log('[TT Phone] Not on phone tab, switching...');
-      // Try clicking "Entrar com o telefone" or "telefone" link
-      const switchTexts = ['Entrar com o telefone', 'telefone', 'Phone', 'phone number', 'Usar telefone'];
+      console.log('[TT Phone] Still no phone input, clicking tab link...');
+      const switchTexts = ['Entrar com o telefone', 'telefone', 'Phone', 'Usar telefone'];
       let switched = false;
       for (const txt of switchTexts) {
         try {
           const el = page.getByText(txt, { exact: false }).first();
           const box = await el.boundingBox({ timeout: 3000 }).catch(() => null);
-          if (box && box.width > 10) {
+          if (box) {
             await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-            console.log('[TT Phone] Clicked switch:', txt);
+            console.log('[TT Phone] Clicked:', txt, 'box:', Math.round(box.width), 'x', Math.round(box.height));
             switched = true;
             await sleep(3000);
             break;
@@ -2669,29 +2686,28 @@ async function ttLoginPhone() {
         } catch(e) {}
       }
       if (!switched) {
-        // JS click fallback
-        await page.evaluate(() => {
+        // JS click fallback - click any element containing "telefone"
+        const jsResult = await page.evaluate(() => {
           const els = document.querySelectorAll('a, div, span, button, p');
           for (const el of els) {
             const t = (el.innerText || '').trim();
-            if ((t.includes('telefone') || t.includes('Phone')) && t.length < 80 && t.length > 5 && !el.querySelector('input')) {
+            if ((t.toLowerCase().includes('telefone') || t.toLowerCase().includes('phone')) && t.length < 80 && t.length > 3 && !el.querySelector('input')) {
               const r = el.getBoundingClientRect();
-              if (r.width > 10 && r.height > 5) {
-                el.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left+r.width/2, clientY: r.top+r.height/2 }));
-                return 'clicked: ' + t.substring(0, 40);
+              if (r.width > 0 && r.height > 0) {
+                el.click();
+                return 'clicked: ' + t.substring(0, 40) + ' (' + Math.round(r.width) + 'x' + Math.round(r.height) + ')';
               }
             }
           }
           return 'not found';
-        }).then(r => console.log('[TT Phone] JS switch:', r));
+        });
+        console.log('[TT Phone] JS click:', jsResult);
         await sleep(3000);
       }
       
-      // Verify we're now on phone tab
       currentPageText = await page.evaluate(() => document.body?.innerText?.substring(0, 800) || '');
       currentUrl = page.url();
-      console.log('[TT Phone] After switch URL:', currentUrl);
-      console.log('[TT Phone] After switch text:', currentPageText.substring(0, 200));
+      console.log('[TT Phone] After click URL:', currentUrl, 'text:', currentPageText.substring(0, 200));
     }
 
     // Fill phone number
