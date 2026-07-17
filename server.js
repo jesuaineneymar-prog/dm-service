@@ -2252,52 +2252,67 @@ async function ttLogin() {
     const loginPageText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || '');
     console.log('[TT] Login page text:', loginPageText.substring(0, 200));
 
+    // Wait for SPA to fully render
+    await sleep(3000);
+    
     // Click "Usar telefone/e-mail/nome de usuário" (PT-BR) or English equivalent
     let tabClicked = false;
-    const tabSelectors = [
-      'span:has-text("Usar telefone/e-mail/nome de usuário")',
-      'span:has-text("Use phone / email / username")',
-      'div:has-text("Usar telefone")',
-      'div[data-e2e="login-tab-phone"]',
-      'div[data-e2e="login-tab-email"]',
-    ];
-    for (const sel of tabSelectors) {
-      try {
-        const el = await page.$(sel);
-        if (el) {
-          const box = await el.boundingBox({ timeout: 3000 }).catch(() => null);
-          if (box) {
-            await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-            tabClicked = true;
-            console.log('[TT] Clicked login tab:', sel);
-            await sleep(2000);
-            break;
-          }
-        }
-      } catch(e) {}
+    
+    // Method 1: Use Playwright's getByText (most reliable for SPAs)
+    try {
+      const phoneTab = page.getByText('telefone', { exact: false }).first();
+      const tabBox = await phoneTab.boundingBox({ timeout: 5000 });
+      if (tabBox && tabBox.width > 10) {
+        await page.mouse.click(tabBox.x + tabBox.width / 2, tabBox.y + tabBox.height / 2);
+        tabClicked = true;
+        console.log('[TT] Clicked via getByText telefone');
+        await sleep(2500);
+      }
+    } catch(e) {
+      console.log('[TT] getByText telefone failed:', e.message.substring(0, 50));
     }
-    // Fallback: click by text content
+    
+    // Method 2: JS click with coordinate simulation (most compatible)
     if (!tabClicked) {
       const clickResult = await page.evaluate(() => {
-        const els = document.querySelectorAll('div, span, p, a, button');
+        const els = document.querySelectorAll('*');
         for (const el of els) {
-          const t = (el.innerText || '').trim();
-          if (t.includes('telefone') && t.includes('email') && t.includes('usuário')) {
-            el.click();
-            return { clicked: true, text: t.substring(0, 50) };
-          }
-          if (t.includes('phone') && t.includes('email') && t.includes('username')) {
-            el.click();
-            return { clicked: true, text: t.substring(0, 50) };
+          // Get only DIRECT text (not children text)
+          const directText = Array.from(el.childNodes)
+            .filter(n => n.nodeType === Node.TEXT_NODE)
+            .map(n => n.textContent.trim())
+            .join('');
+          const fullText = (el.innerText || '').trim();
+          // Match: "Usar telefone/e-mail/nome de usuário" or similar
+          if ((directText.includes('telefone') || fullText.includes('telefone')) 
+              && fullText.length < 80 && fullText.length > 10
+              && !el.querySelector('input') && !el.querySelector('button')) {
+            const rect = el.getBoundingClientRect();
+            if (rect.width > 20 && rect.height > 5) {
+              el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: rect.left + rect.width/2, clientY: rect.top + rect.height/2 }));
+              el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: rect.left + rect.width/2, clientY: rect.top + rect.height/2 }));
+              el.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: rect.left + rect.width/2, clientY: rect.top + rect.height/2 }));
+              return { clicked: true, text: fullText.substring(0, 60), x: Math.round(rect.left + rect.width/2), y: Math.round(rect.top + rect.height/2) };
+            }
           }
         }
         return { clicked: false };
       });
       if (clickResult.clicked) {
         tabClicked = true;
-        console.log('[TT] Clicked tab via text:', clickResult.text);
-        await sleep(2000);
+        console.log('[TT] Clicked tab via JS:', clickResult.text, 'at', clickResult.x, clickResult.y);
+        await sleep(2500);
       }
+    }
+    
+    // Method 3: Last resort - click by known position (TikTok puts this option ~center of page)
+    if (!tabClicked) {
+      const viewSize = page.viewportSize();
+      const centerY = (viewSize ? viewSize.height : 800) / 2;
+      await page.mouse.click(400, centerY + 60);
+      tabClicked = true;
+      console.log('[TT] Clicked approximate position as last resort');
+      await sleep(2500);
     }
 
     const userInput = await page.$('input[name="username"]') || await page.$('input[placeholder*="username"]') || await page.$('input[placeholder*="Usuário"]') || await page.$('input[type="text"]');
