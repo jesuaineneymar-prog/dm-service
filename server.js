@@ -2349,22 +2349,46 @@ async function ttLoginUserPass() {
     const urlAfterTab = page.url();
     console.log('[TT UP] After tab URL:', urlAfterTab, 'text:', pageAfterTab.substring(0, 200));
     
-    // If we see phone input, switch to username tab
+    // If we see phone-related elements, switch to username/email tab
+    const hasMobileInput = await page.$('input[name="mobile"]').catch(() => null);
     const hasPhoneInput = await page.$('input[type="tel"]').catch(() => null);
-    if (hasPhoneInput) {
-      console.log('[TT UP] Phone input visible, switching to username tab...');
-      const userTabTexts = ['nome de usuário ou e-mail', 'username or email', 'Usuário', 'Username'];
+    if (hasMobileInput || hasPhoneInput) {
+      console.log('[TT UP] Phone/mobile input visible, switching to username tab...');
+      const userTabTexts = ['Entrar com nome de usuário ou e-mail', 'nome de usuário ou e-mail', 'username or email', 'Entrar com senha'];
       for (const txt of userTabTexts) {
         try {
           const el = page.getByText(txt, { exact: false }).first();
           const box = await el.boundingBox({ timeout: 3000 }).catch(() => null);
           if (box && box.width > 10) {
             await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-            console.log('[TT UP] Switched to username tab:', txt);
-            await sleep(2000);
+            console.log('[TT UP] Clicked username tab:', txt);
+            await sleep(3000);
             break;
           }
         } catch(e) {}
+      }
+      // Verify the URL changed to /email
+      const newUrl = page.url();
+      console.log('[TT UP] After username tab switch URL:', newUrl);
+      if (!newUrl.includes('/email')) {
+        // Try JS click
+        await page.evaluate(() => {
+          const els = document.querySelectorAll('div, span, a, button, p');
+          for (const el of els) {
+            const t = (el.innerText || '').trim();
+            if (t.includes('nome de usuário') || t.includes('e-mail') || t.includes('username') || t.includes('email')) {
+              if (t.length < 60 && t.length > 5) {
+                const r = el.getBoundingClientRect();
+                if (r.width > 20 && r.height > 5) {
+                  el.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left+r.width/2, clientY: r.top+r.height/2 }));
+                  return 'clicked: ' + t.substring(0, 40);
+                }
+              }
+            }
+          }
+          return 'not found';
+        }).then(r => console.log('[TT UP] JS username tab:', r));
+        await sleep(3000);
       }
     }
 
@@ -2401,14 +2425,16 @@ async function ttLoginUserPass() {
         const type = (inp.type || 'text').toLowerCase();
         const placeholder = (inp.placeholder || '').toLowerCase();
         const name = (inp.name || '').toLowerCase();
-        // Skip tel, hidden, submit, checkbox, password inputs
+        // Skip phone, tel, hidden, submit, checkbox, password inputs
         if (type === 'tel' || type === 'hidden' || type === 'submit' || type === 'checkbox' || type === 'password') continue;
+        if (name === 'mobile' || name === 'phone') continue; // Skip phone fields (even if type=text)
+        if (placeholder.includes('telefone') || placeholder.includes('phone')) continue; // Skip phone placeholders
         // Prefer inputs with username/email-related attributes
         if (name.includes('user') || placeholder.includes('user') || placeholder.includes('email') || placeholder.includes('e-mail') || type === 'email') {
           targetInput = inp;
           break;
         }
-        // Otherwise use first text-like input
+        // Otherwise use first text-like input (that's not phone)
         if (!targetInput && (type === 'text' || type === 'email' || type === '')) {
           targetInput = inp;
         }
