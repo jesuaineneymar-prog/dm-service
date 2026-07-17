@@ -554,18 +554,25 @@ async function checkAndSolveCaptcha(page, submitSelector) {
 // --- Log buffer for debugging ---
 const LOG_BUFFER = [];
 const MAX_LOG = 200;
-function log(msg) {
+function addLog(msg) {
   const ts = new Date().toISOString().substring(11, 19);
   const line = ts + ' ' + msg;
   LOG_BUFFER.push(line);
   if (LOG_BUFFER.length > MAX_LOG) LOG_BUFFER.shift();
-  console.log(msg);
 }
 // Override console.log/error to also capture in buffer
 const origLog = console.log;
 const origError = console.error;
-console.log = (...args) => { origLog(...args); log(args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')); };
-console.error = (...args) => { origError(...args); log('ERR: ' + args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')); };
+console.log = (...args) => { 
+  const msg = args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ');
+  addLog(msg);
+  origLog(...args); 
+};
+console.error = (...args) => { 
+  const msg = args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ');
+  addLog('ERR: ' + msg);
+  origError(...args); 
+};
 
 async function getBrowser(useProxy = false) {
   if (useProxy) {
