@@ -2341,9 +2341,32 @@ async function ttLogin() {
 
     await sleep(1000);
 
+    // Debug: check state before clicking login
+    const preClickDebug = await page.evaluate(() => {
+      const inputs = Array.from(document.querySelectorAll('input')).map(i => ({ name: i.name, type: i.type, val: i.value ? i.value.substring(0,10) : '', placeholder: (i.placeholder||'').substring(0,30) }));
+      const btns = Array.from(document.querySelectorAll('button')).map(b => ({ text: (b.innerText||'').substring(0,30), disabled: b.disabled, type: b.type, e2e: b.getAttribute('data-e2e') }));
+      return { inputs, btns, url: location.href.substring(0,80) };
+    });
+    console.log('[TT] Pre-click debug:', JSON.stringify(preClickDebug).substring(0, 500));
+
+    // Use force click or mouse.click to bypass disabled state
     const loginBtn = await page.$('button[data-e2e="login-button"]') || await page.$('button[type="submit"]');
-    if (loginBtn) await loginBtn.click();
-    else await page.keyboard.press('Enter');
+    if (loginBtn) {
+      try {
+        const btnBox = await loginBtn.boundingBox({ timeout: 3000 });
+        if (btnBox) {
+          await page.mouse.click(btnBox.x + btnBox.width / 2, btnBox.y + btnBox.height / 2);
+          console.log('[TT] Clicked login via mouse at', Math.round(btnBox.x), Math.round(btnBox.y));
+        } else {
+          await loginBtn.click({ force: true });
+        }
+      } catch(e) {
+        console.log('[TT] Login btn click error:', e.message.substring(0, 80));
+        await page.keyboard.press('Enter');
+      }
+    } else {
+      await page.keyboard.press('Enter');
+    }
 
     await sleep(6000);
     await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
