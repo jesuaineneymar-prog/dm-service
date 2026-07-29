@@ -363,6 +363,97 @@ function ChatTab({ onLogout }: { onLogout: () => void }) {
       var posts = histRes?.data && Array.isArray(histRes.data) ? histRes.data : [];
       reply = posts.length === 0 ? 'Sem historico.' : 'Ultimos posts:\n' + posts.slice(0, 10).map((p: any, i: number) => (i+1) + '. ' + (p.title || '?').slice(0, 50)).join('\n');
     }
+    // ===== ZERNIO DM COMMANDS =====
+    else if (cmd.includes('dm') && (cmd.includes('inbox') || cmd.includes('mensagens') || cmd.includes('conversas'))) {
+      reply = 'A buscar DMs via Zernio...';
+      setChatHistory(h => [...h, { role: 'assistant', content: reply, ts: new Date().toISOString() }]);
+      var zPlat = '';
+      if (cmd.includes('instagram') || cmd.includes('ig')) zPlat = 'instagram';
+      else if (cmd.includes('facebook') || cmd.includes('fb')) zPlat = 'facebook';
+      var zConv = await apiCall('/cmd/zernio', { action: 'list_conversations', platform: zPlat || undefined });
+      if (!zConv || !zConv.success) { reply = 'Erro ao buscar DMs: ' + (zConv?.error || 'sem resposta'); }
+      else {
+        var convs = zConv.conversations?.data || zConv.conversations || [];
+        if (!Array.isArray(convs) && convs.conversations) convs = convs.conversations;
+        if (convs.length === 0) { reply = 'Sem conversas no inbox ' + (zPlat ? '(' + zPlat + ')' : '') + '.'; }
+        else {
+          reply = convs.length + ' conversas encontradas:\n';
+          for (var zi = 0; zi < Math.min(15, convs.length); zi++) {
+            var zc = convs[zi];
+            reply += '\n' + (zi+1) + '. ' + (zc.participant?.name || zc.participant?.username || zc.id?.slice(0, 12) || '?');
+            if (zc.lastMessage?.text) reply += ': "' + zc.lastMessage.text.slice(0, 60) + '"';
+            if (zc.platform) reply += ' [' + zc.platform + ']';
+          }
+          reply += '\n\nDiz "responde dm <numero>" para responder a uma conversa.';
+        }
+      }
+    }
+    else if (cmd.includes('contas zernio') || cmd.includes('zernio contas') || cmd.includes('contas conectadas')) {
+      reply = 'A buscar contas conectadas no Zernio...';
+      setChatHistory(h => [...h, { role: 'assistant', content: reply, ts: new Date().toISOString() }]);
+      var zAcc = await apiCall('/cmd/zernio', { action: 'list_accounts' });
+      if (!zAcc || !zAcc.success) { reply = 'Erro: ' + (zAcc?.error || 'sem resposta'); }
+      else {
+        var accs = zAcc.accounts?.data || zAcc.accounts || [];
+        if (!Array.isArray(accs) && accs.accounts) accs = accs.accounts;
+        if (accs.length === 0) { reply = 'Nenhuma conta conectada. Diz "conectar zernio <plataforma>".'; }
+        else {
+          reply = accs.length + ' contas conectadas no Zernio:\n';
+          for (var ai = 0; ai < accs.length; ai++) {
+            var a = accs[ai];
+            reply += '\n' + (ai+1) + '. ' + (a.platform || '?') + ': @' + (a.username || a.handle || a.name || '?') + ' (ID: ' + (a.id || a.accountId || '?').slice(0, 12) + ')';
+          }
+        }
+      }
+    }
+    else if (cmd.includes('responde dm') || cmd.includes('responder dm')) {
+      // Reply to a DM via Zernio
+      var parts = msg.match(/responde?\s*dm\s*(\d+)\s*(.*)/i) || [];
+      if (parts.length < 3) { reply = 'Uso: "responde dm 1 Olá! Como posso ajudar?"'; }
+      else {
+        var convIdx = parseInt(parts[1]) - 1;
+        var dmText = parts[2];
+        setChatHistory(h => [...h, { role: 'assistant', content: 'A enviar DM...', ts: new Date().toISOString() }]);
+        // First get conversations
+        var zC = await apiCall('/cmd/zernio', { action: 'list_conversations' });
+        var zConvs = zC?.conversations?.data || zC?.conversations || [];
+        if (!Array.isArray(zConvs) && zConvs.conversations) zConvs = zConvs.conversations;
+        if (convIdx >= 0 && convIdx < zConvs.length) {
+          var targetConv = zConvs[convIdx];
+          var targetAccId = targetConv.accountId || targetConv.account?.id || '';
+          var sendRes = await apiCall('/cmd/zernio', { action: 'send_dm', conversationId: targetConv.id, accountId: targetAccId, message: dmText });
+          reply = sendRes?.success ? 'DM enviado com sucesso para ' + (targetConv.participant?.name || targetConv.participant?.username || '?') + '!' : 'Falhou: ' + (sendRes?.error || '?');
+        } else { reply = 'Numero de conversa invalido.'; }
+      }
+    }
+    else if (cmd.includes('conectar zernio') || cmd.includes('zernio conectar')) {
+      var zPlat2 = 'instagram';
+      if (cmd.includes('facebook') || cmd.includes('fb')) zPlat2 = 'facebook';
+      reply = 'A gerar link de conexao ' + zPlat2.toUpperCase() + '...';
+      setChatHistory(h => [...h, { role: 'assistant', content: reply, ts: new Date().toISOString() }]);
+      var zConn = await apiCall('/cmd/zernio', { action: 'connect', platform: zPlat2 });
+      if (!zConn?.success) { reply = 'Erro: ' + (zConn?.error || '?'); }
+      else { reply = 'Abre este link para conectar o teu ' + zPlat2.toUpperCase() + ' ao Zernio:\n' + (zConn.authUrl || zConn.data?.authUrl || '?'); }
+    }
+    else if (cmd.includes('auto dm') || cmd.includes('comment-to-dm') || cmd.includes('automacao dm')) {
+      reply = 'A criar automacao comment-to-DM...';
+      setChatHistory(h => [...h, { role: 'assistant', content: reply, ts: new Date().toISOString() }]);
+      var autoMsg = msg.match(/["']([^"']+)["']/);
+      var autoText = autoMsg ? autoMsg[1] : 'Obrigado pelo comentario! A Mwango Brain agradece o teu interesse. Como podemos ajudar?';
+      var autoAccId = sg('zernio_ig_account', '');
+      if (!autoAccId) {
+        var zA = await apiCall('/cmd/zernio', { action: 'list_accounts' });
+        var zAccs2 = zA?.accounts?.data || zA?.accounts || [];
+        if (!Array.isArray(zAccs2) && zAccs2.accounts) zAccs2 = zAccs2.accounts;
+        var igAcc = zAccs2.find((a: any) => a.platform === 'instagram');
+        if (igAcc) { autoAccId = igAcc.id || igAcc.accountId || ''; ss('zernio_ig_account', autoAccId); }
+      }
+      if (!autoAccId) { reply = 'Nenhuma conta Instagram conectada. Diz "conectar zernio instagram" primeiro.'; }
+      else {
+        var autoRes = await apiCall('/cmd/zernio', { action: 'create_comment_automation', accountId: autoAccId, message: autoText });
+        reply = autoRes?.success ? 'Automacao criada! Quem comentar nos teus posts vai receber automaticamente: "' + autoText + '"' : 'Falhou: ' + (autoRes?.error || '?');
+      }
+    }
     else if (cmd.includes('sair') || cmd.includes('logout')) { sd('ja'); sd('jch'); sd('jsessions'); onLogout(); return; }
     else {
       try {
