@@ -24,3 +24,5 @@ tsconfig.tsbuildinfo
 *.log
 *.zip
 ig-debug.png
+.vercel
+.env*
