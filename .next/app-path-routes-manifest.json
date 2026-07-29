@@ -1,0 +1,10 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/respond/route": "/api/respond",
+  "/api/tools/route": "/api/tools",
+  "/cmd/route": "/cmd",
+  "/cmd/tools/route": "/cmd/tools",
+  "/favicon.ico/route": "/favicon.ico",
+  "/page": "/"
+}
