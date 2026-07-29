@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+.zscripts/
+tool-results/
+download/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Vercel
+.vercel/
+
+# JARVIS source copy (we work from root now)
+jarvis/
+
+# Misc
+*.log
+*.zip
+ig-debug.png
