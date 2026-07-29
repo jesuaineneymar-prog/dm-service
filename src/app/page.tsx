@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { MessageSquare, BarChart3, Users, Sparkles, Clock, Send, Plus, Trash2, ChevronRight, Search, TrendingUp, Eye, Heart, Hash, Calendar, Zap, Globe, Camera, Video, FileText, RefreshCw, Settings, LogOut, Bot } from 'lucide-react';
+import { MessageSquare, BarChart3, Users, Sparkles, Clock, Send, Plus, Trash2, ChevronRight, Search, TrendingUp, Eye, Heart, Hash, Calendar, Zap, Globe, Camera, Video, FileText, RefreshCw, Settings, LogOut, Bot, Bell, Shield, Activity, Radio } from 'lucide-react';
 
 // ===== CONSTANTS =====
 const PASS = 'Jarvis99!';
@@ -452,6 +452,78 @@ function ChatTab({ onLogout }: { onLogout: () => void }) {
       else {
         var autoRes = await apiCall('/cmd/zernio', { action: 'create_comment_automation', accountId: autoAccId, message: autoText });
         reply = autoRes?.success ? 'Automacao criada! Quem comentar nos teus posts vai receber automaticamente: "' + autoText + '"' : 'Falhou: ' + (autoRes?.error || '?');
+      }
+    }
+    // ===== AUTONOMOUS SYSTEM COMMANDS =====
+    else if (cmd.includes('modo autonomo') || cmd.includes('ativar autonomia') || cmd.includes('sistema autonomo')) {
+      reply = 'A activar sistema autonomo...';
+      setChatHistory(h => [...h, { role: 'assistant', content: reply, ts: new Date().toISOString() }]);
+      var autoRes = await apiCall('/cmd/autonomous', { action: 'full_cycle' });
+      if (!autoRes?.success) { reply = 'Erro ao activar sistema: ' + (autoRes?.error || '?'); }
+      else {
+        var d = autoRes.data;
+        var autoLines = 'SISTEMA AUTONOMO ACTIVO\n\n';
+        autoLines += 'Monitorizacao DMs:\n';
+        autoLines += '  - Novas mensagens: ' + (d.monitor?.newMessages || 0) + '\n';
+        autoLines += '  - Respostas automaticas: ' + (d.monitor?.autoReplied || 0) + '\n';
+        autoLines += '  - Notificacoes criadas: ' + (d.monitor?.notifications || 0) + '\n';
+        autoLines += '\nFollow-ups:\n';
+        autoLines += '  - Processados: ' + (d.followUps?.processed || 0) + '\n';
+        autoLines += '  - Enviados: ' + (d.followUps?.sent || 0) + '\n';
+        autoLines += '  - Novos criados: ' + (d.autoCreatedFollowUps || 0) + '\n';
+        if (d.monitor?.errors?.length > 0) autoLines += '\nErros: ' + d.monitor.errors.join(', ');
+        reply = autoLines;
+      }
+    }
+    else if (cmd.includes('ver notificacoes') || cmd.includes('notificacoes') || cmd.includes('alertas')) {
+      reply = 'A buscar notificacoes...';
+      setChatHistory(h => [...h, { role: 'assistant', content: reply, ts: new Date().toISOString() }]);
+      var notifRes = await apiCall('/cmd/autonomous', { action: 'get_notifications', unreadOnly: false });
+      if (!notifRes?.success || !notifRes.data?.length) { reply = 'Sem notificacoes.'; }
+      else {
+        reply = notifRes.data.length + ' notificacoes:\n';
+        for (var ni = 0; ni < Math.min(15, notifRes.data.length); ni++) {
+          var n = notifRes.data[ni];
+          reply += '\n' + (ni+1) + '. ' + (n.isRead ? ' ' : '🔴 ') + '[' + (n.platform || 'ALL') + '] ' + n.title;
+          if (n.message) reply += '\n   "' + n.message.slice(0, 80) + '"';
+        }
+      }
+    }
+    else if (cmd.includes('follow-ups') || cmd.includes('followups') || cmd.includes('seguimentos')) {
+      reply = 'A processar follow-ups automaticos...';
+      setChatHistory(h => [...h, { role: 'assistant', content: reply, ts: new Date().toISOString() }]);
+      var fuRes = await apiCall('/cmd/autonomous', { action: 'process_followups' });
+      if (!fuRes?.success) { reply = 'Erro: ' + (fuRes?.error || '?'); }
+      else {
+        reply = 'FOLLOW-UPS\n\n';
+        reply += 'Processados: ' + (fuRes.data?.processed || 0) + '\n';
+        reply += 'Enviados: ' + (fuRes.data?.sent || 0) + '\n';
+        if (fuRes.data?.errors?.length > 0) reply += 'Erros: ' + fuRes.data.errors.join(', ');
+      }
+    }
+    else if (cmd.includes('monitorizar') || cmd.includes('monitor') || cmd.includes('verificar dm')) {
+      reply = 'A monitorizar DMs...';
+      setChatHistory(h => [...h, { role: 'assistant', content: reply, ts: new Date().toISOString() }]);
+      var monRes = await apiCall('/cmd/autonomous', { action: 'monitor' });
+      if (!monRes?.success) { reply = 'Erro: ' + (monRes?.error || '?'); }
+      else {
+        var md = monRes.data;
+        reply = 'MONITOR DMs\n\n';
+        reply += 'Novas mensagens: ' + (md.newMessages || 0) + '\n';
+        reply += 'Auto-respostas: ' + (md.autoReplied || 0) + '\n';
+        reply += 'Notificacoes: ' + (md.notifications || 0) + '\n';
+        if (md.errors?.length > 0) reply += 'Erros: ' + md.errors.join(', ');
+      }
+    }
+    else if (cmd.includes('logs') || cmd.includes('historico automacao') || cmd.includes('actividade')) {
+      var logRes = await apiCall('/cmd/autonomous', { action: 'get_logs', limit: 20 });
+      if (!logRes?.success || !logRes.data?.length) { reply = 'Sem logs de automacao.'; }
+      else {
+        reply = 'LOGS DE AUTOMACAO:\n';
+        for (var li = 0; li < Math.min(15, logRes.data.length); li++) {
+          var l = logRes.data[li];
+          reply += '\n' + (li+1) + '. [' + (l.status === 'success' ? 'OK' : 'X') + '] ' + l.type + ' - ' + l.action + ' (' + (l.platform || '') + ') @' + (l.targetName || '');
+        }
       }
     }
     else if (cmd.includes('sair') || cmd.includes('logout')) { sd('ja'); sd('jch'); sd('jsessions'); onLogout(); return; }
@@ -1161,11 +1233,71 @@ function SchedulerTab() {
 function MainApp({ onLogout }: { onLogout: () => void }) {
   const [tab, setTab] = useState('chat');
   const [clock, setClock] = useState('');
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifs, setShowNotifs] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [autoStatus, setAutoStatus] = useState<'idle' | 'running' | 'active'>('idle');
+  const [notifPanel, setNotifPanel] = useState(false);
 
+  // Clock
   useEffect(() => {
     var t = setInterval(() => { setClock(new Date().toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })); }, 1000);
     return () => clearInterval(t);
   }, []);
+
+  // Autonomous polling — check DMs every 60 seconds
+  useEffect(() => {
+    setAutoStatus('active');
+
+    var fetchNotifs = async () => {
+      try {
+        var res = await fetch('/cmd/autonomous', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'get_notifications', unreadOnly: true }) });
+        var data = await res.json();
+        if (data.success) {
+          setUnreadCount((data.data || []).length);
+        }
+      } catch(e) {}
+    };
+
+    var runAutonomousCycle = async () => {
+      setAutoStatus('running');
+      try {
+        await fetch('/cmd/autonomous', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'full_cycle' }) });
+        await fetchNotifs();
+      } catch(e) {}
+      setAutoStatus('active');
+    };
+
+    // Initial check
+    fetchNotifs();
+
+    // Auto-cycle every 90 seconds
+    var cycleInterval = setInterval(runAutonomousCycle, 90000);
+
+    // Check notifications every 30 seconds
+    var notifInterval = setInterval(fetchNotifs, 30000);
+
+    return () => { clearInterval(cycleInterval); clearInterval(notifInterval); };
+  }, []);
+
+  const fetchAllNotifs = async () => {
+    try {
+      var res = await fetch('/cmd/autonomous', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'get_notifications', unreadOnly: false }) });
+      var data = await res.json();
+      if (data.success) setNotifications(data.data || []);
+    } catch(e) {}
+  };
+
+  const markAllRead = async () => {
+    await apiCall('/cmd/autonomous', { action: 'mark_all_read' });
+    setUnreadCount(0);
+    setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+  };
+
+  const toggleNotifs = async () => {
+    if (!showNotifs) { await fetchAllNotifs(); }
+    setShowNotifs(!showNotifs);
+  };
 
   var tabs = [
     { id: 'chat', label: 'Chat', icon: '💬' },
@@ -1184,6 +1316,11 @@ function MainApp({ onLogout }: { onLogout: () => void }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <HexLogo size={28} />
           <span style={{ fontSize: 14, fontWeight: 800, letterSpacing: 2, color: '#fff', textTransform: 'uppercase' }}>JARVIS</span>
+          {/* Autonomous status indicator */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 8, padding: '2px 8px', borderRadius: 20, background: autoStatus === 'active' ? 'rgba(74,222,128,0.1)' : autoStatus === 'running' ? 'rgba(255,68,68,0.15)' : 'rgba(255,255,255,0.05)', border: '1px solid ' + (autoStatus === 'active' ? 'rgba(74,222,128,0.3)' : autoStatus === 'running' ? 'rgba(255,68,68,0.3)' : 'rgba(255,255,255,0.1)') }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: autoStatus === 'active' ? '#4ade80' : autoStatus === 'running' ? '#ff4444' : '#666', animation: autoStatus === 'running' ? 'pulse 1.5s infinite' : 'none' }} />
+            <span style={{ fontSize: 9, color: autoStatus === 'active' ? '#4ade80' : autoStatus === 'running' ? '#ff4444' : '#666', fontWeight: 600, letterSpacing: 0.5 }}>{autoStatus === 'active' ? 'AUTONOMO' : autoStatus === 'running' ? 'ACTIVO...' : 'OFF'}</span>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           {tabs.map(t => (
@@ -1193,6 +1330,11 @@ function MainApp({ onLogout }: { onLogout: () => void }) {
           ))}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Notification Bell */}
+          <button onClick={toggleNotifs} style={{ position: 'relative', background: 'none', border: 'none', color: unreadCount > 0 ? '#ff4444' : 'rgba(255,255,255,0.4)', cursor: 'pointer', padding: 2 }}>
+            <Bell size={16} />
+            {unreadCount > 0 && <div style={{ position: 'absolute', top: -2, right: -4, width: 14, height: 14, borderRadius: '50%', background: '#ff4444', color: '#fff', fontSize: 8, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #000' }}>{unreadCount > 9 ? '9+' : unreadCount}</div>}
+          </button>
           <span style={{ fontSize: 10, color: '#888', fontFamily: "'SF Mono',Menlo,monospace", fontWeight: 500 }}>{clock}</span>
           <button onClick={onLogout} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: 2 }}><LogOut size={14} /></button>
         </div>
@@ -1206,6 +1348,32 @@ function MainApp({ onLogout }: { onLogout: () => void }) {
         {tab === 'content' && <ContentTab />}
         {tab === 'scheduler' && <SchedulerTab />}
       </div>
+
+      {/* NOTIFICATION PANEL */}
+      {showNotifs && (
+        <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 340, maxWidth: '100vw', background: 'rgba(10,10,12,0.98)', borderLeft: '1px solid rgba(255,68,68,0.15)', zIndex: 200, display: 'flex', flexDirection: 'column', animation: 'slideInRight .2s ease' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Notificacoes</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {unreadCount > 0 && <button onClick={markAllRead} style={{ fontSize: 10, color: '#ff4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Limpar tudo</button>}
+              <button onClick={() => setShowNotifs(false)} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 18 }}>×</button>
+            </div>
+          </div>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
+            {notifications.length === 0 && <div style={{ textAlign: 'center', color: '#666', fontSize: 13, padding: 40 }}>Sem notificacoes</div>}
+            {notifications.map((n: any, i: number) => (
+              <div key={n.id || i} style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)', borderLeft: n.isRead ? 'none' : '3px solid #ff4444', background: n.isRead ? 'transparent' : 'rgba(255,68,68,0.03)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <span style={{ fontSize: 9, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>{n.platform || 'SISTEMA'}</span>
+                  <span style={{ fontSize: 9, color: '#555' }}>{ft(n.createdAt)}</span>
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', marginBottom: 3 }}>{n.title}</div>
+                {n.message && <div style={{ fontSize: 11, color: '#999', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>{n.message}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* HOME INDICATOR */}
       <div style={{ position: 'fixed', bottom: 8, left: '50%', transform: 'translateX(-50%)', width: 134, height: 5, background: 'rgba(255,255,255,0.3)', borderRadius: 100, zIndex: 100 }} />

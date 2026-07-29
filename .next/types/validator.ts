@@ -74,6 +74,60 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../src/app/api/webhook/zernio/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/webhook/zernio">> = Specific
+  const handler = {} as typeof import("../../src/app/api/webhook/zernio/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/cmd/analytics/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/cmd/analytics">> = Specific
+  const handler = {} as typeof import("../../src/app/cmd/analytics/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/cmd/autonomous/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/cmd/autonomous">> = Specific
+  const handler = {} as typeof import("../../src/app/cmd/autonomous/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/cmd/browserless/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/cmd/browserless">> = Specific
+  const handler = {} as typeof import("../../src/app/cmd/browserless/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/cmd/content/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/cmd/content">> = Specific
+  const handler = {} as typeof import("../../src/app/cmd/content/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/cmd/crm/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/cmd/crm">> = Specific
+  const handler = {} as typeof import("../../src/app/cmd/crm/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../src/app/cmd/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/cmd">> = Specific
@@ -83,10 +137,28 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../src/app/cmd/scheduler/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/cmd/scheduler">> = Specific
+  const handler = {} as typeof import("../../src/app/cmd/scheduler/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../src/app/cmd/tools/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/cmd/tools">> = Specific
   const handler = {} as typeof import("../../src/app/cmd/tools/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/cmd/zernio/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/cmd/zernio">> = Specific
+  const handler = {} as typeof import("../../src/app/cmd/zernio/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

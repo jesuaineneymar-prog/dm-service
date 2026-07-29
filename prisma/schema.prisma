@@ -90,3 +90,28 @@ model ScheduledPost {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
+
+model Notification {
+  id            String   @id @default(cuid())
+  type          String
+  title         String
+  message       String
+  platform      String?
+  sourceId      String?
+  isRead        Boolean  @default(false)
+  metadata      String?
+  createdAt     DateTime @default(now())
+}
+
+model AutomationLog {
+  id            String   @id @default(cuid())
+  type          String
+  action        String
+  platform      String?
+  targetId      String?
+  targetName    String?
+  status        String   @default("pending")
+  result        String?
+  triggeredAt   DateTime @default(now())
+  completedAt   DateTime?
+}

@@ -3,8 +3,16 @@
   "/_not-found/page": "app/_not-found/page.js",
   "/api/respond/route": "app/api/respond/route.js",
   "/api/tools/route": "app/api/tools/route.js",
+  "/api/webhook/zernio/route": "app/api/webhook/zernio/route.js",
+  "/cmd/analytics/route": "app/cmd/analytics/route.js",
+  "/cmd/autonomous/route": "app/cmd/autonomous/route.js",
+  "/cmd/browserless/route": "app/cmd/browserless/route.js",
+  "/cmd/content/route": "app/cmd/content/route.js",
+  "/cmd/crm/route": "app/cmd/crm/route.js",
   "/cmd/route": "app/cmd/route.js",
+  "/cmd/scheduler/route": "app/cmd/scheduler/route.js",
   "/cmd/tools/route": "app/cmd/tools/route.js",
+  "/cmd/zernio/route": "app/cmd/zernio/route.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
   "/page": "app/page.js"
 }
