@@ -88,3 +88,33 @@ Stage Summary:
 - 3 Vercel Cron Jobs activos: DM monitor (5min), Follow-ups (30min), Publish (10min)
 - Protegido por CRON_SECRET contra acesso nao autorizado
 - Pronto para deploy com: vercel.json crons + CRON_SECRET env var
+
+---
+Task ID: 8
+Agent: main
+Task: Deploy na Vercel com Cron Jobs
+
+Work Log:
+- Tentativa 1: Hobby plan rejeita crons mais frequentes que 1x/dia
+- Ajustado vercel.json: monitor 06h, followups 07h, publish 08h (diario)
+- Tentativa 2: Prisma client sem modelos Notification/AutomationLog — erro
+- Adicionado postinstall: npx prisma@6 generate ao package.json
+- Tentativa 3: Tabelas SQLite nao existem na Vercel serverless
+- Criado ensureDatabase() em db.ts — cria 8 tabelas automaticamente
+- Tentativa 4: Multi-statement SQL nao suportado pelo $executeRawUnsafe
+- Refeito ensureDatabase() para criar tabela por tabela
+- Tentativa 5: SUCESSO! Todos os 3 crons testados e funcionando
+- CRON_SECRET configurado como env var na Vercel
+
+Testes manuais (todos passaram):
+- /api/cron/monitor: success, 2118ms, verificou IG + FB
+- /api/cron/followups: success, 280ms
+- /api/cron/publish: success, 2ms
+
+Stage Summary:
+- URL: https://jarvis-khaki-chi.vercel.app
+- 3 Vercel Cron Jobs activos (diarios): 06h, 07h, 08h
+- DB auto-inicializacao para cold starts
+- CRON_SECRET: jarvis_cron_secret_mwango_2024
+- LIMITACAO: Hobby plan so permite 1 execucao/dia por cron
+- RECOMENDACAO: Para crons mais frequentes (5min/30min), usar servico externo gratuito ou upgrade para Pro ($20/mes)

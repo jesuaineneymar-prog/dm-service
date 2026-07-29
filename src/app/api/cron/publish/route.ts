@@ -8,7 +8,7 @@
 // ============================================================
 
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db, ensureDatabase } from '@/lib/db';
 
 export var maxDuration = 120;
 var CRON_SECRET = process.env.CRON_SECRET || 'jarvis_cron_secret_mwango_2024';
@@ -212,6 +212,7 @@ export async function GET(request: Request) {
   }
 
   try {
+    await ensureDatabase();
     var startTime = Date.now();
     var publishResults = await publishDuePosts();
     var duration = Date.now() - startTime;

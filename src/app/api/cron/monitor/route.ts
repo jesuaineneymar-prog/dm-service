@@ -9,7 +9,7 @@
 // ============================================================
 
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db, ensureDatabase } from '@/lib/db';
 import {
   zernioListAccounts,
   zernioListConversations,
@@ -260,6 +260,7 @@ export async function GET(request: Request) {
   }
 
   try {
+    await ensureDatabase();
     var startTime = Date.now();
     var monitorResults = await monitorAndRespond();
     var duration = Date.now() - startTime;
