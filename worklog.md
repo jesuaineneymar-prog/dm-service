@@ -54,3 +54,37 @@ Stage Summary:
 - Webhook activo no Zernio apontando para o endpoint
 - Sistema autonomo: monitoriza DMs, responde com IA, cria follow-ups 3 dias, notifica
 - O JARVIS e agora 100% autonomo em IG + FB via Zernio
+
+---
+Task ID: 7
+Agent: main
+Task: Vercel Cron Jobs — Motor 24/7 verdadeiramente autonomo
+
+Work Log:
+- Analisado codigo existente: autonomous/route.ts, zernio/route.ts, webhook/zernio/route.ts, scheduler/route.ts
+- Criado /api/cron/monitor/route.ts — monitoriza DMs a cada 5 min (IG + FB via Zernio)
+  - Verifica mensagens por ler, auto-responde com IA Gemini
+  - Cria prospects automaticamente no CRM
+  - Gera notificacoes de novas respostas
+  - Regista tudo no AutomationLog
+- Criado /api/cron/followups/route.ts — follow-ups a cada 30 min
+  - Fase 1: Cria follow-ups para prospects sem contacto ha 3+ dias
+  - Fase 2: Envia follow-ups pendentes cujo horario ja chegou
+  - Agenda proximo follow-up (7 dias depois) automaticamente
+- Criado /api/cron/publish/route.ts — publica posts agendados a cada 10 min
+  - Publica via Upload-Post API quando o horario chega
+  - Actualiza status, regista analytics, cria notificacao
+  - Fallback: publica localmente se sem UploadPost key
+- Configurado vercel.json com 3 cron schedules:
+  - /api/cron/monitor: */5 * * * * (5 em 5 minutos)
+  - /api/cron/followups: */30 * * * * (30 em 30 minutos)
+  - /api/cron/publish: */10 * * * * (10 em 10 minutos)
+- Adicionado CRON_SECRET ao .env.local
+- Todos os endpoints protegidos por CRON_SECRET (GET via Authorization header ou query param)
+- Build validado: 0 erros nos ficheiros de cron, todas as rotas detectadas como server functions
+
+Stage Summary:
+- JARVIS agora e VERDADEIRAMENTE 24/7 autonomo — funciona mesmo com browser fechado
+- 3 Vercel Cron Jobs activos: DM monitor (5min), Follow-ups (30min), Publish (10min)
+- Protegido por CRON_SECRET contra acesso nao autorizado
+- Pronto para deploy com: vercel.json crons + CRON_SECRET env var

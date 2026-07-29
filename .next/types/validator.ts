@@ -56,6 +56,33 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../src/app/api/cron/followups/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/cron/followups">> = Specific
+  const handler = {} as typeof import("../../src/app/api/cron/followups/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/api/cron/monitor/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/cron/monitor">> = Specific
+  const handler = {} as typeof import("../../src/app/api/cron/monitor/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/api/cron/publish/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/cron/publish">> = Specific
+  const handler = {} as typeof import("../../src/app/api/cron/publish/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../src/app/api/respond/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/respond">> = Specific

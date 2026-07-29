@@ -42,6 +42,24 @@
       "namedRegex": "^/_not\\-found(?:/)?$"
     },
     {
+      "page": "/api/cron/followups",
+      "regex": "^/api/cron/followups(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/cron/followups(?:/)?$"
+    },
+    {
+      "page": "/api/cron/monitor",
+      "regex": "^/api/cron/monitor(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/cron/monitor(?:/)?$"
+    },
+    {
+      "page": "/api/cron/publish",
+      "regex": "^/api/cron/publish(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/cron/publish(?:/)?$"
+    },
+    {
       "page": "/api/respond",
       "regex": "^/api/respond(?:/)?$",
       "routeKeys": {},

@@ -1,6 +1,9 @@
 {
   "/_global-error/page": "/_global-error",
   "/_not-found/page": "/_not-found",
+  "/api/cron/followups/route": "/api/cron/followups",
+  "/api/cron/monitor/route": "/api/cron/monitor",
+  "/api/cron/publish/route": "/api/cron/publish",
   "/api/respond/route": "/api/respond",
   "/api/tools/route": "/api/tools",
   "/api/webhook/zernio/route": "/api/webhook/zernio",

@@ -1,6 +1,9 @@
 {
   "/_global-error/page": "app/_global-error/page.js",
   "/_not-found/page": "app/_not-found/page.js",
+  "/api/cron/followups/route": "app/api/cron/followups/route.js",
+  "/api/cron/monitor/route": "app/api/cron/monitor/route.js",
+  "/api/cron/publish/route": "app/api/cron/publish/route.js",
   "/api/respond/route": "app/api/respond/route.js",
   "/api/tools/route": "app/api/tools/route.js",
   "/api/webhook/zernio/route": "app/api/webhook/zernio/route.js",
