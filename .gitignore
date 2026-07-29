@@ -15,6 +15,11 @@ download/
 # JARVIS source copy (we work from root now)
 jarvis/
 
+# Build
+.next/
+prisma/db/
+tsconfig.tsbuildinfo
+
 # Misc
 *.log
 *.zip

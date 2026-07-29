@@ -13,7 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt">
-      <body style={{ background: "#000", margin: 0 }}>
+      <body className="bg-black text-gray-100 antialiased">
         {children}
       </body>
     </html>
