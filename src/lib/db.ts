@@ -1,9 +1,28 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaLibSQL } from '@prisma/adapter-libsql';
+import { createClient } from '@libsql/client';
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient; dbInitialized: boolean };
 
 function createPrismaClient() {
-  const dbUrl = process.env.DATABASE_URL || 'file:/tmp/jarvis.db';
+  var dbUrl = process.env.DATABASE_URL || '';
+
+  // Se tem "libsql://" ou "file:" com auth token → Turso cloud
+  if (dbUrl.startsWith('libsql://')) {
+    var authToken = process.env.TURSO_AUTH_TOKEN || '';
+    var libsql = createClient({
+      url: dbUrl,
+      authToken: authToken,
+    });
+    var adapter = new PrismaLibSQL(libsql);
+    return new PrismaClient({
+      adapter,
+      log: process.env.NODE_ENV === 'development' ? ['query'] : [],
+    });
+  }
+
+  // Fallback: SQLite local (/tmp no Vercel, ./db localmente)
+  if (!dbUrl) dbUrl = 'file:/tmp/jarvis.db';
   return new PrismaClient({
     datasourceUrl: dbUrl,
     log: process.env.NODE_ENV === 'development' ? ['query'] : [],
@@ -14,7 +33,7 @@ export const db = globalForPrisma.prisma || createPrismaClient();
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db;
 
-// Create individual table if not exists
+// Create individual table if not exists (só para SQLite local fallback)
 async function createTableIfNotExists(sql: string): Promise<void> {
   try {
     await db.$executeRawUnsafe(sql);
@@ -23,9 +42,17 @@ async function createTableIfNotExists(sql: string): Promise<void> {
   }
 }
 
-// Auto-create SQLite tables on Vercel serverless cold starts
+// Auto-create SQLite tables on Vercel serverless cold starts (fallback only)
+// Se estiver a usar Turso, o Prisma migrate/push cria as tabelas
 export async function ensureDatabase(): Promise<void> {
   if (globalForPrisma.dbInitialized) return;
+
+  // Se tem TURSO_AUTH_TOKEN, as tabelas já existem na nuvem
+  if (process.env.TURSO_AUTH_TOKEN) {
+    globalForPrisma.dbInitialized = true;
+    return;
+  }
+
   try {
     await createTableIfNotExists(`
       CREATE TABLE IF NOT EXISTS Prospect (
