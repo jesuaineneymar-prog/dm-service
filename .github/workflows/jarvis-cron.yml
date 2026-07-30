@@ -1,5 +1,4 @@
 # JARVIS Cron - GitHub Actions
-
 name: JARVIS Cron
 
 on:
@@ -15,43 +14,32 @@ jobs:
     name: DM Monitor
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    env:
+      JARVIS_URL: ${{ secrets.JARVIS_URL }}
+      CRON_KEY: ${{ secrets.CRONS_SECRET }}
     steps:
-      - name: Monitorizar DMs
-        env:
-          URL: ${{ secrets.JARVIS_URL }}
-          KEY: ${{ secrets.CRONS_SECRET }}
-        run: curl -sSf "$URL/api/cron/monitor?secret=$KEY" && echo "OK" || echo "FALHOU"
+      - run: curl -sSf "${JARVIS_URL}/api/cron/monitor?secret=${CRON_KEY}"
 
   followups:
     name: Follow-ups
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    env:
+      JARVIS_URL: ${{ secrets.JARVIS_URL }}
+      CRON_KEY: ${{ secrets.CRONS_SECRET }}
     steps:
-      - name: Check minute
-        id: m
-        run: |
+      - run: |
           M=$(date +%M)
-          if [ $((M % 30)) -eq 0 ]; then echo "r=1" >> "$GITHUB_OUTPUT"; else echo "r=0" >> "$GITHUB_OUTPUT"; fi
-      - name: Processar
-        if: steps.m.outputs.r == '1'
-        env:
-          URL: ${{ secrets.JARVIS_URL }}
-          KEY: ${{ secrets.CRONS_SECRET }}
-        run: curl -sSf "$URL/api/cron/followups?secret=$KEY" && echo "OK" || echo "SKIP"
+          test $((M % 30)) -eq 0 && curl -sSf "${JARVIS_URL}/api/cron/followups?secret=${CRON_KEY}" || true
 
   publish:
     name: Publish
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    env:
+      JARVIS_URL: ${{ secrets.JARVIS_URL }}
+      CRON_KEY: ${{ secrets.CRONS_SECRET }}
     steps:
-      - name: Check minute
-        id: m
-        run: |
+      - run: |
           M=$(date +%M)
-          if [ $((M % 10)) -eq 0 ]; then echo "r=1" >> "$GITHUB_OUTPUT"; else echo "r=0" >> "$GITHUB_OUTPUT"; fi
-      - name: Publicar
-        if: steps.m.outputs.r == '1'
-        env:
-          URL: ${{ secrets.JARVIS_URL }}
-          KEY: ${{ secrets.CRONS_SECRET }}
-        run: curl -sSf "$URL/api/cron/publish?secret=$KEY" && echo "OK" || echo "SKIP"
+          test $((M % 10)) -eq 0 && curl -sSf "${JARVIS_URL}/api/cron/publish?secret=${CRON_KEY}" || true
