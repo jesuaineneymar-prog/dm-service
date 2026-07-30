@@ -3,10 +3,9 @@
 // ============================================================
 
 import { NextResponse } from 'next/server';
+import { BROWSERLESS_KEY } from '@/lib/config';
 
 export var maxDuration = 60;
-
-var BROWSERLESS_KEY = process.env.BROWSERLESS_KEY || '2Ux4X3068W4tKjP049d0cd5d6074ec7bfeb79cdc6c74d5bc2';
 var BASE = 'https://chrome.browserless.io';
 
 // ── actions ────────────────────────────────────────────────

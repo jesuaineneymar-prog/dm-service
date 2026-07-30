@@ -21,8 +21,9 @@ import {
   upGetQueuePreview, upRetryPost, upUnpublishPost, upPublishFromURL
 } from '@/lib/platform-engine';
 
+import { IG_USERNAME } from '@/lib/config';
+
 export var maxDuration = 300;
-var IG_USERNAME = process.env.IG_USERNAME || 'mwangobrain';
 
 // Global session store (in-memory per serverless instance)
 var sessions: any = {

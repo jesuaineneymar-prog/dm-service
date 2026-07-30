@@ -17,13 +17,9 @@ import {
   zernioSendDM,
 } from '@/lib/zernio';
 
-export var maxDuration = 120;
-var CRON_SECRET = process.env.CRON_SECRET || 'jarvis_cron_secret_mwango_2024';
+import { CRON_SECRET, OR_KEY, OR_URL, OR_MODEL, OR_FALLBACK_MODEL } from '@/lib/config';
 
-var OR_KEY = process.env.OR_KEY || process.env.NEXT_PUBLIC_OR_KEY || '';
-var OR_URL = 'https://openrouter.ai/api/v1/chat/completions';
-var OR_MODEL = 'google/gemini-2.0-flash-exp:free';
-var OR_FALLBACK = 'meta-llama/llama-3.2-3b-instruct:free';
+export var maxDuration = 120;
 
 // Gerar resposta AI para um prospect
 async function generateAIResponse(senderName: string, platform: string, messageText: string, prospectContext: any): Promise<string> {
@@ -63,7 +59,7 @@ async function generateAIResponse(senderName: string, platform: string, messageT
           'HTTP-Referer': 'https://jarvis-khaki-chi.vercel.app',
           'X-Title': 'JARVIS',
         },
-        body: JSON.stringify({ model: OR_FALLBACK, messages, max_tokens: 200, temperature: 0.7 }),
+        body: JSON.stringify({ model: OR_FALLBACK_MODEL, messages, max_tokens: 200, temperature: 0.7 }),
       });
       var data2 = await res2.json();
       return data2.choices?.[0]?.message?.content?.replace(/^\*+[^*]+\*+\s*/g, '').trim() || '';

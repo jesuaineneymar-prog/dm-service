@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 3
     env:
       JARVIS_URL: ${{ secrets.JARVIS_URL }}
-      CRON_KEY: ${{ secrets.CRONS_SECRET }}
+      CRON_KEY: ${{ secrets.CRON_SECRET }}
     steps:
       - run: curl -sSf "${JARVIS_URL}/api/cron/monitor?secret=${CRON_KEY}"
 
@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 3
     env:
       JARVIS_URL: ${{ secrets.JARVIS_URL }}
-      CRON_KEY: ${{ secrets.CRONS_SECRET }}
+      CRON_KEY: ${{ secrets.CRON_SECRET }}
     steps:
       - run: |
           M=$(date +%M)
@@ -38,7 +38,7 @@ jobs:
     timeout-minutes: 3
     env:
       JARVIS_URL: ${{ secrets.JARVIS_URL }}
-      CRON_KEY: ${{ secrets.CRONS_SECRET }}
+      CRON_KEY: ${{ secrets.CRON_SECRET }}
     steps:
       - run: |
           M=$(date +%M)

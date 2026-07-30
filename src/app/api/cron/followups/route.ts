@@ -15,8 +15,9 @@ import {
   zernioSendDM,
 } from '@/lib/zernio';
 
+import { CRON_SECRET } from '@/lib/config';
+
 export var maxDuration = 120;
-var CRON_SECRET = process.env.CRON_SECRET || 'jarvis_cron_secret_mwango_2024';
 
 // Criar follow-ups automáticos para prospects sem contacto há 3+ dias
 async function autoCreateFollowUps(): Promise<number> {
