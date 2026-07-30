@@ -1,81 +1,44 @@
-# JARVIS Autonomous Cron Jobs via GitHub Actions
+# JARVIS Cron - GitHub Actions
 
-name: JARVIS Cron Engine
+name: JARVIS Cron
 
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/jarvis-cron.yml']
   schedule:
-    # Este trigger roda a cada 5 min
     - cron: '*/5 * * * *'
   workflow_dispatch:
-    inputs:
-      action:
-        description: 'Qual cron? (all / monitor / followups / publish)'
-        required: true
-        default: 'all'
 
 jobs:
- monitor:
-    name: Monitor DMs
-    if: >-
-      ${
-        ( github.event_name == 'schedule' ) ||
-        ( github.event_name == 'workflow_dispatch' && ( github.event.inputs.action == 'all' || github.event.inputs.action == 'monitor' ) )
-      }
+  monitor:
+    name: DM Monitor
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Chamar JARVIS Monitor
-        run: |
-          curl -sfS "${{ secrets.JARVIS_URL }}/api/cron/monitor?secret=${{ secrets.CRONS_SECRET }}" \
-            && echo "Monitor OK" || echo "Monitor: sem resposta"
+      - name: Monitorizar DMs
+        run: curl -sSf "${{ secrets.JARVIS_URL }}/api/cron/monitor?secret=${{ secrets.CRONS_SECRET }}" && echo "OK" || echo "FALHOU"
 
   followups:
     name: Follow-ups
-    if: >-
-      ${
-        ( github.event_name == 'schedule' ) ||
-        ( github.event_name == 'workflow_dispatch' && ( github.event.inputs.action == 'all' || github.event.inputs.action == 'followups' ) )
-      }
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Verificar se e hora dos follow-ups (cada 30 min)
-        id: check
-        run: |
-          MIN=$(date +%M)
-          MOD=$((MIN % 30))
-          if [ $MOD -eq 0 ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=false" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Chamar JARVIS Follow-ups
-        if: steps.check.outputs.run == 'true'
-        run: |
-          curl -sfS "${{ secrets.JARVIS_URL }}/api/cron/followups?secret=${{ secrets.CRONS_SECRET }}" \
-            && echo "Followups OK" || echo "Followups: sem resposta"
+      - name: Verificar minuto
+        id: m
+        run: echo "r=$(($(date +%M) % 30 == 0 ? 1 : 0))" >> "$GITHUB_OUTPUT"
+      - name: Processar
+        if: steps.m.outputs.r == '1'
+        run: curl -sSf "${{ secrets.JARVIS_URL }}/api/cron/followups?secret=${{ secrets.CRONS_SECRET }}" && echo "OK" || echo "SKIP"
 
   publish:
-    name: Publish Posts
-    if: >-
-      ${
-        ( github.event_name == 'schedule' ) ||
-        ( github.event_name == 'workflow_dispatch' && ( github.event.inputs.action == 'all' || github.event.inputs.action == 'publish' ) )
-      }
+    name: Publish
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Verificar se e hora de publicar (cada 10 min)
-        id: check
-        run: |
-          MIN=$(date +%M)
-          MOD=$((MIN % 10))
-          if [ $MOD -eq 0 ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=false" >> "$GITHUB_OUTPUT"
-      - name: Chamar JARVIS Publish
-        if: steps.check.outputs.run == 'true'
-        run: |
-          curl -sfS "${{ secrets.JARVIS_URL }}/api/cron/publish?secret=${{ secrets.CRONS_SECRET }}" \
-            && echo "Publish OK" || echo "Publish: sem resposta"
+      - name: Verificar minuto
+        id: m
+        run: echo "r=$(($(date +%M) % 10 == 0 ? 1 : 0))" >> "$GITHUB_OUTPUT"
+      - name: Publicar
+        if: steps.m.outputs.r == '1'
+        run: curl -sSf "${{ secrets.JARVIS_URL }}/api/cron/publish?secret=${{ secrets.CRONS_SECRET }}" && echo "OK" || echo "SKIP"
