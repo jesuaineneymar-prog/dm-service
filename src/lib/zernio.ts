@@ -4,7 +4,8 @@
 //  Base URL: https://zernio.com/api/v1
 // ============================================================
 
-var ZERNIO_KEY = (typeof process !== 'undefined' && process.env) ? (process.env.ZERNIO_KEY || '') : '';
+import { ZERNIO_KEY } from './config';
+
 var ZERNIO_BASE = 'https://zernio.com/api/v1';
 
 function zernioHeaders(): Record<string, string> {
