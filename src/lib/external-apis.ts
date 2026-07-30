@@ -357,8 +357,8 @@ export interface ExternalConfig {
 // Get config from env vars (set in Vercel or .env.local)
 export function getExternalConfig(): ExternalConfig {
   return {
-    hikerApiKey: process.env.HIKER_API_KEY || '',
-    uploadPostApiKey: process.env.UPLOAD_POST_API_KEY || '',
+    hikerApiKey: process.env.HIKER_API_KEY || process.env.HIKERAPI_KEY || '7zle2y0lyciy8s7d116ukbqgyhiojebs',
+    uploadPostApiKey: process.env.UPLOAD_POST_API_KEY || process.env.UPLOADPOST_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJhdG1hbmp1c3RpY2U3MDdAZ21haWwuY29tIiwiZXhwIjo0OTM4ODkwNjYzLCJqdGkiOiI5MGRjOTZlMi01YTcwLTRjMDAtYTNiNy04ODdkZjM2OTIxZDMifQ.4UVfi-NDm-sH0UnRGTgABgrxxtczLY3Ir747Xkj76eI',
     manychatApiKey: process.env.MANYCHAT_API_KEY || '',
     n8nWebhookUrl: process.env.N8N_WEBHOOK_URL || '',
   };

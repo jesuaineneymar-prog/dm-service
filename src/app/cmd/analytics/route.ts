@@ -7,8 +7,8 @@ import { db } from '@/lib/db';
 
 export var maxDuration = 60;
 
-var HIKERAPI_KEY = process.env.HIKERAPI_KEY || '';
-var UPLOADPOST_KEY = process.env.UPLOADPOST_KEY || '';
+var HIKERAPI_KEY = process.env.HIKERAPI_KEY || process.env.HIKER_API_KEY || '7zle2y0lyciy8s7d116ukbqgyhiojebs';
+var UPLOADPOST_KEY = process.env.UPLOADPOST_KEY || process.env.UPLOAD_POST_API_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJhdG1hbmp1c3RpY2U3MDdAZ21haWwuY29tIiwiZXhwIjo0OTM4ODkwNjYzLCJqdGkiOiI5MGRjOTZlMi01YTcwLTRjMDAtYTNiNy04ODdkZjM2OTIxZDMifQ.4UVfi-NDm-sH0UnRGTgABgrxxtczLY3Ir747Xkj76eI';
 var IG_USERNAME = process.env.IG_USERNAME || 'mwangobrain';
 
 // ── helpers ────────────────────────────────────────────────

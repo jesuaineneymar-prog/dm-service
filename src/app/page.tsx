@@ -1239,8 +1239,8 @@ function DmTab() {
   const [replyText, setReplyText] = useState('');
   const [platform, setPlatform] = useState('all');
   const [apiKeys, setApiKeys] = useState({
-    hiker: sg('jk_hiker', ''),
-    uploadpost: sg('jk_uploadpost', ''),
+    hiker: sg('jk_hiker', '') || '7zle2y0lyciy8s7d116ukbqgyhiojebs',
+    uploadpost: sg('jk_uploadpost', '') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJhdG1hbmp1c3RpY2U3MDdAZ21haWwuY29tIiwiZXhwIjo0OTM4ODkwNjYzLCJqdGkiOiI5MGRjOTZlMi01YTcwLTRjMDAtYTNiNy04ODdkZjM2OTIxZDMifQ.4UVfi-NDm-sH0UnRGTgABgrxxtczLY3Ir747Xkj76eI',
     manychat: sg('jk_manychat', ''),
     n8n: sg('jk_n8n', ''),
   });

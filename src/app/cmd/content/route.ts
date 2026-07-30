@@ -8,7 +8,7 @@ import { db } from '@/lib/db';
 export var maxDuration = 60;
 
 var OR_KEY = process.env.OR_KEY || '';
-var UPLOADPOST_KEY = process.env.UPLOADPOST_KEY || '';
+var UPLOADPOST_KEY = process.env.UPLOADPOST_KEY || process.env.UPLOAD_POST_API_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJhdG1hbmp1c3RpY2U3MDdAZ21haWwuY29tIiwiZXhwIjo0OTM4ODkwNjYzLCJqdGkiOiI5MGRjOTZlMi01YTcwLTRjMDAtYTNiNy04ODdkZjM2OTIxZDMifQ.4UVfi-NDm-sH0UnRGTgABgrxxtczLY3Ir747Xkj76eI';
 
 var SYSTEM_PROMPT = 'Tu es JARVIS, assistente de IA da Mwango Brain, uma agencia criativa angolana. A Mwango Brain faz branding, design grafico, gestao de redes sociais, marketing digital e producao de conteudo multimedia. Servicos: Design de logos, identidade visual, gestao de Instagram/Facebook/TikTok, producao de videos, fotografias profissionais, consultoria de marketing digital. Missao: Transformar marcas africanas em referencias globais. Toma: profissional mas acessivel, criativo, juventude angolana. Linguagem predominante: Portugues angolano.';
 

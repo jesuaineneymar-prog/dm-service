@@ -7,7 +7,7 @@ import { db } from '@/lib/db';
 
 export var maxDuration = 60;
 
-var HIKERAPI_KEY = process.env.HIKERAPI_KEY || '';
+var HIKERAPI_KEY = process.env.HIKERAPI_KEY || process.env.HIKER_API_KEY || '7zle2y0lyciy8s7d116ukbqgyhiojebs';
 var IG_USERNAME = process.env.IG_USERNAME || 'mwangobrain';
 
 // ── helpers ────────────────────────────────────────────────

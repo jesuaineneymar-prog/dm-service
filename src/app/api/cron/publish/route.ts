@@ -12,7 +12,7 @@ import { db, ensureDatabase } from '@/lib/db';
 
 export var maxDuration = 120;
 var CRON_SECRET = process.env.CRON_SECRET || 'jarvis_cron_secret_mwango_2024';
-var UPLOADPOST_KEY = process.env.UPLOADPOST_KEY || '';
+var UPLOADPOST_KEY = process.env.UPLOADPOST_KEY || process.env.UPLOAD_POST_API_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJhdG1hbmp1c3RpY2U3MDdAZ21haWwuY29tIiwiZXhwIjo0OTM4ODkwNjYzLCJqdGkiOiI5MGRjOTZlMi01YTcwLTRjMDAtYTNiNy04ODdkZjM2OTIxZDMifQ.4UVfi-NDm-sH0UnRGTgABgrxxtczLY3Ir747Xkj76eI';
 
 // Publicar posts agendados cujo horário já chegou
 async function publishDuePosts(): Promise<any> {
