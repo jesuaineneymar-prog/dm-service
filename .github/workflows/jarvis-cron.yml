@@ -1,0 +1,86 @@
+# JARVIS Autonomous Cron Jobs via GitHub Actions
+# Executa a cada 5 min: monitor DMs, follow-ups, publish
+
+name: JARVIS Cron Engine
+
+on:
+  schedule:
+    # Monitor DMs — a cada 5 minutos
+    - cron: '*/5 * * * *'
+    # Follow-ups — a cada 30 minutos
+    - cron: '*/30 * * * *'
+    # Publish — a cada 10 minutos
+    - cron: '*/10 * * * *'
+
+  # Permite acionar manualmente
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Qual cron executar? (monitor / followups / publish / all)
+        required: true
+        default: 'all'
+
+jobs:
+ jarvis-cron:
+   runs-on: ubuntu-latest
+   timeout-minutes: 5
+
+   steps:
+     - name: Determinar minuto actual para decidir qual cron rodar
+       id: time
+       run: |
+         MINUTE=$(date +%M)
+         # Verificar se o minuto e multiplo de 5, 10, 30
+         MOD5=$((MINUTE % 5))
+         MOD10=$((MINUTE % 10))
+         MOD30=$((MINUTE % 30))
+
+         RUN_MONITOR="false"
+         RUN_FOLLOWUPS="false"
+         RUN_PUBLISH="false"
+
+         # Monitor: a cada 5 min (mas nao duplicar com followups/publish)
+         if [ $MOD5 -eq 0 ]; then
+           RUN_MONITOR="true"
+         fi
+
+         # Follow-ups: a cada 30 min
+         if [ $MOD30 -eq 0 ]; then
+           RUN_FOLLOWUPS="true"
+         fi
+
+         # Publish: a cada 10 min
+         if [ $MOD10 -eq 0 ]; then
+           RUN_PUBLISH="true"
+         fi
+
+         # Se acionado manualmente
+         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+           ACTION="${{ github.event.inputs.action }}"
+           if [ "$ACTION" = "monitor" ]; then
+             RUN_MONITOR="true"; RUN_FOLLOWUPS="false"; RUN_PUBLISH="false"
+           elif [ "$ACTION" = "followups" ]; then
+             RUN_MONITOR="false"; RUN_FOLLOWUPS="true"; RUN_PUBLISH="false"
+           elif [ "$ACTION" = "publish" ]; then
+             RUN_MONITOR="false"; RUN_FOLLOWUPS="false"; RUN_PUBLISH="true"
+           fi
+         fi
+
+         echo "run_monitor=$RUN_MONITOR" >> $GITHUB_OUTPUT
+         echo "run_followups=$RUN_FOLLOWUPS" >> $GITHUB_OUTPUT
+         echo "run_publish=$RUN_PUBLISH" >> $GITHUB_OUTPUT
+
+     - name: Monitorizar DMs (IG + FB)
+       if: steps.time.outputs.run_monitor == 'true'
+       run: |
+         curl -sf "${{ secrets.JARVIS_URL }}/api/cron/monitor?secret=${{ secrets.CRONS_SECRET }}" || echo "Monitor failed"
+
+     - name: Processar Follow-ups
+       if: steps.time.outputs.run_followups == 'true'
+       run: |
+         curl -sf "${{ secrets.JARVIS_URL }}/api/cron/followups?secret=${{ secrets.CRONS_SECRET }}" || echo "Followups failed"
+
+     - name: Publicar posts agendados
+       if: steps.time.outputs.run_publish == 'true'
+       run: |
+         curl -sf "${{ secrets.JARVIS_URL }}/api/cron/publish?secret=${{ secrets.CRONS_SECRET }}" || echo "Publish failed"
