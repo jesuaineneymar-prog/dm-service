@@ -118,3 +118,27 @@ Stage Summary:
 - CRON_SECRET: jarvis_cron_secret_mwango_2024
 - LIMITACAO: Hobby plan so permite 1 execucao/dia por cron
 - RECOMENDACAO: Para crons mais frequentes (5min/30min), usar servico externo gratuito ou upgrade para Pro ($20/mes)
+
+---
+Task ID: 9
+Agent: main
+Task: GitHub Actions como cron externo (gratuito, sem CAPTCHA)
+
+Work Log:
+- cron-job.org bloqueado por Cloudflare Turnstile CAPTCHA no signup
+- Criado .github/workflows/jarvis-cron.yml com 3 schedules:
+  - */5 * * * * (monitor DMs a cada 5 min)
+  - */30 * * * * (follow-ups a cada 30 min)
+  - */10 * * * * (publish a cada 10 min)
+- Workflow com logica inteligente: verifica minuto actual para decidir qual job rodar
+- Suporta workflow_dispatch para acionamento manual (monitor/followups/publish/all)
+- Push do workflow para GitHub com sucesso
+- Criado script scripts/setup_gh_secrets.py para encriptar secrets com PyNaCl
+- GitHub Secrets configurados via API: JARVIS_URL, CRONS_SECRET
+- Token GitHub sem permissao de Actions API (apenas repo scope)
+
+Stage Summary:
+- Workflow: .github/workflows/jarvis-cron.yml (no repo dm-service)
+- Secrets: JARVIS_URL + CRONS_SECRET (configurados)
+- PASSO FINAL: User precisa activar Actions em https://github.com/jesuaineneymar-prog/dm-service/actions (1 clique)
+- Apos activar, crons rodam 24/7 gratuitamente via GitHub Actions
