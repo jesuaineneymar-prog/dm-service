@@ -17,28 +17,41 @@ jobs:
     timeout-minutes: 3
     steps:
       - name: Monitorizar DMs
-        run: curl -sSf "${{ secrets.JARVIS_URL }}/api/cron/monitor?secret=${{ secrets.CRONS_SECRET }}" && echo "OK" || echo "FALHOU"
+        env:
+          URL: ${{ secrets.JARVIS_URL }}
+          KEY: ${{ secrets.CRONS_SECRET }}
+        run: curl -sSf "$URL/api/cron/monitor?secret=$KEY" && echo "OK" || echo "FALHOU"
 
   followups:
     name: Follow-ups
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Verificar minuto
+      - name: Check minute
         id: m
-        run: echo "r=$(($(date +%M) % 30 == 0 ? 1 : 0))" >> "$GITHUB_OUTPUT"
+        run: |
+          M=$(date +%M)
+          if [ $((M % 30)) -eq 0 ]; then echo "r=1" >> "$GITHUB_OUTPUT"; else echo "r=0" >> "$GITHUB_OUTPUT"; fi
       - name: Processar
         if: steps.m.outputs.r == '1'
-        run: curl -sSf "${{ secrets.JARVIS_URL }}/api/cron/followups?secret=${{ secrets.CRONS_SECRET }}" && echo "OK" || echo "SKIP"
+        env:
+          URL: ${{ secrets.JARVIS_URL }}
+          KEY: ${{ secrets.CRONS_SECRET }}
+        run: curl -sSf "$URL/api/cron/followups?secret=$KEY" && echo "OK" || echo "SKIP"
 
   publish:
     name: Publish
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Verificar minuto
+      - name: Check minute
         id: m
-        run: echo "r=$(($(date +%M) % 10 == 0 ? 1 : 0))" >> "$GITHUB_OUTPUT"
+        run: |
+          M=$(date +%M)
+          if [ $((M % 10)) -eq 0 ]; then echo "r=1" >> "$GITHUB_OUTPUT"; else echo "r=0" >> "$GITHUB_OUTPUT"; fi
       - name: Publicar
         if: steps.m.outputs.r == '1'
-        run: curl -sSf "${{ secrets.JARVIS_URL }}/api/cron/publish?secret=${{ secrets.CRONS_SECRET }}" && echo "OK" || echo "SKIP"
+        env:
+          URL: ${{ secrets.JARVIS_URL }}
+          KEY: ${{ secrets.CRONS_SECRET }}
+        run: curl -sSf "$URL/api/cron/publish?secret=$KEY" && echo "OK" || echo "SKIP"
