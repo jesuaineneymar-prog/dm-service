@@ -76,7 +76,7 @@ async function publishDuePosts(): Promise<any> {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + UPLOADPOST_KEY,
+            'Authorization': 'Apikey ' + UPLOADPOST_KEY,
           },
           body: JSON.stringify(publishPayload),
         });

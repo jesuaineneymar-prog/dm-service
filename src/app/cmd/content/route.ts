@@ -71,11 +71,13 @@ async function generatePost(platform: string, topic: string, tone: string, langu
   var aiResponse = await generateContent(userPrompt);
   var extracted = extractFromAI(aiResponse);
 
-  // Save as draft in Prisma
+  // Save as draft in Prisma — persistir hashtags tambem
+  var hashtagsStr = extracted.hashtags.length > 0 ? extracted.hashtags.join(' ') : null;
   var post = await db.contentPost.create({
     data: {
       platform: platform,
       caption: extracted.caption,
+      hashtags: hashtagsStr,
       mediaType: extracted.suggestedMedia ? 'suggested' : null,
       status: 'draft',
     },

@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { MessageSquare, BarChart3, Users, Sparkles, Clock, Send, Plus, Trash2, ChevronRight, Search, TrendingUp, Eye, Heart, Hash, Calendar, Zap, Globe, Camera, Video, FileText, RefreshCw, Settings, LogOut, Bot, Bell, Shield, Activity, Radio, Key, Mail, CheckCircle, XCircle, ChevronLeft } from 'lucide-react';
+import { MessageSquare, BarChart3, Users, Sparkles, Clock, Send, Plus, Trash2, ChevronRight, Search, TrendingUp, Eye, Heart, Hash, Calendar, Zap, Globe, Camera, Video, FileText, RefreshCw, Settings, LogOut, Bot, Bell, Shield, Activity, Radio, Key, Mail, CheckCircle, XCircle, ChevronLeft, FileBarChart, FlaskConical, AlertTriangle } from 'lucide-react';
 
 // ===== CONSTANTS =====
 // Auth + AI agora via server-side (seguro — nenhuma key exposta)
@@ -1382,6 +1382,7 @@ function DmTab() {
     if (!p) return '#888';
     if (p.includes('instagram')) return '#E1306C';
     if (p.includes('facebook')) return '#1877F2';
+    if (p.includes('tiktok')) return '#25F4EE';
     return '#888';
   };
   var keyDefs = [
@@ -1410,12 +1411,12 @@ function DmTab() {
           </div>
           {/* Platform filter */}
           <div style={{ display: 'flex', gap: 4 }}>
-            {['all', 'instagram', 'facebook'].map(p => (
+            {['all', 'instagram', 'facebook', 'tiktok'].map(p => (
               <button key={p} onClick={() => setPlatform(p)} style={{
                 padding: '4px 10px', borderRadius: 8, border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: "-apple-system,sans-serif",
                 background: platform === p ? 'rgba(255,68,68,0.15)' : 'rgba(255,255,255,0.04)',
                 color: platform === p ? '#ff4444' : '#666',
-              }}>{p === 'all' ? 'Todos' : p === 'instagram' ? 'IG' : 'FB'}</button>
+              }}>{p === 'all' ? 'Todos' : p === 'instagram' ? 'IG' : p === 'facebook' ? 'FB' : 'TT'}</button>
             ))}
           </div>
           {/* Connected accounts */}
@@ -1560,6 +1561,347 @@ function DmTab() {
   );
 }
 
+// ===== TAB 7: SETTINGS =====
+function SettingsTab() {
+  const [sysInfo, setSysInfo] = useState<any>(null);
+  const [settings, setSettings] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState('');
+  const [customSettings, setCustomSettings] = useState({
+    agency_name: '',
+    auto_reply_enabled: 'true',
+    default_platform: 'instagram',
+    report_frequency: 'weekly',
+    dm_response_tone: 'profissional',
+  });
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      var [info, sett] = await Promise.all([
+        apiCall('/cmd/settings', { action: 'get_system_info' }),
+        apiCall('/cmd/settings', { action: 'get_all' }),
+      ]);
+      if (info.success) setSysInfo(info.data);
+      if (sett.success) {
+        setSettings(sett.data);
+        setCustomSettings(prev => ({
+          ...prev,
+          agency_name: sett.data.agency_name || 'Mwango Brain',
+          auto_reply_enabled: sett.data.auto_reply_enabled || 'true',
+          default_platform: sett.data.default_platform || 'instagram',
+          report_frequency: sett.data.report_frequency || 'weekly',
+          dm_response_tone: sett.data.dm_response_tone || 'profissional',
+        }));
+      }
+    } catch(e) { console.warn('JARVIS:', e); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const saveSettings = async () => {
+    var res = await apiCall('/cmd/settings', { action: 'set_many', settings: customSettings });
+    if (res.success) { setSaved('OK'); setTimeout(() => setSaved(''), 2000); await fetchData(); }
+  };
+
+  if (loading && !sysInfo) return <Spinner />;
+
+  var envItems = sysInfo ? [
+    { label: 'Turso DB', ok: sysInfo.hasTursoUrl },
+    { label: 'HikerAPI', ok: sysInfo.hasHikerKey },
+    { label: 'Upload-Post', ok: sysInfo.hasUploadPostKey },
+    { label: 'Zernio DMs', ok: sysInfo.hasZernioKey },
+    { label: 'OpenRouter IA', ok: sysInfo.hasOrKey },
+    { label: 'Cron Secret', ok: sysInfo.hasCronSecret },
+  ] : [];
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: 16, WebkitOverflowScrolling: 'touch' }}>
+      <div style={{ maxWidth: 480, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>⚙️ Configuracoes</div>
+
+        {/* ENV STATUS */}
+        {sysInfo && (
+          <div style={S.card}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 12 }}>Estado das APIs</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {envItems.map((item, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.03)' }}>
+                  {item.ok ? <CheckCircle size={14} style={{ color: '#4ade80' }} /> : <AlertTriangle size={14} style={{ color: '#ff8c00' }} />}
+                  <span style={{ fontSize: 12, color: '#ccc' }}>{item.label}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
+              <span style={{ ...S.textS, fontSize: 11 }}>{sysInfo.region} · {sysInfo.nodeEnv}</span>
+              {sysInfo.dbStats && <span style={{ ...S.textS, fontSize: 11 }}>{sysInfo.dbStats.prospects} prospects · {sysInfo.dbStats.scheduled} agendados</span>}
+            </div>
+          </div>
+        )}
+
+        {/* CUSTOM SETTINGS */}
+        <div style={S.card}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Preferencias</div>
+            {saved && <span style={{ fontSize: 11, color: '#4ade80', fontWeight: 600 }}>Guardado!</span>}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 11, color: '#888', marginBottom: 4, fontWeight: 500 }}>Nome da Agencia</div>
+              <input value={customSettings.agency_name} onChange={e => setCustomSettings(s => ({ ...s, agency_name: e.target.value }))} style={S.input} />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: '#888', marginBottom: 4, fontWeight: 500 }}>Plataforma Padrao</div>
+              <select value={customSettings.default_platform} onChange={e => setCustomSettings(s => ({ ...s, default_platform: e.target.value }))} style={{ ...S.input, appearance: 'none' }}>
+                {['instagram', 'facebook', 'tiktok'].map(p => <option key={p} value={p} style={{ background: '#1a1a1a' }}>{p}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: '#888', marginBottom: 4, fontWeight: 500 }}>Frequencia de Relatorios</div>
+              <select value={customSettings.report_frequency} onChange={e => setCustomSettings(s => ({ ...s, report_frequency: e.target.value }))} style={{ ...S.input, appearance: 'none' }}>
+                {['daily', 'weekly', 'biweekly', 'monthly'].map(f => <option key={f} value={f} style={{ background: '#1a1a1a' }}>{f === 'daily' ? 'Diario' : f === 'weekly' ? 'Semanal' : f === 'biweekly' ? 'Quinzenal' : 'Mensal'}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: '#888', marginBottom: 4, fontWeight: 500 }}>Tom de Resposta DMs</div>
+              <select value={customSettings.dm_response_tone} onChange={e => setCustomSettings(s => ({ ...s, dm_response_tone: e.target.value }))} style={{ ...S.input, appearance: 'none' }}>
+                {['profissional', 'casual', 'criativo', 'formal'].map(t => <option key={t} value={t} style={{ background: '#1a1a1a' }}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input type="checkbox" checked={customSettings.auto_reply_enabled === 'true'} onChange={e => setCustomSettings(s => ({ ...s, auto_reply_enabled: e.target.checked ? 'true' : 'false' }))} style={{ accentColor: '#ff4444', width: 16, height: 16 }} />
+              <span style={{ fontSize: 13, color: '#fff' }}>Auto-resposta DMs activa</span>
+            </div>
+            <button onClick={saveSettings} style={{ ...S.btn, width: '100%' }}>Guardar Configuracoes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===== TAB 8: REPORTS =====
+function ReportsTab() {
+  const [reports, setReports] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [clientName, setClientName] = useState('Mwango Brain');
+  const [period, setPeriod] = useState('30d');
+  const [showGen, setShowGen] = useState(false);
+
+  const fetchReports = async () => {
+    setLoading(true);
+    try {
+      var res = await apiCall('/cmd/reports', { action: 'list' });
+      if (res.success) setReports(res.data || []);
+    } catch(e) { console.warn('JARVIS:', e); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchReports(); }, []);
+
+  const generate = async () => {
+    setGenerating(true);
+    var days = period === '7d' ? 7 : period === '30d' ? 30 : period === '90d' ? 90 : 30;
+    var start = new Date(Date.now() - days * 86400000).toISOString();
+    var end = new Date().toISOString();
+    await apiCall('/cmd/reports', { action: 'generate', clientName, periodStart: start, periodEnd: end });
+    await fetchReports();
+    setShowGen(false);
+    setGenerating(false);
+  };
+
+  if (loading && reports.length === 0) return <Spinner />;
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: 16, WebkitOverflowScrolling: 'touch' }}>
+      <div style={{ maxWidth: 480, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>📄 Relatorios</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={fetchReports} style={{ ...S.btnOutline, padding: '0 12px', height: 34, fontSize: 12 }}><RefreshCw size={14} /></button>
+            <button onClick={() => setShowGen(true)} style={{ ...S.btn, padding: '0 12px', height: 34, fontSize: 11 }}><Plus size={14} />Gerar</button>
+          </div>
+        </div>
+
+        {/* GENERATE MODAL */}
+        {showGen && (
+          <div style={S.card}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 12 }}>Novo Relatorio</div>
+            <input value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Nome do cliente" style={{ ...S.input, marginBottom: 10 }} />
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+              {['7d', '30d', '90d'].map(p => (
+                <button key={p} onClick={() => setPeriod(p)} style={{ flex: 1, padding: '6px 0', borderRadius: 8, fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer', background: period === p ? '#ff4444' : 'rgba(255,255,255,0.06)', color: period === p ? '#fff' : '#888' }}>{p === '7d' ? '7 dias' : p === '30d' ? '30 dias' : '90 dias'}</button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setShowGen(false)} style={{ ...S.btnOutline, flex: 1 }}>Cancelar</button>
+              <button onClick={generate} disabled={generating} style={{ ...S.btn, flex: 1 }}>{generating ? 'A gerar...' : 'Gerar'}</button>
+            </div>
+          </div>
+        )}
+
+        {/* REPORT LIST */}
+        {reports.length === 0 && !loading && (
+          <div style={{ ...S.textS, fontSize: 13, textAlign: 'center', padding: 40 }}>
+            <FileBarChart size={32} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
+            Sem relatorios gerados
+          </div>
+        )}
+        {reports.map((r: any) => (
+          <div key={r.id} style={S.card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{r.clientName}</div>
+              <span style={{ ...S.textS, fontSize: 10 }}>{new Date(r.generatedAt).toLocaleDateString('pt-AO')}</span>
+            </div>
+            <div style={{ fontSize: 11, color: '#888', marginBottom: 8 }}>{new Date(r.periodStart).toLocaleDateString('pt-AO')} — {new Date(r.periodEnd).toLocaleDateString('pt-AO')}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
+              {[
+                { label: 'Posts', value: r.postsPublished, color: '#ff4444' },
+                { label: 'Likes', value: r.totalLikes, color: '#4ade80' },
+                { label: 'DMs', value: r.totalDMs, color: '#38bdf8' },
+              ].map((m, i) => (
+                <div key={i} style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: m.color }}>{m.value}</div>
+                  <div style={{ fontSize: 10, color: '#666' }}>{m.label}</div>
+                </div>
+              ))}
+            </div>
+            {r.summary && <div style={{ fontSize: 12, color: '#aaa', lineHeight: 1.5, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8 }}>{r.summary}</div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ===== TAB 9: A/B TESTING =====
+function ABTestTab() {
+  const [tests, setTests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [topic, setTopic] = useState('');
+  const [abPlatform, setAbPlatform] = useState('instagram');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const fetchTests = async () => {
+    setLoading(true);
+    try {
+      var res = await apiCall('/cmd/ab-test', { action: 'list' });
+      if (res.success) setTests(res.data || []);
+    } catch(e) { console.warn('JARVIS:', e); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchTests(); }, []);
+
+  const createTest = async () => {
+    if (!topic.trim()) return;
+    setCreating(true);
+    await apiCall('/cmd/ab-test', { action: 'create', topic, platform: abPlatform });
+    await fetchTests();
+    setTopic('');
+    setCreating(false);
+  };
+
+  const startTest = async (id: string) => {
+    await apiCall('/cmd/ab-test', { action: 'start', id });
+    await fetchTests();
+  };
+
+  const concludeTest = async (id: string) => {
+    await apiCall('/cmd/ab-test', { action: 'conclude', id });
+    await fetchTests();
+  };
+
+  const deleteTest = async (id: string) => {
+    await apiCall('/cmd/ab-test', { action: 'delete', id });
+    await fetchTests();
+  };
+
+  if (loading && tests.length === 0) return <Spinner />;
+
+  var statusColor = (s: string) => {
+    if (s === 'running') return '#4ade80';
+    if (s === 'completed') return '#3b82f6';
+    if (s === 'draft') return '#f59e0b';
+    return '#666';
+  };
+  var statusLabel = (s: string) => {
+    if (s === 'running') return 'A decorrer';
+    if (s === 'completed') return 'Concluido';
+    if (s === 'draft') return 'Rascunho';
+    return s;
+  };
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: 16, WebkitOverflowScrolling: 'touch' }}>
+      <div style={{ maxWidth: 480, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>🧪 A/B Testing</div>
+
+        {/* CREATE */}
+        <div style={S.card}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 12 }}>Novo Teste</div>
+          <input value={topic} onChange={e => setTopic(e.target.value)} placeholder="Topico do post..." style={{ ...S.input, marginBottom: 10 }} />
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            {['instagram', 'facebook', 'tiktok'].map(p => (
+              <button key={p} onClick={() => setAbPlatform(p)} style={{ flex: 1, padding: '6px 0', borderRadius: 8, fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer', background: abPlatform === p ? '#ff4444' : 'rgba(255,255,255,0.06)', color: abPlatform === p ? '#fff' : '#888', textTransform: 'capitalize' }}>{p}</button>
+            ))}
+          </div>
+          <button onClick={createTest} disabled={creating || !topic.trim()} style={{ ...S.btn, width: '100%' }}>{creating ? 'A gerar variantes...' : 'Criar Teste A/B'}</button>
+        </div>
+
+        {/* TEST LIST */}
+        {tests.length === 0 && !loading && (
+          <div style={{ ...S.textS, fontSize: 13, textAlign: 'center', padding: 40 }}>
+            <FlaskConical size={32} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
+            Sem testes A/B
+          </div>
+        )}
+        {tests.map((t: any) => (
+          <div key={t.id} style={S.card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
+                <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                  <span style={S.badge(statusColor(t.status))}>{statusLabel(t.status)}</span>
+                  <span style={{ ...S.textS, fontSize: 10 }}>{t.platform}</span>
+                  {t.winner && <span style={{ ...S.badge('#4ade80'), fontSize: 10 }}>Vencedor: {t.winner}</span>}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {t.status === 'draft' && <button onClick={() => startTest(t.id)} style={{ ...S.btn, padding: '0 10px', height: 28, fontSize: 10 }}>Iniciar</button>}
+                {t.status === 'running' && <button onClick={() => concludeTest(t.id)} style={{ ...S.btn, padding: '0 10px', height: 28, fontSize: 10 }}>Concluir</button>}
+                <button onClick={() => deleteTest(t.id)} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: 4 }}><Trash2 size={14} /></button>
+              </div>
+            </div>
+            <button onClick={() => setExpandedId(expandedId === t.id ? null : t.id)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontSize: 11, padding: 0, marginBottom: 8 }}>{expandedId === t.id ? 'Ocultar' : 'Ver variantes'}</button>
+            {expandedId === t.id && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div style={{ padding: 10, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,68,68,0.15)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#ff4444', marginBottom: 6 }}>Variante A</div>
+                  <div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.5, marginBottom: 8 }}>{(t.variantA || '').slice(0, 200)}</div>
+                  <div style={{ display: 'flex', gap: 8, fontSize: 10, color: '#888' }}>
+                    <span>L: {t.likesA}</span><span>C: {t.commentsA}</span><span>I: {t.impressionsA}</span>
+                  </div>
+                </div>
+                <div style={{ padding: 10, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(56,189,248,0.15)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#38bdf8', marginBottom: 6 }}>Variante B</div>
+                  <div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.5, marginBottom: 8 }}>{(t.variantB || '').slice(0, 200)}</div>
+                  <div style={{ display: 'flex', gap: 8, fontSize: 10, color: '#888' }}>
+                    <span>L: {t.likesB}</span><span>C: {t.commentsB}</span><span>I: {t.impressionsB}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ===== MAIN APP SHELL =====
 function MainApp({ onLogout }: { onLogout: () => void }) {
   const [tab, setTab] = useState('chat');
@@ -1637,6 +1979,9 @@ function MainApp({ onLogout }: { onLogout: () => void }) {
     { id: 'crm', label: 'CRM', icon: '👥' },
     { id: 'content', label: 'Content', icon: '✨' },
     { id: 'scheduler', label: 'Scheduler', icon: '⏰' },
+    { id: 'abtest', label: 'A/B', icon: '🧪' },
+    { id: 'reports', label: 'Reports', icon: '📄' },
+    { id: 'settings', label: 'Config', icon: '⚙️' },
   ];
 
   return (
@@ -1680,6 +2025,9 @@ function MainApp({ onLogout }: { onLogout: () => void }) {
         {tab === 'crm' && <CrmTab />}
         {tab === 'content' && <ContentTab />}
         {tab === 'scheduler' && <SchedulerTab />}
+        {tab === 'abtest' && <ABTestTab />}
+        {tab === 'reports' && <ReportsTab />}
+        {tab === 'settings' && <SettingsTab />}
       </div>
 
       {/* NOTIFICATION PANEL */}

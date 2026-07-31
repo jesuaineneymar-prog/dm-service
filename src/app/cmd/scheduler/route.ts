@@ -13,7 +13,7 @@ export var maxDuration = 60;
 
 async function hikerFetch(path: string) {
   var res = await fetch('https://api.hikerapi.com' + path, {
-    headers: { 'x-access-key': HIKERAPI_KEY },
+    headers: { 'X-HikerAPI-Key': HIKERAPI_KEY, 'Accept': 'application/json' },
   });
   if (!res.ok) throw new Error('HikerAPI erro ' + res.status + ': ' + (await res.text()).slice(0, 200));
   return res.json();
@@ -117,6 +117,9 @@ function findNextOptimalTime(optimalTimes: any): Date {
   }
 
   var now = new Date();
+  var candidates: Date[] = [];
+
+  // Gerar candidatos para as proximas 3 semanas
   for (var weekOffset = 0; weekOffset < 3; weekOffset++) {
     for (var i = 0; i < recommended.length; i++) {
       var slot = recommended[i];
@@ -124,15 +127,21 @@ function findNextOptimalTime(optimalTimes: any): Date {
       var currentDay = candidate.getUTCDay();
       var targetDay = slot.dayIndex;
       var daysUntilTarget = (targetDay - currentDay + 7) % 7;
-      if (daysUntilTarget === 0 && candidate.getUTCHours() >= slot.hour) {
+      // Se e hoje mas a hora ja passou, mandar para a proxima semana
+      if (daysUntilTarget === 0 && now.getUTCHours() >= slot.hour) {
         daysUntilTarget = 7;
       }
       candidate.setUTCDate(candidate.getUTCDate() + daysUntilTarget + (weekOffset * 7));
       candidate.setUTCHours(slot.hour, 0, 0, 0);
-      if (candidate > now) return candidate;
+      if (candidate > now) candidates.push(candidate);
     }
   }
 
+  // Ordenar por data e retornar o mais proximo
+  candidates.sort(function (a, b) { return a.getTime() - b.getTime(); });
+  if (candidates.length > 0) return candidates[0];
+
+  // Fallback final
   var fb2 = new Date();
   fb2.setDate(fb2.getDate() + 1);
   fb2.setUTCHours(12, 0, 0, 0);
@@ -236,7 +245,7 @@ async function cancelScheduled(id: string) {
     try {
       await fetch('https://api.upload-post.com/v1/posts/' + sp.uploadPostId, {
         method: 'DELETE',
-        headers: { Authorization: 'Bearer ' + UPLOADPOST_KEY },
+        headers: { 'Authorization': 'Apikey ' + UPLOADPOST_KEY },
       });
     } catch (e: any) {
       console.error('Erro ao cancelar no UploadPost:', e.message);

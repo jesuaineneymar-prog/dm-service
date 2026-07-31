@@ -118,3 +118,49 @@ model AutomationLog {
   triggeredAt   DateTime @default(now())
   completedAt   DateTime?
 }
+
+model ABTest {
+  id             String   @id @default(cuid())
+  name           String
+  platform       String
+  variantA       String   // caption variante A
+  variantB       String   // caption variante B
+  hashtagsA      String?
+  hashtagsB      String?
+  status         String   @default("draft") // draft, running, completed, cancelled
+  impressionsA   Int      @default(0)
+  impressionsB   Int      @default(0)
+  likesA         Int      @default(0)
+  likesB         Int      @default(0)
+  commentsA      Int      @default(0)
+  commentsB      Int      @default(0)
+  winner         String?  // "A", "B", or "tie"
+  contentPostId  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ClientReport {
+  id             String   @id @default(cuid())
+  clientName     String
+  periodStart    DateTime
+  periodEnd      DateTime
+  platform       String?
+  followersStart Int      @default(0)
+  followersEnd   Int      @default(0)
+  postsPublished Int      @default(0)
+  totalLikes     Int      @default(0)
+  totalComments  Int      @default(0)
+  totalDMs       Int      @default(0)
+  newProspects   Int      @default(0)
+  conversions    Int      @default(0)
+  summary        String?
+  generatedAt    DateTime @default(now())
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
