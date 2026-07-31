@@ -13,22 +13,23 @@ export var maxDuration = 60;
 
 async function hikerFetch(path: string) {
   var res = await fetch('https://api.hikerapi.com' + path, {
-    headers: { 'X-HikerAPI-Key': HIKERAPI_KEY, 'Accept': 'application/json' },
+    headers: { 'x-access-key': HIKERAPI_KEY, 'Accept': 'application/json' },
   });
   if (!res.ok) throw new Error('HikerAPI erro ' + res.status + ': ' + (await res.text()).slice(0, 200));
   return res.json();
 }
 
+var WAT_OFFSET = 1; // Angola: WAT = UTC+1
 var DAY_NAMES = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado'];
 
 // ── actions ────────────────────────────────────────────────
 
 async function getOptimalTimes() {
   // Fetch real post engagement data from HikerAPI
-  var user: any = await hikerFetch('/users/by/username?username=' + IG_USERNAME);
+  var user: any = await hikerFetch('/v1/user/by/username?username=' + IG_USERNAME);
   var userId = user.pk || user.id;
 
-  var postsRes: any = await hikerFetch('/users/' + userId + '/posts?count=60');
+  var postsRes: any = await hikerFetch('/v1/user/posts?user_id=' + userId + '&amount=60');
   var items = postsRes.items || postsRes.data || postsRes || [];
 
   // Group engagement by hour of day and day of week
@@ -51,8 +52,11 @@ async function getOptimalTimes() {
     var date = new Date(typeof timestamp === 'number' ? timestamp * 1000 : timestamp);
     if (isNaN(date.getTime())) continue;
 
-    var day = date.getUTCDay();
-    var hour = date.getUTCHours();
+    // Convert to Angola time (WAT = UTC+1)
+    var watMs = date.getTime() + (WAT_OFFSET * 3600000);
+    var watDate = new Date(watMs);
+    var day = watDate.getUTCDay();
+    var hour = watDate.getUTCHours();
 
     timeSlots[day][hour].totalEngagement += engagement;
     timeSlots[day][hour].count += 1;
@@ -123,16 +127,21 @@ function findNextOptimalTime(optimalTimes: any): Date {
   for (var weekOffset = 0; weekOffset < 3; weekOffset++) {
     for (var i = 0; i < recommended.length; i++) {
       var slot = recommended[i];
-      var candidate = new Date(now);
-      var currentDay = candidate.getUTCDay();
+      // Current Angola time
+      var nowWAT = new Date(now.getTime() + (WAT_OFFSET * 3600000));
+      var currentDay = nowWAT.getUTCDay();
       var targetDay = slot.dayIndex;
       var daysUntilTarget = (targetDay - currentDay + 7) % 7;
       // Se e hoje mas a hora ja passou, mandar para a proxima semana
-      if (daysUntilTarget === 0 && now.getUTCHours() >= slot.hour) {
+      if (daysUntilTarget === 0 && nowWAT.getUTCHours() >= slot.hour) {
         daysUntilTarget = 7;
       }
-      candidate.setUTCDate(candidate.getUTCDate() + daysUntilTarget + (weekOffset * 7));
-      candidate.setUTCHours(slot.hour, 0, 0, 0);
+      // Build candidate in Angola time, then convert to UTC
+      var candidateWAT = new Date(nowWAT);
+      candidateWAT.setUTCDate(candidateWAT.getUTCDate() + daysUntilTarget + (weekOffset * 7));
+      candidateWAT.setUTCHours(slot.hour, 0, 0, 0);
+      // Convert back to UTC
+      var candidate = new Date(candidateWAT.getTime() - (WAT_OFFSET * 3600000));
       if (candidate > now) candidates.push(candidate);
     }
   }

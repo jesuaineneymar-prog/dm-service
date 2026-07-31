@@ -20,8 +20,8 @@ export interface HikerConfig {
 // HikerAPI: Get user profile by username
 export async function hikerGetUser(apiKey: string, username: string) {
   try {
-    var res = await fetch(HIKER_BASE + '/users/by/username?username=' + encodeURIComponent(username), {
-      headers: { 'X-HikerAPI-Key': apiKey, 'Accept': 'application/json' },
+    var res = await fetch(HIKER_BASE + '/v1/user/by/username?username=' + encodeURIComponent(username), {
+      headers: { 'x-access-key': apiKey, 'Accept': 'application/json' },
     });
     if (!res.ok) return { success: false, error: 'HTTP ' + res.status };
     var data = await res.json();
@@ -34,9 +34,9 @@ export async function hikerGetUser(apiKey: string, username: string) {
 // HikerAPI: Get user's posts (feed)
 export async function hikerGetUserPosts(apiKey: string, userId: string, count?: number) {
   try {
-    var url = HIKER_BASE + '/users/' + userId + '/posts?count=' + (count || 10);
+    var url = HIKER_BASE + '/v1/user/posts?user_id=' + userId + '&amount=' + (count || 10);
     var res = await fetch(url, {
-      headers: { 'X-HikerAPI-Key': apiKey, 'Accept': 'application/json' },
+      headers: { 'x-access-key': apiKey, 'Accept': 'application/json' },
     });
     if (!res.ok) return { success: false, error: 'HTTP ' + res.status };
     var data = await res.json();
@@ -49,9 +49,9 @@ export async function hikerGetUserPosts(apiKey: string, userId: string, count?: 
 // HikerAPI: Get comments on a post
 export async function hikerGetComments(apiKey: string, mediaId: string, count?: number) {
   try {
-    var url = HIKER_BASE + '/media/' + mediaId + '/comments?count=' + (count || 20);
+    var url = HIKER_BASE + '/v1/media/comments?media_id=' + mediaId + '&amount=' + (count || 20);
     var res = await fetch(url, {
-      headers: { 'X-HikerAPI-Key': apiKey, 'Accept': 'application/json' },
+      headers: { 'x-access-key': apiKey, 'Accept': 'application/json' },
     });
     if (!res.ok) return { success: false, error: 'HTTP ' + res.status };
     var data = await res.json();
@@ -73,9 +73,9 @@ export async function hikerGetUserId(apiKey: string, username: string): Promise<
 // HikerAPI: Get user's followers
 export async function hikerGetFollowers(apiKey: string, userId: string, count?: number) {
   try {
-    var url = HIKER_BASE + '/users/' + userId + '/followers?count=' + (count || 20);
+    var url = HIKER_BASE + '/v1/user/followers?user_id=' + userId + '&amount=' + (count || 20);
     var res = await fetch(url, {
-      headers: { 'X-HikerAPI-Key': apiKey, 'Accept': 'application/json' },
+      headers: { 'x-access-key': apiKey, 'Accept': 'application/json' },
     });
     if (!res.ok) return { success: false, error: 'HTTP ' + res.status };
     var data = await res.json();
@@ -88,9 +88,9 @@ export async function hikerGetFollowers(apiKey: string, userId: string, count?: 
 // HikerAPI: Search users by query
 export async function hikerSearchUsers(apiKey: string, query: string) {
   try {
-    var url = HIKER_BASE + '/users/search?query=' + encodeURIComponent(query);
+    var url = HIKER_BASE + '/v1/user/search?query=' + encodeURIComponent(query);
     var res = await fetch(url, {
-      headers: { 'X-HikerAPI-Key': apiKey, 'Accept': 'application/json' },
+      headers: { 'x-access-key': apiKey, 'Accept': 'application/json' },
     });
     if (!res.ok) return { success: false, error: 'HTTP ' + res.status };
     var data = await res.json();
@@ -103,9 +103,9 @@ export async function hikerSearchUsers(apiKey: string, query: string) {
 // HikerAPI: Get user's stories
 export async function hikerGetStories(apiKey: string, userId: string) {
   try {
-    var url = HIKER_BASE + '/users/' + userId + '/stories';
+    var url = HIKER_BASE + '/v1/user/stories?user_id=' + userId;
     var res = await fetch(url, {
-      headers: { 'X-HikerAPI-Key': apiKey, 'Accept': 'application/json' },
+      headers: { 'x-access-key': apiKey, 'Accept': 'application/json' },
     });
     if (!res.ok) return { success: false, error: 'HTTP ' + res.status };
     var data = await res.json();
@@ -118,9 +118,9 @@ export async function hikerGetStories(apiKey: string, userId: string) {
 // HikerAPI: Get media insights (likes, views, etc.)
 export async function hikerGetMediaInsights(apiKey: string, mediaId: string) {
   try {
-    var url = HIKER_BASE + '/media/' + mediaId + '/insights';
+    var url = HIKER_BASE + '/v1/media/insights?media_id=' + mediaId;
     var res = await fetch(url, {
-      headers: { 'X-HikerAPI-Key': apiKey, 'Accept': 'application/json' },
+      headers: { 'x-access-key': apiKey, 'Accept': 'application/json' },
     });
     if (!res.ok) return { success: false, error: 'HTTP ' + res.status };
     var data = await res.json();

@@ -1110,6 +1110,7 @@ function ContentTab() {
           {drafts.map((d: any) => (
             <div key={d.id} style={{ padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <div style={{ fontSize: 12, color: '#fff', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(d.caption || 'Sem caption').slice(0, 80)}</div>
+              {d.hashtags && <div style={{ fontSize: 10, color: '#ff4444', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.hashtags.slice(0, 100)}</div>}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <span style={S.badge('rgba(255,68,68,0.2)')}>{d.platform || '?'}</span>
@@ -1289,6 +1290,7 @@ function DmTab() {
   const [selectedConv, setSelectedConv] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
   const [sending, setSending] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [platform, setPlatform] = useState('all');
@@ -1306,15 +1308,15 @@ function DmTab() {
   useEffect(() => { msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   const fetchConversations = async () => {
-    setLoading(true);
+    setLoading(true); setErr('');
     try {
       var res = await apiCall('/cmd/zernio', { action: 'list_conversations', platform: platform !== 'all' ? platform : undefined, limit: 50 });
       if (res.success) {
         var convs = res.conversations?.data || res.conversations || [];
         if (!Array.isArray(convs) && convs.conversations) convs = convs.conversations;
         setConversations(convs);
-      }
-    } catch(e) { console.warn('JARVIS:', e); }
+      } else if (res.error) { setErr(res.error); }
+    } catch(e: any) { setErr('Erro de conexao'); }
     setLoading(false);
   };
 
@@ -1462,7 +1464,8 @@ function DmTab() {
         {/* Conversation list */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {loading && <Spinner />}
-          {!loading && conversations.length === 0 && (
+          {err && !loading && <div style={{ textAlign: 'center', padding: '20px 16px', color: '#ff8c00', fontSize: 12 }}>{err}</div>}
+          {!loading && !err && conversations.length === 0 && (
             <div style={{ textAlign: 'center', padding: 40, color: '#555', fontSize: 12 }}>
               <Mail size={24} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
               Sem conversas

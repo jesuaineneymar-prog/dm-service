@@ -17,7 +17,7 @@ import {
 } from '@/lib/zernio';
 
 import { requireAuth } from '@/lib/auth';
-import { generateDMReply } from '@/lib/ai';
+import { generateDMReply, generateContent } from '@/lib/ai';
 
 export var maxDuration = 120;
 
@@ -270,6 +270,61 @@ async function autoCreateFollowUps(): Promise<number> {
   return created;
 }
 
+// Auto-generate weekly report if due
+async function autoGenerateReport(): Promise<boolean> {
+  try {
+    // Check if there is a report this week already
+    var weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+
+    var existing = await db.clientReport.findFirst({
+      where: { generatedAt: { gte: weekStart } },
+    });
+    if (existing) return false; // Already generated this week
+
+    // Check settings for report frequency
+    var freqSetting = await db.systemSetting.findUnique({ where: { key: 'report_frequency' } });
+    var freq = freqSetting?.value || 'weekly';
+    if (freq !== 'weekly') return false;
+
+    var clientSetting = await db.systemSetting.findUnique({ where: { key: 'agency_name' } });
+    var clientName = clientSetting?.value || 'Mwango Brain';
+
+    var periodStart = new Date(Date.now() - 7 * 86400000).toISOString();
+    var periodEnd = new Date().toISOString();
+
+    // Gather metrics
+    var postsPublished = await db.contentPost.count({ where: { publishedAt: { gte: new Date(periodStart) } } });
+    var analyticsEvents = await db.analyticsEvent.findMany({ where: { recordedAt: { gte: new Date(periodStart) } } });
+    var totalLikes = 0; var totalComments = 0;
+    for (var i = 0; i < analyticsEvents.length; i++) {
+      if (analyticsEvents[i].eventType === 'likes' || analyticsEvents[i].eventType === 'like') totalLikes += analyticsEvents[i].metricValue;
+      if (analyticsEvents[i].eventType === 'comments' || analyticsEvents[i].eventType === 'comment') totalComments += analyticsEvents[i].metricValue;
+    }
+    var totalDMs = await db.message.count({ where: { sentAt: { gte: new Date(periodStart) }, direction: 'inbound' } });
+    var newProspects = await db.prospect.count({ where: { createdAt: { gte: new Date(periodStart) } } });
+    var conversions = await db.prospect.count({ where: { status: 'converted', updatedAt: { gte: new Date(periodStart) } } });
+
+    var aiSummary = await generateContent(
+      'Gera um sumario semanal profissional em portugues para a agencia "' + clientName + '". ' +
+      'Metricas: ' + postsPublished + ' posts, ' + Math.round(totalLikes) + ' likes, ' + Math.round(totalComments) + ' comentarios, ' +
+      totalDMs + ' DMs, ' + newProspects + ' novos prospects, ' + conversions + ' conversoes. ' +
+      'Responde APENAS com 2-3 frases profissionais.'
+    );
+
+    await db.clientReport.create({
+      data: { clientName, periodStart: new Date(periodStart), periodEnd: new Date(), postsPublished, totalLikes: Math.round(totalLikes), totalComments: Math.round(totalComments), totalDMs, newProspects, conversions, summary: aiSummary },
+    });
+
+    await db.notification.create({ data: { type: 'report', title: 'Relatorio semanal gerado', message: 'Relatorio automatico da semana criado com ' + postsPublished + ' posts analisados.', platform: 'system' } });
+
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 export async function POST(request: Request) {
   const authError = requireAuth(request);
   if (authError) return authError;
@@ -321,9 +376,10 @@ export async function POST(request: Request) {
       var monitorData = await monitorAndRespond();
       var followUpData = await processFollowUps();
       var autoCreated = await autoCreateFollowUps();
+      var reportGenerated = await autoGenerateReport();
       return NextResponse.json({
         success: true, action: 'full_cycle',
-        data: { monitor: monitorData, followUps: followUpData, autoCreatedFollowUps: autoCreated, timestamp: new Date().toISOString() },
+        data: { monitor: monitorData, followUps: followUpData, autoCreatedFollowUps: autoCreated, autoReportGenerated: reportGenerated, timestamp: new Date().toISOString() },
       });
     }
 
