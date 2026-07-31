@@ -22,6 +22,9 @@ export var OR_KEY = env('OR_KEY', '');
 // --- Zernio (DMs) ---
 export var ZERNIO_KEY = env('ZERNIO_KEY', '');
 
+// --- Blackbox AI ---
+export var BLACKBOX_KEY = env('BLACKBOX_KEY', '');
+
 // --- Contas ---
 export var IG_USERNAME = env('IG_USERNAME', '');
 
@@ -40,6 +43,9 @@ export var TIKTOK_ADS_MCP_KEY = env('TIKTOK_ADS_MCP_KEY', '');
 export var META_ADS_MCP_KEY = env('META_ADS_MCP_KEY', '');
 export var SOCIALYNC_KEY = env('SOCIALYNC_KEY', '');
 export var COMPOSIO_KEY = env('COMPOSIO_API_KEY', '') || env('COMPOSIO_KEY', '');
+
+// --- SerpAPI (Google Search) ---
+export var SERPAPI_KEY = env('SERPAPI_KEY', '');
 
 // --- Sociavault (Scraping) ---
 export var SOCIAVAULT_KEY = env('SOCIAVAULT_API_KEY', '');

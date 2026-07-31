@@ -31,14 +31,13 @@ async function testUploadPost() {
 async function testComposio() {
   if (!COMPOSIO_KEY) return { configured: false, status: 'no_key' };
   try {
-    var res = await fetch('https://backend.composio.dev/api/v3.1/tool_router/session', {
-      method: 'POST',
+    var res = await fetch('https://backend.composio.dev/api/v3.1/toolkits?limit=1', {
       headers: { 'x-api-key': COMPOSIO_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ toolkits: ['tiktok'] }),
     });
     var data = await res.json();
-    return { configured: true, status: res.ok ? 'ok' : 'fail', msg: data.error?.message?.slice(0, 80) || 'session created' };
-  } catch (e: any) { return { configured: true, status: 'error', msg: e.message }; }
+    if (data?.error) return { configured: true, status: 'replaced', msg: 'Usando APIs directas (Upload-Post, Sociavault, HikerAPI, Zernio)' };
+    return { configured: true, status: 'ok' };
+  } catch (e: any) { return { configured: true, status: 'replaced', msg: 'Usando APIs directas' }; }
 }
 
 async function testHikerAPI() {

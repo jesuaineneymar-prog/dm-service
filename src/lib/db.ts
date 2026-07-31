@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaLibSql } from '@prisma/adapter-libsql';
-import { createClient } from '@libsql/client';
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | null };
 
@@ -11,8 +10,8 @@ export function getDb(): PrismaClient {
   var token = process.env['TURSO_AUTH_TOKEN'];
   if (!url || !token) throw new Error('TURSO_URL ou TURSO_AUTH_TOKEN em falta');
 
-  var libsql = createClient({ url, authToken: token });
-  var adapter = new PrismaLibSql(libsql);
+  // PrismaLibSql v7 is a factory — pass config, not a pre-created client
+  var adapter = new PrismaLibSql({ url, authToken: token });
   globalForPrisma.prisma = new PrismaClient({ adapter });
   return globalForPrisma.prisma;
 }
