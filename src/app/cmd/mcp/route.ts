@@ -28,6 +28,17 @@ import {
   socialyncGetAnalytics,
   socialyncListAccounts,
 } from '@/lib/mcp-engine';
+import {
+  createSession,
+  getSession,
+  getComposioStatus,
+  searchTools,
+  executeTool,
+  getConnectLink,
+  listSessionToolkits,
+  listConnectedAccounts,
+  MWANGO_TOOLKITS,
+} from '@/lib/composio-engine';
 
 export var maxDuration = 60;
 
@@ -179,27 +190,62 @@ export async function POST(request: Request) {
       return NextResponse.json(syncAccounts);
     }
 
-    // === COMPOSIO: LIST APPS ===
-    if (action === 'composio_apps') {
-      var apps = await callMCPTool('composio', 'list_apps', { category: 'social_media' });
-      return NextResponse.json(apps);
+    // === COMPOSIO: STATUS ===
+    if (action === 'composio_status') {
+      var compStatus = await getComposioStatus();
+      return NextResponse.json({ success: true, data: compStatus });
+    }
+
+    // === COMPOSIO: CREATE SESSION ===
+    if (action === 'composio_create_session') {
+      var sessionResult = await createSession(body.toolkits);
+      return NextResponse.json(sessionResult);
+    }
+
+    // === COMPOSIO: GET SESSION ===
+    if (action === 'composio_session') {
+      var sessInfo = await getSession();
+      return NextResponse.json(sessInfo);
+    }
+
+    // === COMPOSIO: LIST TOOLKITS ===
+    if (action === 'composio_toolkits') {
+      var toolkits = await listSessionToolkits();
+      return NextResponse.json(toolkits);
+    }
+
+    // === COMPOSIO: MWANGO TOOLKITS (pre-definidos) ===
+    if (action === 'composio_mwango_toolkits') {
+      return NextResponse.json({ success: true, data: MWANGO_TOOLKITS });
+    }
+
+    // === COMPOSIO: SEARCH TOOLS ===
+    if (action === 'composio_search') {
+      if (!body.queries || !Array.isArray(body.queries)) {
+        return NextResponse.json({ success: false, error: 'queries (array) necessario' });
+      }
+      var searchResult = await searchTools(body.queries);
+      return NextResponse.json(searchResult);
+    }
+
+    // === COMPOSIO: EXECUTE TOOL ===
+    if (action === 'composio_execute') {
+      if (!body.toolSlug) return NextResponse.json({ success: false, error: 'toolSlug necessario' });
+      var execResult = await executeTool(body.toolSlug, body.params || {});
+      return NextResponse.json(execResult);
+    }
+
+    // === COMPOSIO: CONNECT LINK (OAuth) ===
+    if (action === 'composio_connect') {
+      if (!body.toolkit) return NextResponse.json({ success: false, error: 'toolkit necessario (ex: instagram, gmail)' });
+      var linkResult = await getConnectLink(body.toolkit);
+      return NextResponse.json(linkResult);
     }
 
     // === COMPOSIO: CONNECTED ACCOUNTS ===
     if (action === 'composio_accounts') {
-      var compAccounts = await callMCPTool('composio', 'get_connected_accounts', {});
+      var compAccounts = await listConnectedAccounts();
       return NextResponse.json(compAccounts);
-    }
-
-    // === COMPOSIO: EXECUTE ACTION ===
-    if (action === 'composio_action') {
-      if (!body.appName || !body.actionName) return NextResponse.json({ success: false, error: 'appName e actionName necessarios' });
-      var compAction = await callMCPTool('composio', 'execute_action', {
-        app: body.appName,
-        action: body.actionName,
-        params: body.params || {},
-      });
-      return NextResponse.json(compAction);
     }
 
     // === PLAYWRIGHT: NAVIGATE ===

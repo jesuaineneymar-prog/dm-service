@@ -86,3 +86,44 @@ Stage Summary:
 - All integrations are optional — JARVIS works without any MCP keys configured
 - Next step for user: get API keys from each service and add as Vercel env vars
 
+---
+Task ID: 4
+Agent: Main
+Task: Integrar Composio.dev (1000+ apps via OAuth) no JARVIS
+
+Work Log:
+- Pesquisa profunda sobre Composio.dev: guias, docs, GitHub README, SDK source
+- Descoberto que Composio usa REST API em `/api/v3.1/tool_router/session` com header `x-api-key`
+- Instalado `@composio/slim` v0.14.1 (SDK TypeScript leve para serverless)
+- Teste da API key do usuario retornou 801 Invalid API Key
+- Criado `composio-engine.ts`: engine completo com:
+  - `createSession()` — cria sessao Tool Router com toolkits sociais
+  - `executeTool()` — executa qualquer ferramenta de app conectada
+  - `searchTools()` — descoberta de ferramentas por caso de uso (meta tools)
+  - `getConnectLink()` — gera link OAuth para conectar apps
+  - `listSessionToolkits()` — lista toolkits com status de conexao
+  - `getComposioStatus()` — status check (key valida, sessao activa)
+  - 11 toolkits pre-definidos para Mwango Brain (IG, TT, FB, LI, X, YT, GA, GAds, Sheets, Gmail, Canva)
+- Atualizado `config.ts`: COMPOSIO_KEY agora aceita `COMPOSIO_API_KEY` ou `COMPOSIO_KEY`
+- Atualizado `mcp-engine.ts`: Composio agora tem 17 ferramentas (session, discovery, social, analytics, ads, design, etc.)
+- Atualizado `/cmd/mcp/route.ts`: 9 novas acoes Composio (status, create_session, session, toolkits, mwango_toolkits, search, execute, connect, accounts)
+- Adicionado Composio Hub UI no McpTab:
+  - Grid de 11 toolkits com icones e status de conexao
+  - Botoes: Status, Criar Sessao, Ver Toolkits, Contas
+  - Clicar num toolkit abre link OAuth em nova aba
+  - Mostra resultado de operacoes
+  - Mensagem de setup quando API key nao configurada
+- Build passa 100% limpo — 0 erros, 0 warnings, 25 rotas
+
+Stage Summary:
+- Composio integracao completa: engine + API route + UI
+- API key do usuario (ck_svEcS3kwl0pYEvs8jqiJ) foi rejeitada (codigo 801)
+  - Provavelmente a key esta incorreta ou expirada
+  - Usuario deve verificar em https://dashboard.composio.dev/settings
+- Env var correta: `COMPOSIO_API_KEY`
+- Quando a key estiver correcta, o JARVIS pode:
+  - Conectar Instagram, TikTok, Facebook, LinkedIn, X, YouTube via OAuth
+  - Aceder Google Analytics, Google Ads, Gmail, Google Sheets, Canva
+  - Executar 20.000+ acoes (post, analytics, DM, email, design)
+  - Tudo via tool discovery dinamica — sem codificar endpoints
+
