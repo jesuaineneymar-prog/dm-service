@@ -20,7 +20,7 @@ async function hikerFetch(path: string) {
 }
 
 async function uploadPostFetch(path: string) {
-  var res = await fetch('https://api.upload-post.com/v1' + path, {
+  var res = await fetch('https://api.upload-post.com/api' + path, {
     headers: { Authorization: 'Apikey ' + UPLOADPOST_KEY },
   });
   if (!res.ok) throw new Error('UploadPost erro ' + res.status + ': ' + (await res.text()).slice(0, 200));
@@ -33,7 +33,7 @@ async function getStats() {
   // Fetch IG profile via HikerAPI
   var igProfile: any = null;
   try {
-    igProfile = await hikerFetch('/users/by/username?username=' + IG_USERNAME);
+    igProfile = await hikerFetch('/v1/user/by/username?username=' + IG_USERNAME);
   } catch (e: any) {
     console.error('HikerAPI getStats:', e.message);
   }
@@ -41,7 +41,7 @@ async function getStats() {
   // Fetch UploadPost profiles
   var upProfiles: any = null;
   try {
-    upProfiles = await uploadPostFetch('/profiles');
+    upProfiles = await uploadPostFetch('/uploadposts/users');
   } catch (e: any) {
     console.error('UploadPost profiles:', e.message);
   }
@@ -49,7 +49,7 @@ async function getStats() {
   // Fetch UploadPost history
   var upHistory: any = null;
   try {
-    upHistory = await uploadPostFetch('/history');
+    upHistory = await uploadPostFetch('/uploadposts/history');
   } catch (e: any) {
     console.error('UploadPost history:', e.message);
   }
@@ -167,11 +167,11 @@ async function trackEvent(platform: string, eventType: string, metricValue: numb
 
 async function getTopPosts() {
   // First get user
-  var user: any = await hikerFetch('/users/by/username?username=' + IG_USERNAME);
+  var user: any = await hikerFetch('/v1/user/by/username?username=' + IG_USERNAME);
   var userId = user.pk || user.id;
 
   // Get recent posts
-  var postsRes: any = await hikerFetch('/users/' + userId + '/posts?count=20');
+  var postsRes: any = await hikerFetch('/v1/user/posts?user_id=' + userId + '&amount=20');
   var items = postsRes.items || postsRes.data || postsRes || [];
 
   // Calculate engagement and sort
@@ -194,10 +194,10 @@ async function getTopPosts() {
 }
 
 async function getAudienceInsights() {
-  var user: any = await hikerFetch('/users/by/username?username=' + IG_USERNAME);
+  var user: any = await hikerFetch('/v1/user/by/username?username=' + IG_USERNAME);
   var userId = user.pk || user.id;
 
-  var followersRes: any = await hikerFetch('/users/' + userId + '/followers?count=100');
+  var followersRes: any = await hikerFetch('/v1/user/followers?user_id=' + userId + '&amount=100');
   var followers = followersRes.items || followersRes.data || followersRes.users || followersRes || [];
 
   var totalFollowers = user.follower_count || followers.length;

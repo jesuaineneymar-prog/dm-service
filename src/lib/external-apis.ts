@@ -135,7 +135,7 @@ export async function hikerGetMediaInsights(apiKey: string, mediaId: string) {
 // Pricing: $16/mo (5 profiles), $24/mo (unlimited)
 // Posts to: Instagram, TikTok, Facebook, YouTube + 19 more
 
-var UP_BASE = 'https://api.upload-post.com/v1';
+var UP_BASE = 'https://api.upload-post.com/api';
 
 export interface UploadPostConfig {
   apiKey: string; // Get from upload-post.com dashboard
@@ -160,14 +160,26 @@ export async function upPost(apiKey: string, options: {
     if (options.profileId) body.profileId = options.profileId;
     if (options.publishAt) body.publishAt = options.publishAt;
 
-    var res = await fetch(UP_BASE + '/posts', {
+    // Upload-Post uses FormData for media posts
+    var form = new FormData();
+    form.append('user', 'jarvis');
+    form.append('title', options.caption || '');
+    if (options.mediaUrl) {
+      // Detect if video or photo
+      var isVideo = /video|mp4|mov|avi/.test(options.mediaUrl);
+      form.append(isVideo ? 'video' : 'photo', options.mediaUrl);
+    }
+    if (options.platform) form.append('platform[]', options.platform);
+    if (options.publishAt) form.append('scheduled_date', options.publishAt);
+
+    var upUrl = options.mediaUrl
+      ? (options.mediaUrl.match(/video|mp4|mov|avi/) ? UP_BASE + '/upload' : UP_BASE + '/upload_photos')
+      : UP_BASE + '/upload_text';
+
+    var res = await fetch(upUrl, {
       method: 'POST',
-      headers: {
-        'Authorization': 'Apikey ' + apiKey,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(body),
+      headers: { 'Authorization': 'Apikey ' + apiKey },
+      body: options.mediaUrl ? form : ('user=jarvis&title=' + encodeURIComponent(options.caption || '') + '&platform[]=' + (options.platform || 'facebook')),
     });
 
     if (!res.ok) {
@@ -184,7 +196,7 @@ export async function upPost(apiKey: string, options: {
 // Upload-Post: Get post status
 export async function upGetPostStatus(apiKey: string, postId: string) {
   try {
-    var res = await fetch(UP_BASE + '/posts/' + postId, {
+    var res = await fetch('https://api.upload-post.com/api/uploadposts/status?request_id=' + postId, {
       headers: {
         'Authorization': 'Apikey ' + apiKey,
         'Accept': 'application/json',
@@ -201,7 +213,7 @@ export async function upGetPostStatus(apiKey: string, postId: string) {
 // Upload-Post: List available profiles
 export async function upListProfiles(apiKey: string) {
   try {
-    var res = await fetch(UP_BASE + '/profiles', {
+    var res = await fetch('https://api.upload-post.com/api/uploadposts/users', {
       headers: {
         'Authorization': 'Apikey ' + apiKey,
         'Accept': 'application/json',
@@ -218,15 +230,17 @@ export async function upListProfiles(apiKey: string) {
 // Upload-Post: List supported platforms
 export async function upListPlatforms(apiKey: string) {
   try {
-    var res = await fetch(UP_BASE + '/platforms', {
+    // Platforms are returned in the profiles response
+    var profileRes = await fetch('https://api.upload-post.com/api/uploadposts/users', {
       headers: {
         'Authorization': 'Apikey ' + apiKey,
         'Accept': 'application/json',
       },
     });
-    if (!res.ok) return { success: false, error: 'HTTP ' + res.status };
-    var data = await res.json();
-    return { success: true, data: data };
+    if (!profileRes.ok) return { success: false, error: 'HTTP ' + profileRes.status };
+    var profileData = await profileRes.json();
+    var platforms = profileData.profiles?.[0]?.platforms || [];
+    return { success: true, data: platforms };
   } catch (e: any) {
     return { success: false, error: e.message };
   }

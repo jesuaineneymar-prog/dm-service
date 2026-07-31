@@ -163,17 +163,31 @@ async function publishDraft(id: string, platforms: string[]) {
   for (var i = 0; i < targetPlatforms.length; i++) {
     var plat = targetPlatforms[i];
     try {
-      var res = await fetch('https://api.upload-post.com/v1/posts', {
+      // Upload-Post API: use correct endpoints based on media type
+      var upUrl = 'https://api.upload-post.com/api/upload_text';
+      var upBody: any;
+      var upReqHeaders: Record<string, string> = {
+        'Authorization': 'Apikey ' + UPLOADPOST_KEY,
+      };
+
+      if (post.mediaUrl) {
+        var isVideo = /video|mp4|mov|avi/.test(post.mediaUrl);
+        upUrl = isVideo ? 'https://api.upload-post.com/api/upload' : 'https://api.upload-post.com/api/upload_photos';
+        var form = new FormData();
+        form.append('user', 'jarvis');
+        form.append('title', post.caption || '');
+        form.append(isVideo ? 'video' : 'photo', post.mediaUrl);
+        form.append('platform[]', plat);
+        upBody = form;
+      } else {
+        upReqHeaders['Content-Type'] = 'application/x-www-form-urlencoded';
+        upBody = 'user=jarvis&title=' + encodeURIComponent(post.caption || '') + '&platform[]=' + plat;
+      }
+
+      var res = await fetch(upUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Apikey ' + UPLOADPOST_KEY,
-        },
-        body: JSON.stringify({
-          platform: plat,
-          caption: post.caption,
-          mediaUrl: post.mediaUrl || undefined,
-        }),
+        headers: upReqHeaders,
+        body: upBody,
       });
       var json = await res.json();
       results.push({ platform: plat, success: res.ok, data: json });

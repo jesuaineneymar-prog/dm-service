@@ -188,16 +188,17 @@ async function schedulePost(contentPostId: string, platforms: string[], schedule
           if (cp) caption = cp.caption;
         }
 
-        var res = await fetch('https://api.upload-post.com/v1/posts', {
+        var res = await fetch('https://api.upload-post.com/api/uploadposts/schedule', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': 'Apikey ' + UPLOADPOST_KEY,
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            user: 'jarvis',
             platform: plat,
-            caption: caption,
-            publishAt: targetDate.toISOString(),
+            title: caption,
+            scheduled_date: targetDate.toISOString(),
           }),
         });
         var json = await res.json();
@@ -252,7 +253,7 @@ async function cancelScheduled(id: string) {
 
   if (sp.uploadPostId && UPLOADPOST_KEY) {
     try {
-      await fetch('https://api.upload-post.com/v1/posts/' + sp.uploadPostId, {
+      await fetch('https://api.upload-post.com/api/uploadposts/schedule/' + sp.uploadPostId, {
         method: 'DELETE',
         headers: { 'Authorization': 'Apikey ' + UPLOADPOST_KEY },
       });
