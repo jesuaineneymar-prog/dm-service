@@ -84,6 +84,7 @@ export async function GET() {
     checks: {
       database: dbOk ? 'ok' : 'error: ' + dbError,
       turso: !!TURSO_URL,
+      turso_url_preview: TURSO_URL ? TURSO_URL.slice(0, 20) + '...' : 'MISSING',
       cron_secret: !!CRON_SECRET,
       ig_username: IG_USERNAME || 'not_set',
       browserless: !!BROWSERLESS_KEY,
