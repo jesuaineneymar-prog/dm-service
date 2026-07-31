@@ -179,6 +179,43 @@ export async function POST(request: Request) {
       return NextResponse.json(syncAccounts);
     }
 
+    // === COMPOSIO: LIST APPS ===
+    if (action === 'composio_apps') {
+      var apps = await callMCPTool('composio', 'list_apps', { category: 'social_media' });
+      return NextResponse.json(apps);
+    }
+
+    // === COMPOSIO: CONNECTED ACCOUNTS ===
+    if (action === 'composio_accounts') {
+      var compAccounts = await callMCPTool('composio', 'get_connected_accounts', {});
+      return NextResponse.json(compAccounts);
+    }
+
+    // === COMPOSIO: EXECUTE ACTION ===
+    if (action === 'composio_action') {
+      if (!body.appName || !body.actionName) return NextResponse.json({ success: false, error: 'appName e actionName necessarios' });
+      var compAction = await callMCPTool('composio', 'execute_action', {
+        app: body.appName,
+        action: body.actionName,
+        params: body.params || {},
+      });
+      return NextResponse.json(compAction);
+    }
+
+    // === PLAYWRIGHT: NAVIGATE ===
+    if (action === 'browser_navigate') {
+      if (!body.url) return NextResponse.json({ success: false, error: 'url necessaria' });
+      var navResult = await callMCPTool('playwright', 'navigate', { url: body.url });
+      return NextResponse.json(navResult);
+    }
+
+    // === PLAYWRIGHT: EXTRACT DATA ===
+    if (action === 'browser_extract') {
+      if (!body.url) return NextResponse.json({ success: false, error: 'url necessaria' });
+      var extractResult = await callMCPTool('playwright', 'extract_data', { url: body.url, selector: body.selector });
+      return NextResponse.json(extractResult);
+    }
+
     return NextResponse.json({ success: false, error: 'Accao desconhecida: ' + action });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message });

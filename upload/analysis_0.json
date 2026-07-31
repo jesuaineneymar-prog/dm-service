@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "Com base na análise da imagem fornecida, **não é possível identificar** quaisquer nomes de MCP servers, sites, URLs ou ferramentas específicas.\n\n**Motivo:** A imagem mostra apenas um homem (o criador de conteúdo conhecido como \"Blondish\" ou similar) falando para a câmara, sem qualquer texto visível, sobreposição gráfica (overlay), ecrã partilhado, legendas ou elementos de interface que contenham a informação solicitada.\n\nPara realizar uma identificação exaustiva dos recursos técnicos mencionados no vídeo, seria necessário:\n*   **Legendas/transcrição** do áudio do vídeo\n*   **Screenshots** das partes do vídeo onde aparecem listas, código ou demonstrações\n*   **Descrição** do vídeo com links ou menções textuais\n\nSe tiver acesso ao contexto adicional deste vídeo (como o título, descrição ou um frame com texto), poderei analisar essa informação em detalhe.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1785469281,
+  "id": "2026073111411411a675983f954f64",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "2026073111411411a675983f954f64",
+  "usage": {
+    "completion_tokens": 210,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1103,
+    "prompt_tokens_details": {
+      "cached_tokens": 2
+    },
+    "total_tokens": 1313
+  }
+}

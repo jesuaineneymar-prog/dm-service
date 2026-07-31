@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://composio.dev/content/the-guide-to-mcp-i-never-had",
+    "name": "The Guide to MCP I never had",
+    "snippet": "Apr 22, 2025 — As of March 2026 , new organizations have API key enforcement enabled by default for all MCP server requests. auth supporting OAuth, API keys ,\nApr 22, 2025 — As of March 2026, new organizations have API key enforcement enabled by default for all MCP server requests.",
+    "host_name": "composio.dev",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://composio.dev/toolkits/instagram/framework/google-adk",
+    "name": "Instagram MCP Integration with Google ADK",
+    "snippet": "3 days ago — Go to Google AI Studio and create an API key . Go to Settings → API Keys and copy your Composio API key . a Social Media API for managing, ...\nGo to Google AI Studio and create an API key. Go to Settings → API Keys and copy your Composio API key. Use this for COMPOSIO_API_KEY. Set up ... Getting Api Keys For Google... · Import Modules And Validate... · Complete Code",
+    "host_name": "composio.dev",
+    "rank": 1,
+    "date": "Jul 28, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://social-api.ai/blog/social-media-api-ai-agents-2026",
+    "name": "Best social media API for AI agents in 2026",
+    "snippet": "Jul 14, 2026 — Start with the SocialAPI.ai docs, explore the MCP setup guide , or sign up free to get an API key with MCP access included.",
+    "host_name": "social-api.ai",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://composio.dev/toolkits/composio_search/framework/codex",
+    "name": "How to integrate Composio search MCP with Codex",
+    "snippet": "Run the setup command. Click ⚙️ on the bottom left → MCP Servers → + Add servers . The Key is the Composio API key , that you can find on dashboard. composio .dev ...\nCodex App · Supported Tools\nRun the setup command. The Key is the Composio API key , that you can find on dashboard. composio .dev Click on Authenticate and authorize Codex to your Composio ...",
+    "host_name": "composio.dev",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/pulse/build-smarter-ai-apps-mcp-composio-one-protocol-100-tools-singh-hae6c",
+    "name": "Build Smarter AI Apps with MCP + Composio",
+    "snippet": "With Composio's managed MCP servers, developers can easily connect their AI models to over 100 applications without dealing with complex authentication or ... Read more",
+    "host_name": "www.linkedin.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

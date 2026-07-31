@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://composio.dev",
+    "name": "Composio",
+    "snippet": "Connect Claude or ChatGPT to the apps you already use — Gmail, Slack, Notion, Calendar, and 1,000+ more. One prompt, real work, done. Read more\nGET STARTED FOR FREEGET A DEMO agent.ai. No setup required. API keys, token refresh, lifecycle management . We handle all of it",
+    "host_name": "composio.dev",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://composio.dev/toolkits",
+    "name": "Composio toolkits | MCP and API Integrations for AI Agents",
+    "snippet": "Connect Claude, ChatGPT, Cursor, and any AI you use to Gmail, Slack, GitHub, Notion, and 1,000+ more apps — through MCP or a direct API. GET STARTED FOR FREE. Read more\nConnect Claude, ChatGPT, Cursor, and any AI you use to Gmail, Slack, GitHub, Notion, and 1,000+ more apps — through MCP or a direct API . GET STARTED FOR FREE . Read more",
+    "host_name": "composio.dev",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://composio.dev/toolkits/composio_search/framework/codex",
+    "name": "How to integrate Composio search MCP with Codex",
+    "snippet": "The Key is the Composio API key , that you can find on dashboard . composio . dev Click on Authenticate and authorize Codex to your Composio account and you're all ...",
+    "host_name": "composio.dev",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://composio.dev/toolkits/composio",
+    "name": "Composio MCP Integration for AI Agents",
+    "snippet": "Composio is an integration platform that connects AI agents with hundreds of business tools . List all the available toolkits on composio with filtering options.\nSecurely connect your AI agents and chatbots (Claude, ChatGPT, Cursor, etc) with Composio MCP or direct API to link accounts, trigger cross-platform actions, ... Read more",
+    "host_name": "composio.dev",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/LangChain/comments/1i2kufy/should_i_ditch_composiodev_for_direct_apis_in_my",
+    "name": "Should I ditch composio.dev for direct APIs in my",
+    "snippet": "the tools are a bit unreliable. It handles auth for 500+ APIs, observability, retries, etc., and lets you extend or define your own tools .",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

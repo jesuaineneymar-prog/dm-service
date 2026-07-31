@@ -39,6 +39,7 @@ export var SOCIALCRAWL_KEY = env('SOCIALCRAWL_KEY', '');
 export var TIKTOK_ADS_MCP_KEY = env('TIKTOK_ADS_MCP_KEY', '');
 export var META_ADS_MCP_KEY = env('META_ADS_MCP_KEY', '');
 export var SOCIALYNC_KEY = env('SOCIALYNC_KEY', '');
+export var COMPOSIO_KEY = env('COMPOSIO_KEY', '');
 
 // --- Validacao rapida ---
 export function getMissingKeys(): string[] {

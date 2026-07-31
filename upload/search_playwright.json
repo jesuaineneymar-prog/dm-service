@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://playwright.dev/docs/getting-started-mcp",
+    "name": "Playwright MCP",
+    "snippet": "The Playwright MCP server provides browser automation capabilities. Before you begin, make sure you have the following installed: Node .js 20 or newer. Add the  ...\nBefore you begin, make sure you have the following installed: Node.js 20 or newer . Add the Playwright MCP server to your client. Add new MCP Server. Follow the ...",
+    "host_name": "playwright.dev",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://npmx.dev/package/playwright-vision-mcp",
+    "name": "playwright-vision-mcp",
+    "snippet": "A powerful Model Context Protocol ( MCP ) server that provides browser automation capabilities using Playwright . OpenAI-compatible APIs https:// api .openai.com/v1 ...\nA powerful Model Context Protocol ( MCP ) server that provides browser automation capabilities using Playwright . to your MCP settings file. npm install npm start",
+    "host_name": "npmx.dev",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.npmjs.com/package/@playwright/mcp?activeTab=versions",
+    "name": "playwright/mcp",
+    "snippet": "Jul 9, 2026 — This package provides MCP interface into Playwright. First, install the Playwright MCP server with your client . Go to Cursor Settings -> MCP -> ...",
+    "host_name": "www.npmjs.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://qaskills.sh/blog/playwright-mcp-claude-code-setup-2026",
+    "name": "Playwright MCP with Claude Code: Setup and",
+    "snippet": "May 21, 2026 — Complete 2026 guide to setting up Playwright MCP server with Claude Code CLI. Covers installation , mcp .json, headless mode, authentication, ...",
+    "host_name": "qaskills.sh",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.jsdelivr.com/package/npm/playwright-mcp-advanced",
+    "name": "playwright-mcp-advanced CDN by",
+    "snippet": "This is an advanced version of the Playwright MCP. Fluent API for server configuration and customization ・ install npm run build ・ install the Playwright MCP ...\nFor original Playwright MCP: Install MCP Server . Or install manually: Go to Cursor Settings -> MCP -> Add new MCP Server . Name to your liking, use command ... Read more",
+    "host_name": "www.jsdelivr.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

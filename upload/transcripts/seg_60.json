@@ -1,0 +1,14 @@
+{
+  "created": 1785469659,
+  "id": "202607311147383a5698eb815d4110",
+  "request_id": "202607311147383a5698eb815d4110",
+  "text": "Publishing something that you've built, in most cases like an app. And then last but not least, it's definitely not the most popular, but I personally think is one of the coolest: The Raspberry Pi MCP. Now this isn't for everyone, but if you like building with your hands or tinkering around with hardware, this is kinda some cool shit. You can literally build a robot for super cheap because it's a Raspberry Pi and then use your AI agent to actually control the robot. If you're looking for more of the most powerful AI tools, just save this video, lock in, and give me a follow.",
+  "usage": {
+    "completion_tokens": 138,
+    "prompt_tokens": 437,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 575
+  }
+}

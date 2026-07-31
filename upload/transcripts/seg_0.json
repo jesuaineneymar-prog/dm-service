@@ -1,0 +1,14 @@
+{
+  "created": 1785469586,
+  "id": "20260731114625cddd8027eda143c2",
+  "request_id": "20260731114625cddd8027eda143c2",
+  "text": "Top seven MCP servers for getting shit done with your AI agent. Number one, we've got the Playwright MCP. This gives your AI agent a web browser that can search the web, fill out forms, and if you pair it with this second one, the opportunities are endless. Number two, Composio. This lets your agent authorize logging in somewhere once time and then having access to any other tool, software or service that you use and your agent might need. Number three is a hot take but it's gotta be the Framer MCP.",
+  "usage": {
+    "completion_tokens": 119,
+    "prompt_tokens": 437,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 556
+  }
+}

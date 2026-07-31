@@ -8,6 +8,8 @@
 //    2. TikTok Ads — gestao de campanhas publicitarias TikTok
 //    3. Meta Ads — gestao de campanhas Facebook/Instagram Ads
 //    4. Socialync — publicacao multi-plataforma (TikTok, IG, YT, FB, X, LinkedIn)
+//    5. Composio — OAuth e integracao com 1000+ apps (do video Top 7 MCPs)
+//    6. Playwright MCP — automacao de browser (do video Top 7 MCPs)
 //
 //  Arquitetura: chamadas HTTP diretas aos MCP servers (remote)
 //  — Nao precisa de processo local — funciona em Vercel serverless
@@ -18,6 +20,7 @@ import {
   TIKTOK_ADS_MCP_KEY,
   META_ADS_MCP_KEY,
   SOCIALYNC_KEY,
+  COMPOSIO_KEY,
 } from './config';
 
 // === MCP SERVER REGISTRY ===
@@ -110,6 +113,43 @@ export var MCP_SERVERS: MCPServer[] = [
     ],
   },
   {
+    id: 'composio',
+    name: 'Composio',
+    description: 'Integracao com 1000+ apps via OAuth. Login uma vez, acesso a Gmail, Slack, Notion, Google Sheets, redes sociais e muito mais. Gerencia tokens, refresh, lifecycle automaticamente.',
+    url: 'https://backend.composio.dev',
+    authType: 'apikey',
+    authHeader: 'x-api-key',
+    status: COMPOSIO_KEY ? 'active' : 'inactive',
+    category: 'Integracao & OAuth',
+    pricing: 'Free tier disponivel',
+    setupUrl: 'https://composio.dev',
+    tools: [
+      { name: 'list_apps', description: 'Listar todas as apps disponiveis para integracao', category: 'integration', server: 'composio' },
+      { name: 'get_connected_accounts', description: 'Ver todas as contas conectadas (OAuth autorizadas)', category: 'integration', server: 'composio' },
+      { name: 'execute_action', description: 'Executar acao numa app conectada (ex: enviar email, criar tarefa)', category: 'integration', server: 'composio' },
+      { name: 'get_social_data', description: 'Obter dados de redes sociais via apps conectadas', category: 'social', server: 'composio' },
+    ],
+  },
+  {
+    id: 'playwright',
+    name: 'Playwright MCP',
+    description: 'Automacao de browser — pesquisar web, preencher formularios, extrair dados de paginas, screenshots. Usa o browser existente (Browserless) do JARVIS.',
+    url: 'https://api.browserless.io',
+    authType: 'bearer',
+    authHeader: 'Authorization',
+    status: 'inactive', // Usa BROWSERLESS_KEY — nao precisa de chave separada
+    category: 'Browser & Automacao',
+    pricing: 'Ja integrado via Browserless',
+    setupUrl: 'https://playwright.dev/docs/getting-started-mcp',
+    tools: [
+      { name: 'navigate', description: 'Navegar para uma URL e extrair conteudo da pagina', category: 'browser', server: 'playwright' },
+      { name: 'screenshot', description: 'Capturar screenshot de uma pagina web', category: 'browser', server: 'playwright' },
+      { name: 'extract_data', description: 'Extrair dados estruturados de uma pagina web', category: 'scraping', server: 'playwright' },
+      { name: 'fill_form', description: 'Preencher e submeter formularios web automaticamente', category: 'browser', server: 'playwright' },
+      { name: 'search_web', description: 'Pesquisar na web e retornar resultados estruturados', category: 'browser', server: 'playwright' },
+    ],
+  },
+  {
     id: 'socialync',
     name: 'Socialync',
     description: 'Publicacao multi-plataforma via MCP. Upload uma vez, publica em TikTok, Instagram, YouTube, Facebook, X, LinkedIn, Threads, Bluesky. OAuth autorizado.',
@@ -138,6 +178,8 @@ function getServerKey(serverId: string): string {
     case 'tiktok_ads': return TIKTOK_ADS_MCP_KEY;
     case 'meta_ads': return META_ADS_MCP_KEY;
     case 'socialync': return SOCIALYNC_KEY;
+    case 'composio': return COMPOSIO_KEY;
+    case 'playwright': return process.env.BROWSERLESS_KEY || '';
     default: return '';
   }
 }
