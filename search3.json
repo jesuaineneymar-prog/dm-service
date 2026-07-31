@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://ads.tiktok.com/help/article/about-tiktok-for-business-agentic-hub-and-mcp-server?lang=en",
+    "name": "About TikTok for Business Agentic Hub and MCP Server",
+    "snippet": "TikTok for Business MCP Server is a standardized bridge built on the Model Context Protocol (MCP) that enables developers and advertisers to connect AI agents ...",
+    "host_name": "ads.tiktok.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://digiday.com/marketing/tiktok-launches-mcp-server-to-let-ai-agents-run-campaigns",
+    "name": "TikTok launches MCP server to let AI agents run campaigns",
+    "snippet": "May 13, 2026 — TikTok is opening its ads platform to AI agents with its new model context protocol (MCP) server and developer toolkit, aimed at automating ...",
+    "host_name": "digiday.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.brandghost.ai/posts/best-mcp-servers-social-media",
+    "name": "Best MCP Servers for Social Media Automation in 2025",
+    "snippet": "Mar 13, 2026 — A tool-agnostic guide to the best MCP servers available for social media scheduling, analytics, and content creation — with honest ...",
+    "host_name": "blog.brandghost.ai",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@galarape8/the-ai-marketing-revolution-how-model-context-protocol-mcp-is-transforming-digital-marketing-in-8b8c1b429ba4",
+    "name": "The AI Marketing Revolution: How Model Context Protocol",
+    "snippet": "MCP servers enable interaction with platforms like LinkedIn, YouTube, Instagram, TikTok , and emerging platforms like Bluesky.",
+    "host_name": "medium.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/DigitalMarketing/comments/1teiwg6/tiktoks_new_mcp_server_is_a_direct_shot_at_metas",
+    "name": "TikTok's new MCP Server is a direct shot at Meta's",
+    "snippet": "MCP (Model Context Protocol) server . This allows agency-owned LLMs or brand-specific AI agents to interface directly with TikTok's ad server.",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.augmentcode.com/mcp/tiktok-mcp",
+    "name": "tiktok-mcp - MCP Server Registry",
+    "snippet": "Model Context Protocol ( MCP ) server that brings TikTok video access and analysis (subtitles, post details, search) to Claude AI and other MCP-compatible apps ...\nModel Context Protocol (MCP) server that brings TikTok video access and analysis (subtitles, post details, search) to Claude AI and other MCP-compatible apps ...",
+    "host_name": "www.augmentcode.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.socialync.io/blog/best-social-media-mcp-servers-2026",
+    "name": "Best Social Media MCP Servers in 2026 (The Honest List)",
+    "snippet": "Apr 29, 2026 — An honest 2026 breakdown of which social media MCP servers actually work, and what Claude, ChatGPT, and AI agents can really post to TikTok , ...",
+    "host_name": "www.socialync.io",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.digitalapplied.com/blog/official-ads-mcp-servers-meta-google-tiktok-2026-playbook",
+    "name": "Meta, Google, TikTok Ship Official Ads MCP Servers",
+    "snippet": "Jun 7, 2026 — MCP server is a Model Context Protocol bridge that lets an AI agent read and, on some platforms, act on an ad account.\nAn ads MCP server is a Model Context Protocol bridge that lets an AI agent read and, on some platforms, act on an ad account. An official  ...",
+    "host_name": "www.digitalapplied.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.blotato.com/blog/best-social-media-mcp-servers",
+    "name": "9 Best Social Media MCP Servers for Posting with Claude",
+    "snippet": "Jun 29, 2026 — A social media MCP server is a Model Context Protocol server that gives an AI assistant like Claude the tools to act on social platforms ...",
+    "host_name": "www.blotato.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/TensorBlock/awesome-mcp-servers/blob/main/docs/social-media--content-platforms.md",
+    "name": "awesome-mcp-servers/docs/social-media--content-platforms.md at",
+    "snippet": "/tiktok-mcp: Integrates TikTok access into Claude AI and other apps, enabling analysis and interaction with TikTok videos.",
+    "host_name": "github.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

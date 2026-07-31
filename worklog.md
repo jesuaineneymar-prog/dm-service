@@ -52,3 +52,37 @@ Stage Summary:
 - Auto-reports generate weekly, visible in Reports tab
 - JARVIS is now 100% operational
 
+---
+Task ID: 3
+Agent: Main
+Task: Deep search TikTok solution + Add MCP Servers to JARVIS
+
+Work Log:
+- Performed deep web search (10 queries) on TikTok DM/comment automation and MCP servers
+- Key findings:
+  - TikTok has NO public DM API — official API is for Business Messaging only
+  - ManyChat is OFFICIAL TikTok partner for DM automation (supports DMs + comment-to-DM)
+  - TikTok launched official Ads MCP Server (ads.tiktok.com/mcp) in May 2026
+  - Meta launched official Ads MCP Server (mcp.facebook.com/ads) in July 2026
+  - SocialCrawl: MCP-native scraping API for 46 platforms (socialcrawl.dev)
+  - Socialync: MCP server for multi-platform publishing (8 platforms)
+- Fixed tiktok-engine.ts: ManyChat endpoints corrected from /fb/v2/ to /tk/v2/ with fallback
+- Added SocialCrawl integration for TikTok comment scraping via MCP
+- Added TikTok Ads MCP integration for campaign management
+- Created mcp-engine.ts: full MCP protocol bridge with 4 server integrations
+- Created /cmd/mcp/route.ts: 20+ API actions for MCP operations
+- Added 4 new env vars: SOCIALCRAWL_KEY, TIKTOK_ADS_MCP_KEY, META_ADS_MCP_KEY, SOCIALYNC_KEY
+- Added McpTab UI component with: server cards, tool lists, quick actions, status checks
+- Added new tab 'MCP' (🔌) to JARVIS dashboard (10 tabs total)
+- Quick actions: scrape profile, trending content, brand monitoring, Meta Ads, Socialync
+- Build passes 100% clean — NOTHING removed or broken
+
+Stage Summary:
+- TikTok DMs: ManyChat (/tk/v2/) with /fb/v2/ fallback — needs MANYCHAT_API_KEY env var
+- TikTok Comments: SocialCrawl MCP — needs SOCIALCRAWL_KEY env var
+- TikTok Ads: Official TikTok Ads MCP — needs TIKTOK_ADS_MCP_KEY env var
+- Meta Ads: Official Meta Ads MCP (54 tools) — needs META_ADS_MCP_KEY env var
+- Multi-platform publishing: Socialync MCP — needs SOCIALYNC_KEY env var
+- All integrations are optional — JARVIS works without any MCP keys configured
+- Next step for user: get API keys from each service and add as Vercel env vars
+

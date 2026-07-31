@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://www.facebook.com/business/help/1456422242197840",
+    "name": "Manage Ads from an AI Agent with Meta Ads AI connectors",
+    "snippet": "You can create, manage and analyze Meta ads in your preferred AI interface, Meta ads AI connectors, enabled by our ads model context protocol ( MCP ) server ...\nMeta ads AI connectors, enabled by our ads model context protocol (MCP) server and ads command line interface (CLI), securely connect a conversational AI agent to your Meta ad account with all its context.",
+    "host_name": "www.facebook.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/pipeboard-co/meta-ads-mcp",
+    "name": "GitHub - pipeboard-co/meta-ads-mcp",
+    "snippet": "Connect your Facebook Ads account. That's it! You can now ask Claude to analyze your Meta ad campaigns, get performance insights, and manage your advertising . Read more\nThe hosted service behind it — Pipeboard — is a badged Meta Business Partner and an officially approved Meta app that manages Meta, Google, TikTok, Snap & Reddit Ads from one login (with a free plan) — so it is neither Meta-only nor something you have to self-host.",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.facebook.com/blog/post/2026/07/16/meta-ads-mcp-server",
+    "name": "Meta's ads MCP server is now available for developers",
+    "snippet": "You can now connect your AI application directly to Meta's advertising capabilities, enabling your users to create and optimize campaigns, pull performance ...",
+    "host_name": "developers.facebook.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/business/news/meta-ads-ai-connectors",
+    "name": "Introducing Meta Ads AI Connectors: Manage Your",
+    "snippet": "Update: On July 16, 2026, we introduced two new capabilities to Meta's ads MCP server . You can now connect any AI application directly to Meta ads using ... Read more\nMeta ads AI connectors – including Meta's ads model context protocol (MCP) server and ads command line interface (CLI) — give advertisers a secure, Meta-authenticated connection from their ad account to an AI agent.",
+    "host_name": "www.facebook.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/claudecommunity/posts/1002025539004778",
+    "name": "Has anyone been enabled for Meta Ads MCP?",
+    "snippet": "Anyone have luck with the META Ads MCP ?? Just tried adding Meta's Ads MCP server to Claude.. OAuth was smooth, all 29 tools loaded, no ... Read more",
+    "host_name": "www.facebook.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://madgicx.com/blog/facebook-ads-mcp",
+    "name": "How to Set Up Facebook Ads MCP for E-commerce",
+    "snippet": "Sep 12, 2025 — Learn how to set up Facebook Ads MCP for e-commerce automation . Reduce ad management time with AI-powered optimization and natural language ...",
+    "host_name": "madgicx.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://adadvisor.ai/blog/best-meta-ads-mcp-server",
+    "name": "Best Meta Ads MCP Servers in 2026: Ranked and Compared",
+    "snippet": "Jul 2, 2026 — Compare the best Meta Ads MCP servers in 2026, including Meta's official MCP (launched April 2026), AdAdvisor, Pipeboard, Ryze, and more.",
+    "host_name": "adadvisor.ai",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.facebook.com/documentation/ads-commerce/ads-ai-connectors/ads-mcp-server/ads-mcp-server-overview",
+    "name": "Ads MCP Server - Meta for Developers",
+    "snippet": "It is one of Meta’s ads AI connectors ⁠ — a family of integrations that expose Meta business surfaces to third-party AI clients through structured, permission-scoped tools. The server is remote-hosted at https://mcp.facebook.com/ads and works with any MCP-compatible AI agent.",
+    "host_name": "developers.facebook.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.facebook.com/documentation/ads-commerce/ads-ai-connectors/ads-mcp-server/ads-mcp-server-overview.md",
+    "name": "Ads MCP Server - Meta for Developers",
+    "snippet": "# Ads MCP Server **The ads MCP server is a Meta-hosted [Model Context Protocol] (https://modelcontextprotocol.io/) server** that lets you manage Meta ads directly from an AI agent.",
+    "host_name": "developers.facebook.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/hashcott/meta-ads-mcp-server",
+    "name": "GitHub - hashcott/meta-ads-mcp-server: MCP (Model Context",
+    "snippet": "54 tools — 35 read tools (always on) plus 19 opt-in write/lifecycle tools — covering ad accounts, campaigns, ad sets, ads, creatives, media, insights, targeting catalog, Facebook Pages, budget schedules, and activity logs via the Meta Graph API v22.0.",
+    "host_name": "github.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

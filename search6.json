@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://www.socialcrawl.dev",
+    "name": "Social Media Scraper API: 46 Platforms | SocialCrawl",
+    "snippet": "The social media scraper API — one schema, 368 endpoints, 46 platforms. MCP -ready. No compute units. No subscriptions. Start with 100 free credits.\nMCP-native, skill-installable, and SDKs in six languages. Your agents can scrape, search, and stream on day one — with typed responses, retries, and rate limits handled. Brand monitoring, sentiment analysis, trend detection, competitive intel — all from one query against 46 platforms.",
+    "host_name": "www.socialcrawl.dev",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://mcpmarket.com/server/socialcrawl",
+    "name": "SocialCrawl: Unified Social Media API for AI Agents",
+    "snippet": "SocialCrawl is an MCP (Model Context Protocol) server designed to empower AI agents with seamless access to the SocialCrawl API. This API unifies data from ... Read more\nConnects AI agents to a unified API for 21 social media platforms, providing access to profiles, posts, comments, and analytics. SocialCrawl is an MCP (Model Context Protocol) server designed to empower AI agents with seamless access to the SocialCrawl API.",
+    "host_name": "mcpmarket.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://scrapfly.io/blog/posts/social-media-scraping",
+    "name": "How to Scrape Social Media with Python in 2026",
+    "snippet": "7 days ago — Complete guide to scraping Instagram, Twitter, TikTok, and LinkedIn with Python. Learn anti-blocking techniques for 2026.",
+    "host_name": "scrapfly.io",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.firecrawl.dev",
+    "name": "Firecrawl - The context API to search, scrape, and interact with",
+    "snippet": "Firecrawl has an official MCP server so agents in Cursor, Claude, Windsurf, and other MCP-compatible tools can search, scrape, and interact with the web ...",
+    "host_name": "www.firecrawl.dev",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/vibecoding/comments/1syvvpv/i_kept_manually_searching_social_media_for_trends",
+    "name": "I kept manually searching social media for trends - so I built",
+    "snippet": "What SocialCrawl does: One API key, 27 platforms (TikTok, Instagram, Reddit, LinkedIn, YouTube, X, Threads, HackerNews, and more). Read more",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://brightdata.com/ai/mcp-server/social-media",
+    "name": "MCP Server for Social Media Data Extraction",
+    "snippet": "Use Bright Data's MCP Server to scrape social media data . Access posts, comments, and user metrics across platforms efficiently and in real-time.",
+    "host_name": "brightdata.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.socialcrawl.dev/blog/best-social-media-scraping-apis-2026",
+    "name": "10 Best Social Media Scraping APIs in 2026 (Ranked +",
+    "snippet": "Apr 17, 2026 — The best social media scraping API in 2026 is SocialCrawl for unified multi-platform data. 10 tools ranked on coverage, pricing, rate limits, ...",
+    "host_name": "www.socialcrawl.dev",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/firecrawl/firecrawl-mcp-server",
+    "name": "Official Firecrawl MCP Server - Adds powerful web",
+    "snippet": "Adds powerful web scraping . A Model Context Protocol (MCP) server that brings Firecrawl to MCP-compatible AI agents — search, scrape, and interact with the ...",
+    "host_name": "github.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@dlab-berkeley/the-evolving-landscape-of-web-scraping-on-social-media-platforms-af129e572a2b",
+    "name": "The Evolving Landscape of Web Scraping on Social Media",
+    "snippet": "Web scrapers are automated tools designed to extract data from websites , especially social media platforms such as Twitter, Facebook, LinkedIn, and Reddit. Read more",
+    "host_name": "medium.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/socialcrawl/mcp",
+    "name": "GitHub - socialcrawl/mcp: Official MCP server for Socialcrawl",
+    "snippet": "Official MCP server for Socialcrawl. Contribute to socialcrawl/mcp development by creating an account on GitHub.",
+    "host_name": "github.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

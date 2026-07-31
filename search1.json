@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://www.reddit.com/r/automation/comments/1m5zde5/tiktok_automation",
+    "name": "TikTok Automation",
+    "snippet": "Hey dude, for automating TikTok replies and DMs, you'd want a setup that can hook into TikTok's API or use some scraping/browser automation. Read more\nHey dude, for automating TikTok replies and DMs, you'd want a setup that can hook into TikTok's API or use some scraping/browser automation. is there any platform for automations in Tiktok? Something like ... Send TikTok messages automatically with n8n – surprisingly easy! More results from www.reddit.com",
+    "host_name": "www.reddit.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/77044183/getting-direct-messages-via-official-tiktok-api",
+    "name": "Getting Direct Messages via Official TikTok API",
+    "snippet": "Yes, there' s no way to fetch direct messages from a user . Checking the scope list is a good way to list the available granted permissions a user can provide. Read more\nYes, there's no way to fetch direct messages from a user. Checking the scope list is a good way to list the available granted permissions a user can provide.",
+    "host_name": "stackoverflow.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.spurnow.com/en/blogs/tiktok-automation",
+    "name": "Ultimate Guide to TikTok Automation for Creators and Brands",
+    "snippet": "Dec 14, 2025 — TikTok automation tools help you post consistently, respond to DMs instantly, and scale engagement without burning out. Read more",
+    "host_name": "www.spurnow.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=TpTYBc5ZgIE",
+    "name": "Auto DM on Instagram, Facebook & TikTok: Turn Anyone Who",
+    "snippet": "Here is a simple yet effective way to auto dm instagram, facebook, tiktok or anyone who comments on your posts. Send DMs & Boost Engagement",
+    "host_name": "www.youtube.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/davidteather/TikTok-Api/issues/53",
+    "name": "API Support for sending and receiving messages · Issue #53",
+    "snippet": "Jan 22, 2020 — Hi. Are you planning on adding API support for sending and receiving messages ? Would this even be possible? Thanks for your response.",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.make.com/t/help-automating-ig-comment-to-dm-flow-with-dynamic-keywords-for-reposted-tiktok-reels/83173",
+    "name": "Help Automating IG Comment-to-DM Flow with Dynamic",
+    "snippet": "May 23, 2025 — I'm trying to build an automated reposting and messaging agent for my wife's affiliate videos using Make, Manychat (or alternatives), and a few ... Read more",
+    "host_name": "community.make.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://manychat.com/blog/tiktok-automation-its-here-and-its-about-to-change-everything",
+    "name": "TikTok Automation: It's Here, and it's About to Change",
+    "snippet": "Jan 27, 2025 — TikTok Automation is here and it's the secret to success for business accounts to improve response time, deepen engagement, and more.",
+    "host_name": "manychat.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/davidteather/tiktok-api",
+    "name": "The Unofficial TikTok API Wrapper In Python - GitHub",
+    "snippet": "This is an unofficial api wrapper for TikTok.com in python. With this api you are able to call most trending and fetch specific user information as well as much ...",
+    "host_name": "github.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://business-api.tiktok.com/portal/bm-api/education-hub",
+    "name": "Business Messaging API Education Hub | TikTok API for Business",
+    "snippet": "TikTok's API for Business allows developers to connect to the TikTok for Business platforms and build innovative solutions for global advertisers.",
+    "host_name": "business-api.tiktok.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.blackhatworld.com/seo/tiktok-automation.1616359",
+    "name": "Tiktok automation - BlackHatWorld",
+    "snippet": "There isn't an official TikTok API for automating likes and comments, and using unofficial APIs or automation tools can be risky and might violate TikTok's ...",
+    "host_name": "www.blackhatworld.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

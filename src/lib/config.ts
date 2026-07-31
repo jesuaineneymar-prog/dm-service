@@ -34,6 +34,12 @@ export var OR_FALLBACK_MODEL = 'meta-llama/llama-3.2-3b-instruct:free';
 export var MANYCHAT_KEY = env('MANYCHAT_API_KEY', '');
 export var N8N_WEBHOOK_URL = env('N8N_WEBHOOK_URL', '');
 
+// --- MCP Servers ---
+export var SOCIALCRAWL_KEY = env('SOCIALCRAWL_KEY', '');
+export var TIKTOK_ADS_MCP_KEY = env('TIKTOK_ADS_MCP_KEY', '');
+export var META_ADS_MCP_KEY = env('META_ADS_MCP_KEY', '');
+export var SOCIALYNC_KEY = env('SOCIALYNC_KEY', '');
+
 // --- Validacao rapida ---
 export function getMissingKeys(): string[] {
   var missing: string[] = [];
