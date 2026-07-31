@@ -13,10 +13,7 @@ export function getDb(): PrismaClient {
 
   var libsql = createClient({ url, authToken: token });
   var adapter = new PrismaLibSql(libsql);
-  globalForPrisma.prisma = new PrismaClient({ 
-    adapter,
-    datasourceUrl: url,
-  });
+  globalForPrisma.prisma = new PrismaClient({ adapter });
   return globalForPrisma.prisma;
 }
 
