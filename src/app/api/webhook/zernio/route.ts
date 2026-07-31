@@ -10,7 +10,7 @@ import { db } from '@/lib/db';
 
 export var maxDuration = 30;
 
-const WEBHOOK_SECRET = process.env.ZERNIO_WEBHOOK_SECRET || 'jarvis_webhook_secret_mwango_2024';
+const WEBHOOK_SECRET = process.env.ZERNIO_WEBHOOK_SECRET || '';
 
 // Verificacao HMAC-SHA256 real
 function verifySignature(body: string, signature: string): boolean {
@@ -95,6 +95,7 @@ async function checkAndCreateFollowUps() {
   const pendingProspects = await db.prospect.findMany({
     where: {
       status: { in: ['contacted', 'new', 'responded'] },
+      NOT: { status: { in: ['converted', 'lost', 'not_interested'] } },
       OR: [
         { lastContactedAt: { lt: threeDaysAgo } },
         { lastContactedAt: null },

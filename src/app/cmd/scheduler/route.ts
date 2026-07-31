@@ -12,23 +12,24 @@ export var maxDuration = 60;
 // ── helpers ────────────────────────────────────────────────
 
 async function hikerFetch(path: string) {
-  var res = await fetch('https://hikerapi.com/v2' + path, {
-    headers: { 'X-HikerAPI-Key': HIKERAPI_KEY },
+  var res = await fetch('https://api.hikerapi.com' + path, {
+    headers: { 'x-access-key': HIKERAPI_KEY, 'Accept': 'application/json' },
   });
   if (!res.ok) throw new Error('HikerAPI erro ' + res.status + ': ' + (await res.text()).slice(0, 200));
   return res.json();
 }
 
+var WAT_OFFSET = 1; // Angola: WAT = UTC+1
 var DAY_NAMES = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado'];
 
 // ── actions ────────────────────────────────────────────────
 
 async function getOptimalTimes() {
   // Fetch real post engagement data from HikerAPI
-  var user: any = await hikerFetch('/users/by/username?username=' + IG_USERNAME);
+  var user: any = await hikerFetch('/v1/user/by/username?username=' + IG_USERNAME);
   var userId = user.pk || user.id;
 
-  var postsRes: any = await hikerFetch('/users/' + userId + '/posts?count=60');
+  var postsRes: any = await hikerFetch('/v1/user/posts?user_id=' + userId + '&amount=60');
   var items = postsRes.items || postsRes.data || postsRes || [];
 
   // Group engagement by hour of day and day of week
@@ -51,8 +52,11 @@ async function getOptimalTimes() {
     var date = new Date(typeof timestamp === 'number' ? timestamp * 1000 : timestamp);
     if (isNaN(date.getTime())) continue;
 
-    var day = date.getUTCDay();
-    var hour = date.getUTCHours();
+    // Convert to Angola time (WAT = UTC+1)
+    var watMs = date.getTime() + (WAT_OFFSET * 3600000);
+    var watDate = new Date(watMs);
+    var day = watDate.getUTCDay();
+    var hour = watDate.getUTCHours();
 
     timeSlots[day][hour].totalEngagement += engagement;
     timeSlots[day][hour].count += 1;
@@ -117,21 +121,36 @@ function findNextOptimalTime(optimalTimes: any): Date {
   }
 
   var now = new Date();
-  for (var attempt = 0; attempt < 14; attempt++) {
+  var candidates: Date[] = [];
+
+  // Gerar candidatos para as proximas 3 semanas
+  for (var weekOffset = 0; weekOffset < 3; weekOffset++) {
     for (var i = 0; i < recommended.length; i++) {
       var slot = recommended[i];
-      var candidate = new Date();
-      candidate.setUTCHours(slot.hour, 0, 0, 0);
-      var currentDay = candidate.getUTCDay();
+      // Current Angola time
+      var nowWAT = new Date(now.getTime() + (WAT_OFFSET * 3600000));
+      var currentDay = nowWAT.getUTCDay();
       var targetDay = slot.dayIndex;
-      var diff = (targetDay - currentDay + 7) % 7;
-      if (attempt > 0 || diff > 0) candidate.setDate(candidate.getDate() + (attempt > 0 ? 0 : diff) + (attempt * 7));
-      else if (diff === 0 && candidate <= now) candidate.setDate(candidate.getDate() + 7);
-      candidate.setUTCHours(slot.hour, 0, 0, 0);
-      if (candidate > now) return candidate;
+      var daysUntilTarget = (targetDay - currentDay + 7) % 7;
+      // Se e hoje mas a hora ja passou, mandar para a proxima semana
+      if (daysUntilTarget === 0 && nowWAT.getUTCHours() >= slot.hour) {
+        daysUntilTarget = 7;
+      }
+      // Build candidate in Angola time, then convert to UTC
+      var candidateWAT = new Date(nowWAT);
+      candidateWAT.setUTCDate(candidateWAT.getUTCDate() + daysUntilTarget + (weekOffset * 7));
+      candidateWAT.setUTCHours(slot.hour, 0, 0, 0);
+      // Convert back to UTC
+      var candidate = new Date(candidateWAT.getTime() - (WAT_OFFSET * 3600000));
+      if (candidate > now) candidates.push(candidate);
     }
   }
 
+  // Ordenar por data e retornar o mais proximo
+  candidates.sort(function (a, b) { return a.getTime() - b.getTime(); });
+  if (candidates.length > 0) return candidates[0];
+
+  // Fallback final
   var fb2 = new Date();
   fb2.setDate(fb2.getDate() + 1);
   fb2.setUTCHours(12, 0, 0, 0);
@@ -173,7 +192,7 @@ async function schedulePost(contentPostId: string, platforms: string[], schedule
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + UPLOADPOST_KEY,
+            'Authorization': 'Apikey ' + UPLOADPOST_KEY,
           },
           body: JSON.stringify({
             platform: plat,
@@ -235,7 +254,7 @@ async function cancelScheduled(id: string) {
     try {
       await fetch('https://api.upload-post.com/v1/posts/' + sp.uploadPostId, {
         method: 'DELETE',
-        headers: { Authorization: 'Bearer ' + UPLOADPOST_KEY },
+        headers: { 'Authorization': 'Apikey ' + UPLOADPOST_KEY },
       });
     } catch (e: any) {
       console.error('Erro ao cancelar no UploadPost:', e.message);

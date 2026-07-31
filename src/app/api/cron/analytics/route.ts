@@ -16,8 +16,8 @@ async function snapshotInstagram() {
   if (!HIKERAPI_KEY || !IG_USERNAME) return { platform: 'instagram', error: 'Sem HIKERAPI_KEY ou IG_USERNAME' };
 
   try {
-    const res = await fetch('https://hikerapi.com/v2/user/info?username=' + IG_USERNAME + '&fields=follower_count,following_count,media_count,engagement_rate', {
-      headers: { 'Authorization': 'Bearer ' + HIKERAPI_KEY },
+    const res = await fetch('https://api.hikerapi.com/v1/user/info?username=' + IG_USERNAME + '&fields=follower_count,following_count,media_count,engagement_rate', {
+      headers: { 'x-access-key': HIKERAPI_KEY },
     });
     const data = await res.json();
     const user = data?.data?.user || data?.user || data;

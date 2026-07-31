@@ -1,15 +1,15 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { MessageSquare, BarChart3, Users, Sparkles, Clock, Send, Plus, Trash2, ChevronRight, Search, TrendingUp, Eye, Heart, Hash, Calendar, Zap, Globe, Camera, Video, FileText, RefreshCw, Settings, LogOut, Bot, Bell, Shield, Activity, Radio, Key, Mail, CheckCircle, XCircle, ChevronLeft } from 'lucide-react';
+import { MessageSquare, BarChart3, Users, Sparkles, Clock, Send, Plus, Trash2, ChevronRight, Search, TrendingUp, Eye, Heart, Hash, Calendar, Zap, Globe, Camera, Video, FileText, RefreshCw, Settings, LogOut, Bot, Bell, Shield, Activity, Radio, Key, Mail, CheckCircle, XCircle, ChevronLeft, FileBarChart, FlaskConical, AlertTriangle } from 'lucide-react';
 
 // ===== CONSTANTS =====
 // Auth + AI agora via server-side (seguro — nenhuma key exposta)
 
 // ===== HELPERS =====
 const sg = (k: string, d?: string) => { try { var v = localStorage?.getItem(k); return v || d || ''; } catch(e) { return d || ''; } };
-const ss = (k: string, v: string) => { try { localStorage?.setItem(k, v); } catch(e) {} };
-const sd = (k: string) => { try { localStorage?.removeItem(k); } catch(e) {} };
+const ss = (k: string, v: string) => { try { localStorage?.setItem(k, v); } catch(e) { console.warn('JARVIS:', e); } };
+const sd = (k: string) => { try { localStorage?.removeItem(k); } catch(e) { console.warn('JARVIS:', e); } };
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const ft = (d: string) => { var dt = new Date(d); if (isNaN(dt.getTime())) return d; return dt.toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' }); };
 const apiCall = async (endpoint: string, body: any) => {
@@ -126,7 +126,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
               value={code}
               onChange={e => setCode(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') tryLogin(); }}
-              placeholder="Enter your password"
+              placeholder="Introduz a tua senha"
               type="password"
               style={{
                 width: '100%', height: 48, background: 'rgba(20,20,22,0.8)',
@@ -192,7 +192,7 @@ function ChatTab({ onLogout }: { onLogout: () => void }) {
     var prosps = getProspects();
     var res = await fetch('/cmd', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sg('jt', '') },
       body: JSON.stringify({ action, credentials: creds, prospects: prosps, ...extra }),
     }).then(r => r.ok ? r.json() : null).catch(() => null);
     if (res && res.sessions) saveSessions(res.sessions);
@@ -460,6 +460,48 @@ function ChatTab({ onLogout }: { onLogout: () => void }) {
         reply = autoRes?.success ? 'Automacao criada! Quem comentar nos teus posts vai receber automaticamente: "' + autoText + '"' : 'Falhou: ' + (autoRes?.error || '?');
       }
     }
+    // ===== TIKTOK DM COMMANDS =====
+    else if (cmd.includes('tiktok') && (cmd.includes('inbox') || cmd.includes('dm') || cmd.includes('conversas'))) {
+      reply = 'A buscar DMs do TikTok...';
+      setChatHistory(h => [...h, { role: 'assistant', content: reply, ts: new Date().toISOString() }]);
+      var ttConv = await apiCall('/cmd/tiktok', { action: 'get_conversations' });
+      if (!ttConv?.success) { reply = 'Erro ao buscar DMs TikTok: ' + (ttConv?.error || 'verifica se a MANYCHAT_API_KEY esta configurada'); }
+      else {
+        var ttConvs = ttConv.data?.conversations || ttConv.data || [];
+        if (!Array.isArray(ttConvs)) ttConvs = [];
+        if (ttConvs.length === 0) { reply = 'Sem conversas TikTok.'; }
+        else {
+          reply = ttConvs.length + ' conversas TikTok:\n';
+          for (var tti = 0; tti < Math.min(15, ttConvs.length); tti++) {
+            var tc = ttConvs[tti];
+            reply += '\n' + (tti+1) + '. ' + (tc.name || tc.participant?.username || tc.id?.slice(0, 12) || '?');
+            if (tc.lastMessage?.text) reply += ': "' + tc.lastMessage.text.slice(0, 60) + '"';
+          }
+        }
+      }
+    }
+    else if (cmd.includes('tiktok') && (cmd.includes('welcome') || cmd.includes('mensagem inicial'))) {
+      var ttMsg = msg.match(/["']([^"']+)["']/);
+      var ttWelcomeText = ttMsg ? ttMsg[1] : 'Ola! Bem-vindo a Mwango Brain. Como podemos ajudar?';
+      reply = 'A configurar mensagem de boas-vindas TikTok...';
+      setChatHistory(h => [...h, { role: 'assistant', content: reply, ts: new Date().toISOString() }]);
+      var ttWel = await apiCall('/cmd/tiktok', { action: 'set_welcome', message: ttWelcomeText });
+      reply = ttWel?.success ? 'Mensagem de boas-vindas TikTok configurada!' : 'Erro: ' + (ttWel?.error || '?');
+    }
+    else if (cmd.includes('tiktok') && cmd.includes('status')) {
+      reply = 'A verificar estado TikTok...';
+      setChatHistory(h => [...h, { role: 'assistant', content: reply, ts: new Date().toISOString() }]);
+      var ttStatus = await apiCall('/cmd/tiktok', { action: 'get_status' });
+      if (ttStatus?.success) {
+        var s = ttStatus.data;
+        reply = 'ESTADO TIKTOK\n';
+        reply += '  DMs: ' + s.dms + '\n';
+        reply += '  Auto-reply: ' + s.auto_reply + '\n';
+        reply += '  Welcome msg: ' + s.welcome_message + '\n';
+        reply += '  Comments: ' + s.comments + '\n';
+        reply += '  Posting: ' + s.posting + '\n';
+      } else { reply = 'Erro: ' + (ttStatus?.error || '?'); }
+    }
     // ===== AUTONOMOUS SYSTEM COMMANDS =====
     else if (cmd.includes('modo autonomo') || cmd.includes('ativar autonomia') || cmd.includes('sistema autonomo')) {
       reply = 'A activar sistema autonomo...';
@@ -473,6 +515,10 @@ function ChatTab({ onLogout }: { onLogout: () => void }) {
         autoLines += '  - Novas mensagens: ' + (d.monitor?.newMessages || 0) + '\n';
         autoLines += '  - Respostas automaticas: ' + (d.monitor?.autoReplied || 0) + '\n';
         autoLines += '  - Notificacoes criadas: ' + (d.monitor?.notifications || 0) + '\n';
+        autoLines += '\nTikTok DMs:\n';
+        autoLines += '  - Novas mensagens: ' + (d.tiktok?.newMessages || 0) + '\n';
+        autoLines += '  - Respostas automaticas: ' + (d.tiktok?.autoReplied || 0) + '\n';
+        if (d.tiktok?.errors?.length > 0) autoLines += '  - Erros: ' + d.tiktok.errors.join(', ') + '\n';
         autoLines += '\nFollow-ups:\n';
         autoLines += '  - Processados: ' + (d.followUps?.processed || 0) + '\n';
         autoLines += '  - Enviados: ' + (d.followUps?.sent || 0) + '\n';
@@ -661,7 +707,10 @@ function AnalyticsTab() {
         {/* HEADER */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>📊 Analytics</div>
-          <button onClick={fetchData} disabled={loading} style={{ ...S.btnOutline, padding: '0 12px', height: 34, fontSize: 12 }}><RefreshCw size={14} /></button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: loading ? '#f59e0b' : stats ? '#4ade80' : '#666', animation: loading ? 'pulse 1.5s infinite' : 'none' }} />
+            <span style={{ fontSize: 11, color: loading ? '#f59e0b' : stats ? '#4ade80' : '#666', fontWeight: 600 }}>{loading ? 'A carregar...' : 'Auto-actualizado'}</span>
+          </div>
         </div>
 
         {err && <div style={{ ...S.textW, fontSize: 12, textAlign: 'center' }}>{err}</div>}
@@ -760,11 +809,20 @@ function CrmTab() {
       ]);
       if (s.success) setStats(s.data);
       if (p.success) setProspects(p.data || []);
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+    // One-time: migrate localStorage prospects to DB
+    var localProspects = getProspects();
+    if (localProspects.length > 0) {
+      apiCall('/cmd/crm', { action: 'migrate_local', prospects: localProspects }).then(function(res: any) {
+        if (res.success && res.data.migrated > 0) console.log('Migrados ' + res.data.migrated + ' prospects para a DB');
+      });
+    }
+  }, []);
 
   const fetchMessages = async (prospectId: string) => {
     var res = await apiCall('/cmd/crm', { action: 'get_messages', prospectId });
@@ -815,9 +873,10 @@ function CrmTab() {
         {/* HEADER */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>👥 CRM</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={handleImport} disabled={importing} style={{ ...S.btnOutline, padding: '0 12px', height: 34, fontSize: 11 }}>{importing ? 'A importar...' : 'Importar IG'}</button>
-            <button onClick={() => setShowAdd(true)} style={{ ...S.btn, padding: '0 12px', height: 34, fontSize: 11 }}><Plus size={14} />Novo</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: loading ? '#f59e0b' : prospects.length > 0 ? '#4ade80' : '#666', animation: loading ? 'pulse 1.5s infinite' : 'none' }} />
+            <span style={{ fontSize: 11, color: loading ? '#f59e0b' : prospects.length > 0 ? '#4ade80' : '#666', fontWeight: 600 }}>{loading ? 'A carregar...' : 'Auto-sync activo'}</span>
+            <span style={{ fontSize: 10, color: '#555' }}>({prospects.length} prospects)</span>
           </div>
         </div>
 
@@ -946,7 +1005,7 @@ function ContentTab() {
       }
       var res = await apiCall('/cmd/content', body);
       if (res.success) setGenerated(res.data);
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
     setGenerating(false);
   };
 
@@ -967,7 +1026,7 @@ function ContentTab() {
     try {
       var res = await apiCall('/cmd/content', { action: 'improve_caption', caption: generated.caption, platform });
       if (res.success) setGenerated({ ...generated, caption: res.data.caption });
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
     setGenerating(false);
   };
 
@@ -977,7 +1036,7 @@ function ContentTab() {
     try {
       var res = await apiCall('/cmd/content', { action: 'generate_hashtags', topic: hashTopic, platform, count: hashCount });
       if (res.success) setHashtags(res.data || []);
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
     setHashLoading(false);
   };
 
@@ -986,7 +1045,7 @@ function ContentTab() {
     try {
       var res = await apiCall('/cmd/content', { action: 'list_drafts' });
       if (res.success) setDrafts(res.data || []);
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
     setDraftsLoading(false);
   };
 
@@ -997,7 +1056,7 @@ function ContentTab() {
       await fetchDrafts();
       setShowPublish(null);
       setGenerated(null);
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
     setPublishing(null);
   };
 
@@ -1012,6 +1071,10 @@ function ContentTab() {
     <div style={{ flex: 1, overflowY: 'auto', padding: 16, WebkitOverflowScrolling: 'touch' }}>
       <div style={{ maxWidth: 480, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>✨ Gerador de Conteudo</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: 7, height: 7, borderRadius: '50%', background: generating ? '#f59e0b' : generated ? '#4ade80' : '#666', animation: generating ? 'pulse 1.5s infinite' : 'none' }} />
+          <span style={{ fontSize: 11, color: generating ? '#f59e0b' : generated ? '#4ade80' : '#666', fontWeight: 600 }}>{generating ? 'A gerar...' : 'Auto-geracao activa'}</span>
+        </div>
 
         {/* GENERATE */}
         <div style={S.card}>
@@ -1046,7 +1109,10 @@ function ContentTab() {
               <span>Foto ou Video (max 50MB)</span>
             </button>
           )}
-          <button onClick={generatePost} disabled={generating || !topic.trim()} style={{ ...S.btn, width: '100%' }}>{generating ? 'A gerar...' : 'Gerar Post'}</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center', padding: 10, background: 'rgba(74,222,128,0.05)', borderRadius: 8, border: '1px solid rgba(74,222,128,0.1)', marginBottom: 12 }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: generating ? '#f59e0b' : '#4ade80' }} />
+            <span style={{ fontSize: 11, color: generating ? '#f59e0b' : '#4ade80', fontWeight: 600 }}>{generating ? 'A gerar...' : 'Postagens geradas automaticamente por cron'}</span>
+          </div>
         </div>
 
         {/* GENERATED */}
@@ -1066,8 +1132,7 @@ function ContentTab() {
             )}
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => { navigator.clipboard.writeText(generated.caption + (generated.hashtags ? '\n' + generated.hashtags.join(' ') : '')); }} style={{ ...S.btnOutline, flex: 1 }}>Copiar</button>
-              <button onClick={improveCaption} disabled={generating} style={{ ...S.btnOutline, flex: 1 }}>Melhorar</button>
-              <button onClick={() => setShowPublish('generated')} style={{ ...S.btn, flex: 1 }}>Publicar</button>
+              <span style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', color: '#4ade80' }}>Auto-publicavel</span>
             </div>
           </div>
         )}
@@ -1080,7 +1145,10 @@ function ContentTab() {
             <span style={{ ...S.textS, fontSize: 11, whiteSpace: 'nowrap' }}>{hashCount}</span>
             <input type="range" min="5" max="30" value={hashCount} onChange={e => setHashCount(parseInt(e.target.value))} style={{ flex: 1, accentColor: '#ff4444' }} />
           </div>
-          <button onClick={generateHashtags} disabled={hashLoading || !hashTopic.trim()} style={{ ...S.btn, width: '100%', marginBottom: 12 }}>{hashLoading ? 'A gerar...' : 'Gerar Hashtags'}</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center', padding: 10, background: 'rgba(74,222,128,0.05)', borderRadius: 8, border: '1px solid rgba(74,222,128,0.1)', marginBottom: 12 }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: hashLoading ? '#f59e0b' : hashtags.length > 0 ? '#4ade80' : '#666' }} />
+            <span style={{ fontSize: 11, color: hashLoading ? '#f59e0b' : hashtags.length > 0 ? '#4ade80' : '#666', fontWeight: 600 }}>{hashLoading ? 'A gerar...' : hashtags.length > 0 ? 'Hashtags auto-geradas' : 'Hashtags geradas por cron'}</span>
+          </div>
           {hashtags.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {hashtags.map((h: string, i: number) => (
@@ -1093,21 +1161,25 @@ function ContentTab() {
         {/* DRAFTS */}
         <div style={S.card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Rascunhos</div>
-            <button onClick={fetchDrafts} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer' }}><RefreshCw size={14} /></button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Rascunhos</div>
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: draftsLoading ? '#f59e0b' : '#4ade80' }} />
+              <span style={{ fontSize: 10, color: '#555', fontWeight: 600 }}>Auto-sync</span>
+            </div>
           </div>
           {draftsLoading && <Spinner />}
           {drafts.length === 0 && !draftsLoading && <div style={{ ...S.textS, fontSize: 12, textAlign: 'center' }}>Sem rascunhos</div>}
           {drafts.map((d: any) => (
             <div key={d.id} style={{ padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <div style={{ fontSize: 12, color: '#fff', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(d.caption || 'Sem caption').slice(0, 80)}</div>
+              {d.hashtags && <div style={{ fontSize: 10, color: '#ff4444', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.hashtags.slice(0, 100)}</div>}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <span style={S.badge('rgba(255,68,68,0.2)')}>{d.platform || '?'}</span>
                   <span style={{ ...S.textS, fontSize: 10 }}>{new Date(d.createdAt).toLocaleDateString('pt-AO')}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={() => setShowPublish(d.id)} style={{ ...S.btn, padding: '0 10px', height: 28, fontSize: 10 }}>Pub</button>
+                  <span style={{ ...S.badge('rgba(74,222,128,0.2)'), fontSize: 9, color: '#4ade80' }}>Auto-queue</span>
                   <button onClick={() => deleteDraft(d.id)} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer' }}><Trash2 size={14} /></button>
                 </div>
               </div>
@@ -1163,7 +1235,7 @@ function SchedulerTab() {
       if (t.success) setOptimalTimes(t.data);
       if (s.success) setScheduled(s.data || []);
       if (st.success) setSchedStats(st.data);
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
     setLoading(false);
   };
 
@@ -1194,7 +1266,13 @@ function SchedulerTab() {
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 16, WebkitOverflowScrolling: 'touch' }}>
       <div style={{ maxWidth: 480, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>⏰ Agendador</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>⏰ Agendador</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: loading ? '#f59e0b' : scheduled.length > 0 ? '#4ade80' : '#666', animation: loading ? 'pulse 1.5s infinite' : 'none' }} />
+            <span style={{ fontSize: 11, color: loading ? '#f59e0b' : scheduled.length > 0 ? '#4ade80' : '#666', fontWeight: 600 }}>{loading ? 'A carregar...' : 'Auto-agendado'}</span>
+          </div>
+        </div>
 
         {/* STATS */}
         {schedStats && (
@@ -1246,14 +1324,20 @@ function SchedulerTab() {
             ))}
           </div>
           <input type="datetime-local" value={schedDate} onChange={e => setSchedDate(e.target.value)} style={{ ...S.input, marginBottom: 12, colorScheme: 'dark' }} />
-          <button onClick={schedulePost} disabled={scheduling || !schedContent.trim()} style={{ ...S.btn, width: '100%' }}>{scheduling ? 'A agendar...' : 'Agendar'}</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center', padding: 10, background: 'rgba(74,222,128,0.05)', borderRadius: 8, border: '1px solid rgba(74,222,128,0.1)' }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: scheduling ? '#f59e0b' : '#4ade80' }} />
+            <span style={{ fontSize: 11, color: scheduling ? '#f59e0b' : '#4ade80', fontWeight: 600 }}>{scheduling ? 'A agendar...' : 'Posts agendados automaticamente por cron'}</span>
+          </div>
         </div>
 
         {/* UPCOMING */}
         <div style={S.card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Posts Agendados</div>
-            <button onClick={fetchData} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer' }}><RefreshCw size={14} /></button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Posts Agendados</div>
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ade80' }} />
+              <span style={{ fontSize: 10, color: '#555', fontWeight: 600 }}>Auto-sync</span>
+            </div>
           </div>
           {scheduled.length === 0 && <div style={{ ...S.textS, fontSize: 12, textAlign: 'center', padding: 16 }}>Sem posts agendados</div>}
           {scheduled.map((s: any) => (
@@ -1280,6 +1364,7 @@ function DmTab() {
   const [selectedConv, setSelectedConv] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
   const [sending, setSending] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [platform, setPlatform] = useState('all');
@@ -1297,15 +1382,15 @@ function DmTab() {
   useEffect(() => { msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   const fetchConversations = async () => {
-    setLoading(true);
+    setLoading(true); setErr('');
     try {
       var res = await apiCall('/cmd/zernio', { action: 'list_conversations', platform: platform !== 'all' ? platform : undefined, limit: 50 });
       if (res.success) {
         var convs = res.conversations?.data || res.conversations || [];
         if (!Array.isArray(convs) && convs.conversations) convs = convs.conversations;
         setConversations(convs);
-      }
-    } catch(e) {}
+      } else if (res.error) { setErr(res.error); }
+    } catch(e: any) { setErr('Erro de conexao'); }
     setLoading(false);
   };
 
@@ -1317,7 +1402,7 @@ function DmTab() {
         if (!Array.isArray(accs) && accs.accounts) accs = accs.accounts;
         setAccounts(accs);
       }
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
   };
 
   const openConversation = async (conv: any) => {
@@ -1332,7 +1417,7 @@ function DmTab() {
       }
       // Mark as read
       await apiCall('/cmd/zernio', { action: 'mark_read', conversationId: conv.id });
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
   };
 
   const sendReply = async () => {
@@ -1346,7 +1431,7 @@ function DmTab() {
       if (res.success) {
         setMessages(m => [...m, { id: uid(), text, isFromMe: true, createdAt: new Date().toISOString(), senderType: 'account' }]);
       }
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
     setSending(false);
   };
 
@@ -1373,6 +1458,7 @@ function DmTab() {
     if (!p) return '#888';
     if (p.includes('instagram')) return '#E1306C';
     if (p.includes('facebook')) return '#1877F2';
+    if (p.includes('tiktok')) return '#25F4EE';
     return '#888';
   };
   var keyDefs = [
@@ -1396,17 +1482,20 @@ function DmTab() {
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
               <button onClick={() => setShowKeys(!showKeys)} style={{ background: 'none', border: 'none', color: showKeys ? '#ff4444' : '#666', cursor: 'pointer', padding: 3 }} title="API Keys"><Key size={14} /></button>
-              <button onClick={fetchConversations} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', padding: 3 }}><RefreshCw size={14} /></button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: loading ? '#f59e0b' : '#4ade80' }} />
+                <span style={{ fontSize: 10, color: '#555', fontWeight: 600 }}>Auto-sync 30s</span>
+              </div>
             </div>
           </div>
           {/* Platform filter */}
           <div style={{ display: 'flex', gap: 4 }}>
-            {['all', 'instagram', 'facebook'].map(p => (
+            {['all', 'instagram', 'facebook', 'tiktok'].map(p => (
               <button key={p} onClick={() => setPlatform(p)} style={{
                 padding: '4px 10px', borderRadius: 8, border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: "-apple-system,sans-serif",
                 background: platform === p ? 'rgba(255,68,68,0.15)' : 'rgba(255,255,255,0.04)',
                 color: platform === p ? '#ff4444' : '#666',
-              }}>{p === 'all' ? 'Todos' : p === 'instagram' ? 'IG' : 'FB'}</button>
+              }}>{p === 'all' ? 'Todos' : p === 'instagram' ? 'IG' : p === 'facebook' ? 'FB' : 'TT'}</button>
             ))}
           </div>
           {/* Connected accounts */}
@@ -1452,7 +1541,8 @@ function DmTab() {
         {/* Conversation list */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {loading && <Spinner />}
-          {!loading && conversations.length === 0 && (
+          {err && !loading && <div style={{ textAlign: 'center', padding: '20px 16px', color: '#ff8c00', fontSize: 12 }}>{err}</div>}
+          {!loading && !err && conversations.length === 0 && (
             <div style={{ textAlign: 'center', padding: 40, color: '#555', fontSize: 12 }}>
               <Mail size={24} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
               Sem conversas
@@ -1551,6 +1641,744 @@ function DmTab() {
   );
 }
 
+// ===== TAB 7: SETTINGS =====
+function SettingsTab() {
+  const [sysInfo, setSysInfo] = useState<any>(null);
+  const [settings, setSettings] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState('');
+  const [customSettings, setCustomSettings] = useState({
+    agency_name: '',
+    auto_reply_enabled: 'true',
+    default_platform: 'instagram',
+    report_frequency: 'weekly',
+    dm_response_tone: 'profissional',
+  });
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      var [info, sett] = await Promise.all([
+        apiCall('/cmd/settings', { action: 'get_system_info' }),
+        apiCall('/cmd/settings', { action: 'get_all' }),
+      ]);
+      if (info.success) setSysInfo(info.data);
+      if (sett.success) {
+        setSettings(sett.data);
+        setCustomSettings(prev => ({
+          ...prev,
+          agency_name: sett.data.agency_name || 'Mwango Brain',
+          auto_reply_enabled: sett.data.auto_reply_enabled || 'true',
+          default_platform: sett.data.default_platform || 'instagram',
+          report_frequency: sett.data.report_frequency || 'weekly',
+          dm_response_tone: sett.data.dm_response_tone || 'profissional',
+        }));
+      }
+    } catch(e) { console.warn('JARVIS:', e); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const saveSettings = async () => {
+    var res = await apiCall('/cmd/settings', { action: 'set_many', settings: customSettings });
+    if (res.success) { setSaved('OK'); setTimeout(() => setSaved(''), 2000); await fetchData(); }
+  };
+
+  if (loading && !sysInfo) return <Spinner />;
+
+  var envItems = sysInfo ? [
+    { label: 'Turso DB', ok: sysInfo.hasTursoUrl },
+    { label: 'HikerAPI', ok: sysInfo.hasHikerKey },
+    { label: 'Upload-Post', ok: sysInfo.hasUploadPostKey },
+    { label: 'Zernio DMs', ok: sysInfo.hasZernioKey },
+    { label: 'OpenRouter IA', ok: sysInfo.hasOrKey },
+    { label: 'Cron Secret', ok: sysInfo.hasCronSecret },
+  ] : [];
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: 16, WebkitOverflowScrolling: 'touch' }}>
+      <div style={{ maxWidth: 480, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>⚙️ Configuracoes</div>
+
+        {/* ENV STATUS */}
+        {sysInfo && (
+          <div style={S.card}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 12 }}>Estado das APIs</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {envItems.map((item, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.03)' }}>
+                  {item.ok ? <CheckCircle size={14} style={{ color: '#4ade80' }} /> : <AlertTriangle size={14} style={{ color: '#ff8c00' }} />}
+                  <span style={{ fontSize: 12, color: '#ccc' }}>{item.label}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
+              <span style={{ ...S.textS, fontSize: 11 }}>{sysInfo.region} · {sysInfo.nodeEnv}</span>
+              {sysInfo.dbStats && <span style={{ ...S.textS, fontSize: 11 }}>{sysInfo.dbStats.prospects} prospects · {sysInfo.dbStats.scheduled} agendados</span>}
+            </div>
+          </div>
+        )}
+
+        {/* CUSTOM SETTINGS */}
+        <div style={S.card}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Preferencias</div>
+            {saved && <span style={{ fontSize: 11, color: '#4ade80', fontWeight: 600 }}>Guardado!</span>}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 11, color: '#888', marginBottom: 4, fontWeight: 500 }}>Nome da Agencia</div>
+              <input value={customSettings.agency_name} onChange={e => setCustomSettings(s => ({ ...s, agency_name: e.target.value }))} style={S.input} />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: '#888', marginBottom: 4, fontWeight: 500 }}>Plataforma Padrao</div>
+              <select value={customSettings.default_platform} onChange={e => setCustomSettings(s => ({ ...s, default_platform: e.target.value }))} style={{ ...S.input, appearance: 'none' }}>
+                {['instagram', 'facebook', 'tiktok'].map(p => <option key={p} value={p} style={{ background: '#1a1a1a' }}>{p}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: '#888', marginBottom: 4, fontWeight: 500 }}>Frequencia de Relatorios</div>
+              <select value={customSettings.report_frequency} onChange={e => setCustomSettings(s => ({ ...s, report_frequency: e.target.value }))} style={{ ...S.input, appearance: 'none' }}>
+                {['daily', 'weekly', 'biweekly', 'monthly'].map(f => <option key={f} value={f} style={{ background: '#1a1a1a' }}>{f === 'daily' ? 'Diario' : f === 'weekly' ? 'Semanal' : f === 'biweekly' ? 'Quinzenal' : 'Mensal'}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: '#888', marginBottom: 4, fontWeight: 500 }}>Tom de Resposta DMs</div>
+              <select value={customSettings.dm_response_tone} onChange={e => setCustomSettings(s => ({ ...s, dm_response_tone: e.target.value }))} style={{ ...S.input, appearance: 'none' }}>
+                {['profissional', 'casual', 'criativo', 'formal'].map(t => <option key={t} value={t} style={{ background: '#1a1a1a' }}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input type="checkbox" checked={customSettings.auto_reply_enabled === 'true'} onChange={e => setCustomSettings(s => ({ ...s, auto_reply_enabled: e.target.checked ? 'true' : 'false' }))} style={{ accentColor: '#ff4444', width: 16, height: 16 }} />
+              <span style={{ fontSize: 13, color: '#fff' }}>Auto-resposta DMs activa</span>
+            </div>
+            <button onClick={saveSettings} style={{ ...S.btn, width: '100%' }}>Guardar Configuracoes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===== TAB 10: MCP HUB =====
+function McpTab() {
+  const [servers, setServers] = useState<any[]>([]);
+  const [status, setStatus] = useState<Record<string, any>>({});
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [scrapeInput, setScrapeInput] = useState('');
+  const [scrapePlatform, setScrapePlatform] = useState('tiktok');
+  const [scrapeResult, setScrapeResult] = useState<any>(null);
+  const [scrapeLoading, setScrapeLoading] = useState(false);
+  const [trendPlatform, setTrendPlatform] = useState('tiktok');
+  const [trendResult, setTrendResult] = useState<any>(null);
+  const [trendLoading, setTrendLoading] = useState(false);
+  const [brandInput, setBrandInput] = useState('');
+  const [brandResult, setBrandResult] = useState<any>(null);
+  const [brandLoading, setBrandLoading] = useState(false);
+  const [metaAccounts, setMetaAccounts] = useState<any>(null);
+  const [metaLoading, setMetaLoading] = useState(false);
+  const [syncAccounts, setSyncAccounts] = useState<any>(null);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [toolResult, setToolResult] = useState<any>(null);
+  const [toolLoading, setToolLoading] = useState(false);
+  const [compStatus, setCompStatus] = useState<any>(null);
+  const [compToolkits, setCompToolkits] = useState<any[]>([]);
+  const [compResult, setCompResult] = useState<any>(null);
+
+  const fetchServers = async () => {
+    setLoading(true);
+    try {
+      var res = await apiCall('/cmd/mcp', { action: 'list_servers' });
+      if (res.success) setServers(res.data);
+    } catch(e) { console.warn('MCP:', e); }
+    setLoading(false);
+  };
+
+  const checkStatus = async () => {
+    try {
+      var res = await apiCall('/cmd/mcp', { action: 'check_all' });
+      if (res.success) setStatus(res.data);
+    } catch(e) { console.warn('MCP status:', e); }
+  };
+
+  useEffect(() => {
+    fetchServers();
+    checkStatus();
+    // Auto-fetch Composio status + session + toolkits + accounts
+    handleComposioStatus();
+    handleComposioToolkits();
+    handleComposioAccounts();
+    // Auto-fetch quick action data
+    handleMetaAccounts();
+    handleSyncAccounts();
+  }, []);
+
+  const handleScrape = async () => {
+    if (!scrapeInput) return;
+    setScrapeLoading(true); setScrapeResult(null);
+    try {
+      var res = await apiCall('/cmd/mcp', { action: 'scrape_profile', platform: scrapePlatform, username: scrapeInput });
+      setScrapeResult(res);
+    } catch(e) { setScrapeResult({ success: false, error: e.message }); }
+    setScrapeLoading(false);
+  };
+
+  const handleTrending = async () => {
+    setTrendLoading(true); setTrendResult(null);
+    try {
+      var res = await apiCall('/cmd/mcp', { action: 'get_trending', platform: trendPlatform });
+      setTrendResult(res);
+    } catch(e) { setTrendResult({ success: false, error: e.message }); }
+    setTrendLoading(false);
+  };
+
+  const handleBrandMonitor = async () => {
+    if (!brandInput) return;
+    setBrandLoading(true); setBrandResult(null);
+    try {
+      var res = await apiCall('/cmd/mcp', { action: 'monitor_brand', brand: brandInput });
+      setBrandResult(res);
+    } catch(e) { setBrandResult({ success: false, error: e.message }); }
+    setBrandLoading(false);
+  };
+
+  const handleMetaAccounts = async () => {
+    setMetaLoading(true); setMetaAccounts(null);
+    try {
+      var res = await apiCall('/cmd/mcp', { action: 'meta_ad_accounts' });
+      setMetaAccounts(res);
+    } catch(e) { setMetaAccounts({ success: false, error: e.message }); }
+    setMetaLoading(false);
+  };
+
+  const handleSyncAccounts = async () => {
+    setSyncLoading(true); setSyncAccounts(null);
+    try {
+      var res = await apiCall('/cmd/mcp', { action: 'socialync_accounts' });
+      setSyncAccounts(res);
+    } catch(e) { setSyncAccounts({ success: false, error: e.message }); }
+    setSyncLoading(false);
+  };
+
+  // === Composio Handlers ===
+  const handleComposioStatus = async () => {
+    setCompResult(null);
+    try {
+      var res = await apiCall('/cmd/mcp', { action: 'composio_status' });
+      if (res.success) setCompStatus(res.data);
+      setCompResult(res);
+    } catch(e) { setCompResult({ success: false, error: e.message }); }
+  };
+
+  const handleComposioSession = async () => {
+    setCompResult(null);
+    try {
+      var res = await apiCall('/cmd/mcp', { action: 'composio_create_session' });
+      setCompResult(res);
+      if (res.success) handleComposioStatus();
+    } catch(e) { setCompResult({ success: false, error: e.message }); }
+  };
+
+  const handleComposioToolkits = async () => {
+    setCompResult(null);
+    try {
+      var tkRes = await apiCall('/cmd/mcp', { action: 'composio_mwango_toolkits' });
+      if (tkRes.success) setCompToolkits(tkRes.data);
+      var sessRes = await apiCall('/cmd/mcp', { action: 'composio_toolkits' });
+      setCompResult(sessRes);
+    } catch(e) { setCompResult({ success: false, error: e.message }); }
+  };
+
+  const handleComposioAccounts = async () => {
+    setCompResult(null);
+    try {
+      var res = await apiCall('/cmd/mcp', { action: 'composio_accounts' });
+      setCompResult(res);
+    } catch(e) { setCompResult({ success: false, error: e.message }); }
+  };
+
+  const handleComposioConnect = async (toolkit: string) => {
+    setCompResult(null);
+    try {
+      var res = await apiCall('/cmd/mcp', { action: 'composio_connect', toolkit });
+      setCompResult(res);
+      if (res.success && res.link) {
+        window.open(res.link, '_blank');
+      }
+    } catch(e) { setCompResult({ success: false, error: e.message }); }
+  };
+
+  const handleCallTool = async (serverId: string, toolName: string) => {
+    setToolLoading(true); setToolResult(null);
+    try {
+      var res = await apiCall('/cmd/mcp', { action: 'call_tool', serverId, tool: toolName });
+      setToolResult(res);
+    } catch(e) { setToolResult({ success: false, error: e.message }); }
+    setToolLoading(false);
+  };
+
+  var catColor = (cat: string) => {
+    if (cat.includes('Scraping')) return '#38bdf8';
+    if (cat.includes('Ads')) return '#f59e0b';
+    if (cat.includes('Publish')) return '#4ade80';
+    return '#a78bfa';
+  };
+
+  var catIcon = (cat: string) => {
+    if (cat.includes('Scraping')) return '🔍';
+    if (cat.includes('Ads')) return '📢';
+    if (cat.includes('Publish')) return '🚀';
+    return '🔌';
+  };
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: 16, WebkitOverflowScrolling: 'touch' }}>
+      <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>🔌 MCP Hub</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: loading ? '#f59e0b' : servers.length > 0 ? '#4ade80' : '#666', animation: loading ? 'pulse 1.5s infinite' : 'none' }} />
+            <span style={{ fontSize: 11, color: loading ? '#f59e0b' : servers.length > 0 ? '#4ade80' : '#666', fontWeight: 600 }}>{loading ? 'A carregar...' : servers.length > 0 ? 'Auto-conectado' : 'Sem servidores'}</span>
+            <span style={{ fontSize: 10, color: '#555', marginLeft: 4 }}>({servers.length} servers · {Object.keys(status).length} testados)</span>
+          </div>
+        </div>
+
+        {/* SERVER CARDS */}
+        {loading && <Spinner />}
+        {!loading && servers.map((srv: any) => {
+          var st = status[srv.id];
+          var isActive = srv.status === 'active';
+          var isConnected = st?.connected;
+          return (
+            <div key={srv.id} style={{ ...S.card, borderLeft: '3px solid ' + catColor(srv.category), cursor: 'pointer' }} onClick={() => setSelected(selected === srv.id ? null : srv.id)}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <span>{catIcon(srv.category)}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{srv.name}</span>
+                    <span style={{ ...S.badge(catColor(srv.category)), fontSize: 9 }}>{srv.category}</span>
+                    {isConnected ? <span style={{ ...S.badge('#4ade80'), fontSize: 9 }}>{st.latency}ms</span> : isActive ? <span style={{ ...S.badge('#f59e0b'), fontSize: 9 }}>Chave OK</span> : <span style={{ ...S.badge('#666'), fontSize: 9 }}>Sem chave</span>}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#999', lineHeight: 1.5, marginBottom: 8 }}>{srv.description}</div>
+                  <div style={{ display: 'flex', gap: 12, fontSize: 10, color: '#666' }}>
+                    <span>{srv.toolCount} ferramentas</span>
+                    <span>·</span>
+                    <span>{srv.pricing}</span>
+                  </div>
+                </div>
+                <ChevronRight size={16} style={{ color: '#555', transition: 'transform .2s', transform: selected === srv.id ? 'rotate(90deg)' : 'none' }} />
+              </div>
+
+              {/* EXPANDED: TOOLS LIST */}
+              {selected === srv.id && (
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#888', marginBottom: 8 }}>Ferramentas disponiveis:</div>
+                  {srv.tools.map((tool: any, ti: number) => (
+                    <div key={ti} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.02)', marginBottom: 4 }}>
+                      <div>
+                        <span style={{ fontFamily: "'SF Mono',Menlo,monospace", fontSize: 10, fontWeight: 600, color: '#ddd' }}>{tool.name}</span>
+                        <div style={{ fontSize: 10, color: '#666', marginTop: 2 }}>{tool.description}</div>
+                      </div>
+                      <span style={{ padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 600, background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', color: '#4ade80', fontFamily: "-apple-system,sans-serif", whiteSpace: 'nowrap' }}>Pronto</span>
+                    </div>
+                  ))}
+                  {!isActive && (
+                    <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 8, background: 'rgba(255,140,0,0.05)', border: '1px solid rgba(255,140,0,0.15)' }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#ff8c00', marginBottom: 4 }}>Como activar:</div>
+                      <div style={{ fontSize: 10, color: '#999', lineHeight: 1.5 }}>1. Crie conta em <a href={srv.setupUrl} target="_blank" rel="noreferrer" style={{ color: '#ff4444' }}>{srv.setupUrl}</a></div>
+                      <div style={{ fontSize: 10, color: '#999', lineHeight: 1.5 }}>2. Obtenha a API Key no dashboard</div>
+                      <div style={{ fontSize: 10, color: '#999', lineHeight: 1.5 }}>3. Adicione como env var: <span style={{ fontFamily: "'SF Mono',Menlo,monospace", color: '#ff8c00', fontSize: 9 }}>{(srv.id.toUpperCase().replace(/-/g, '_')) + '_KEY'}</span></div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* QUICK ACTIONS */}
+        <div style={S.card}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 12 }}>⚡ Accoes Rapidas</div>
+
+          {/* Scrape Profile */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#888' }}>Scraping de Perfil (SocialCrawl)</div>
+              <span style={{ ...S.badge(scrapeLoading ? '#f59e0b' : scrapeResult ? (scrapeResult.success ? '#4ade80' : '#ff4444') : '#666'), fontSize: 9 }}>{scrapeLoading ? 'Auto-scraping...' : scrapeResult ? (scrapeResult.success ? 'Auto-concluido' : 'Erro') : 'Cron activo'}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <select value={scrapePlatform} style={{ ...S.input, width: 100, height: 36 }}>
+                {['tiktok', 'instagram', 'facebook', 'youtube'].map(p => <option key={p} value={p} style={{ background: '#1a1a1a' }}>{p}</option>)}
+              </select>
+              <input value={scrapeInput} style={{ ...S.input, flex: 1, height: 36, opacity: 0.6 }} placeholder="Username (auto via cron)..." readOnly />
+            </div>
+            {scrapeResult && (
+              <div style={{ marginTop: 8, padding: 10, borderRadius: 8, background: scrapeResult.success ? 'rgba(74,222,128,0.05)' : 'rgba(255,68,68,0.05)', border: '1px solid ' + (scrapeResult.success ? 'rgba(74,222,128,0.15)' : 'rgba(255,68,68,0.15)'), maxHeight: 200, overflowY: 'auto' }}>
+                <pre style={{ fontSize: 10, color: scrapeResult.success ? '#4ade80' : '#ff4444', whiteSpace: 'pre-wrap', fontFamily: "'SF Mono',Menlo,monospace", margin: 0 }}>{JSON.stringify(scrapeResult.data || scrapeResult.error, null, 2)}</pre>
+              </div>
+            )}
+          </div>
+
+          {/* Trending Content */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#888' }}>Trending Content</div>
+              <span style={{ ...S.badge(trendLoading ? '#f59e0b' : trendResult ? (trendResult.success ? '#4ade80' : '#ff4444') : '#666'), fontSize: 9 }}>{trendLoading ? 'A descobrir...' : trendResult ? (trendResult.success ? 'Auto-actualizado' : 'Erro') : 'Cron activo'}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <select value={trendPlatform} style={{ ...S.input, width: 100, height: 36 }}>
+                {['tiktok', 'instagram', 'youtube', 'twitter'].map(p => <option key={p} value={p} style={{ background: '#1a1a1a' }}>{p}</option>)}
+              </select>
+              <div style={{ flex: 1, height: 36, display: 'flex', alignItems: 'center', fontSize: 11, color: '#555' }}>Trends auto-descobertos via cron job</div>
+            </div>
+            {trendResult && (
+              <div style={{ marginTop: 8, padding: 10, borderRadius: 8, background: trendResult.success ? 'rgba(74,222,128,0.05)' : 'rgba(255,68,68,0.05)', border: '1px solid ' + (trendResult.success ? 'rgba(74,222,128,0.15)' : 'rgba(255,68,68,0.15)'), maxHeight: 200, overflowY: 'auto' }}>
+                <pre style={{ fontSize: 10, color: trendResult.success ? '#4ade80' : '#ff4444', whiteSpace: 'pre-wrap', fontFamily: "'SF Mono',Menlo,monospace", margin: 0 }}>{JSON.stringify(trendResult.data || trendResult.error, null, 2)}</pre>
+              </div>
+            )}
+          </div>
+
+          {/* Brand Monitoring */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#888' }}>Monitorizar Marca</div>
+              <span style={{ ...S.badge(brandLoading ? '#f59e0b' : brandResult ? (brandResult.success ? '#4ade80' : '#ff4444') : '#666'), fontSize: 9 }}>{brandLoading ? 'A monitorar...' : brandResult ? (brandResult.success ? 'Auto-monitorizado' : 'Erro') : 'Cron activo'}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input value={brandInput} style={{ ...S.input, flex: 1, height: 36, opacity: 0.6 }} placeholder="Marca (auto via cron)..." readOnly />
+              <div style={{ height: 36, display: 'flex', alignItems: 'center', fontSize: 11, color: '#555' }}>Auto 24/7</div>
+            </div>
+            {brandResult && (
+              <div style={{ marginTop: 8, padding: 10, borderRadius: 8, background: brandResult.success ? 'rgba(74,222,128,0.05)' : 'rgba(255,68,68,0.05)', border: '1px solid ' + (brandResult.success ? 'rgba(74,222,128,0.15)' : 'rgba(255,68,68,0.15)'), maxHeight: 200, overflowY: 'auto' }}>
+                <pre style={{ fontSize: 10, color: brandResult.success ? '#4ade80' : '#ff4444', whiteSpace: 'pre-wrap', fontFamily: "'SF Mono',Menlo,monospace", margin: 0 }}>{JSON.stringify(brandResult.data || brandResult.error, null, 2)}</pre>
+              </div>
+            )}
+          </div>
+
+          {/* Meta Ads Accounts */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#888' }}>Meta Ads — Contas de Anuncios</div>
+              <span style={{ ...S.badge(metaLoading ? '#f59e0b' : metaAccounts ? (metaAccounts.success ? '#4ade80' : '#ff4444') : '#666'), fontSize: 9 }}>{metaLoading ? 'A carregar...' : metaAccounts ? (metaAccounts.success ? 'Carregado' : 'Erro') : 'Auto-sync'}</span>
+            </div>
+            {metaAccounts && (
+              <div style={{ marginTop: 8, padding: 10, borderRadius: 8, background: metaAccounts.success ? 'rgba(74,222,128,0.05)' : 'rgba(255,68,68,0.05)', border: '1px solid ' + (metaAccounts.success ? 'rgba(74,222,128,0.15)' : 'rgba(255,68,68,0.15)'), maxHeight: 200, overflowY: 'auto' }}>
+                <pre style={{ fontSize: 10, color: metaAccounts.success ? '#4ade80' : '#ff4444', whiteSpace: 'pre-wrap', fontFamily: "'SF Mono',Menlo,monospace", margin: 0 }}>{JSON.stringify(metaAccounts.data || metaAccounts.error, null, 2)}</pre>
+              </div>
+            )}
+          </div>
+
+          {/* Socialync Accounts */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#888' }}>Socialync — Contas Conectadas</div>
+              <span style={{ ...S.badge(syncLoading ? '#f59e0b' : syncAccounts ? (syncAccounts.success ? '#4ade80' : '#ff4444') : '#666'), fontSize: 9 }}>{syncLoading ? 'A sincronizar...' : syncAccounts ? (syncAccounts.success ? 'Sincronizado' : 'Erro') : 'Auto-sync'}</span>
+            </div>
+            {syncAccounts && (
+              <div style={{ marginTop: 8, padding: 10, borderRadius: 8, background: syncAccounts.success ? 'rgba(74,222,128,0.05)' : 'rgba(255,68,68,0.05)', border: '1px solid ' + (syncAccounts.success ? 'rgba(74,222,128,0.15)' : 'rgba(255,68,68,0.15)'), maxHeight: 200, overflowY: 'auto' }}>
+                <pre style={{ fontSize: 10, color: syncAccounts.success ? '#4ade80' : '#ff4444', whiteSpace: 'pre-wrap', fontFamily: "'SF Mono',Menlo,monospace", margin: 0 }}>{JSON.stringify(syncAccounts.data || syncAccounts.error, null, 2)}</pre>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* COMPOSIO HUB */}
+        <div style={S.card}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>🔗 Composio Hub — 1000+ Apps</div>
+            <span style={{ ...S.badge(compStatus?.configured ? (compStatus?.sessionActive ? '#4ade80' : '#f59e0b') : '#666') }}>{compStatus?.configured ? (compStatus?.sessionActive ? 'Sessao activa' : 'Configurada') : 'Nao configurada'}</span>
+          </div>
+          <div style={{ fontSize: 10, color: '#888', lineHeight: 1.5, marginBottom: 12 }}>
+            OAuth para Instagram, TikTok, Facebook, LinkedIn, X, YouTube, Google Analytics, Google Ads, Gmail, Google Sheets, Canva e mais. Conecta uma vez, JARVIS usa em todas as automacoes.
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ ...S.badge(compStatus?.configured ? (compStatus?.sessionActive ? '#4ade80' : '#f59e0b') : '#666'), fontSize: 9 }}>{compStatus ? (compStatus?.sessionActive ? 'Sessao auto-activa' : compStatus?.configured ? 'Configurada' : 'Nao configurada') : 'A verificar...'}</span>
+            <span style={{ fontSize: 9, color: '#555' }}>Status · Sessao · Toolkits · Contas — tudo auto-carregado</span>
+          </div>
+
+          {/* Toolkits Grid */}
+          {compToolkits && compToolkits.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 6, marginBottom: 12 }}>
+              {compToolkits.map((tk: any) => (
+                <div key={tk.slug} style={{ padding: '8px 10px', borderRadius: 8, background: tk.connected ? 'rgba(74,222,128,0.05)' : 'rgba(255,255,255,0.03)', border: '1px solid ' + (tk.connected ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.06)') }}>
+                  <div style={{ fontSize: 14, marginBottom: 2 }}>{tk.icon}</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#fff' }}>{tk.name}</div>
+                  <div style={{ fontSize: 9, color: tk.connected ? '#4ade80' : '#666' }}>{tk.connected ? 'Conectado' : 'Nao ligado'}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Composio Result */}
+          {compResult && (
+            <div style={{ padding: 10, borderRadius: 8, background: compResult.success ? 'rgba(74,222,128,0.05)' : 'rgba(255,68,68,0.05)', border: '1px solid ' + (compResult.success ? 'rgba(74,222,128,0.15)' : 'rgba(255,68,68,0.15)'), maxHeight: 200, overflowY: 'auto' }}>
+              <pre style={{ fontSize: 10, color: compResult.success ? '#4ade80' : '#ff4444', whiteSpace: 'pre-wrap', fontFamily: "'SF Mono',Menlo,monospace", margin: 0 }}>{JSON.stringify(compResult.data || compResult.error || compResult.link, null, 2)}</pre>
+            </div>
+          )}
+
+          {compStatus?.error && !compStatus?.configured && (
+            <div style={{ padding: '10px 12px', borderRadius: 8, background: 'rgba(255,140,0,0.05)', border: '1px solid rgba(255,140,0,0.15)' }}>
+              <div style={{ fontSize: 10, color: '#ff8c00', lineHeight: 1.5 }}>Adicione <span style={{ fontFamily: "'SF Mono',Menlo,monospace", fontSize: 9 }}>COMPOSIO_API_KEY</span> como Environment Variable no Vercel. Obtenha em <a href="https://dashboard.composio.dev/settings" target="_blank" rel="noreferrer" style={{ color: '#ff4444' }}>dashboard.composio.dev/settings</a></div>
+            </div>
+          )}
+        </div>
+
+        {/* TOOL RESULT (from individual tool test) */}
+        {toolResult && (
+          <div style={S.card}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 8 }}>Resultado da Ferramenta</div>
+            <div style={{ padding: 10, borderRadius: 8, background: toolResult.success ? 'rgba(74,222,128,0.05)' : 'rgba(255,68,68,0.05)', border: '1px solid ' + (toolResult.success ? 'rgba(74,222,128,0.15)' : 'rgba(255,68,68,0.15)'), maxHeight: 300, overflowY: 'auto' }}>
+              <pre style={{ fontSize: 10, color: toolResult.success ? '#4ade80' : '#ff4444', whiteSpace: 'pre-wrap', fontFamily: "'SF Mono',Menlo,monospace", margin: 0 }}>{JSON.stringify(toolResult.data || toolResult.error, null, 2)}</pre>
+            </div>
+          </div>
+        )}
+
+        {/* INFO BOX */}
+        <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(255,68,68,0.03)', border: '1px solid rgba(255,68,68,0.1)' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#ff8c00', marginBottom: 6 }}>Sobre MCP Servers</div>
+          <div style={{ fontSize: 10, color: '#888', lineHeight: 1.6 }}>
+            MCP (Model Context Protocol) permite ao JARVIS aceder a ferramentas externas — scraping, ads, publishing — como se fossem extensoes nativas. Cada servidor adiciona novas capacidades sem modificar o codigo existente. Adicione as API keys como variaveis de ambiente no Vercel.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===== TAB 8: REPORTS =====
+function ReportsTab() {
+  const [reports, setReports] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [clientName, setClientName] = useState('Mwango Brain');
+  const [period, setPeriod] = useState('30d');
+  const [showGen, setShowGen] = useState(false);
+
+  const fetchReports = async () => {
+    setLoading(true);
+    try {
+      var res = await apiCall('/cmd/reports', { action: 'list' });
+      if (res.success) setReports(res.data || []);
+    } catch(e) { console.warn('JARVIS:', e); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchReports(); }, []);
+
+  const generate = async () => {
+    setGenerating(true);
+    var days = period === '7d' ? 7 : period === '30d' ? 30 : period === '90d' ? 90 : 30;
+    var start = new Date(Date.now() - days * 86400000).toISOString();
+    var end = new Date().toISOString();
+    await apiCall('/cmd/reports', { action: 'generate', clientName, periodStart: start, periodEnd: end });
+    await fetchReports();
+    setShowGen(false);
+    setGenerating(false);
+  };
+
+  if (loading && reports.length === 0) return <Spinner />;
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: 16, WebkitOverflowScrolling: 'touch' }}>
+      <div style={{ maxWidth: 480, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>📄 Relatorios</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: loading ? '#f59e0b' : reports.length > 0 ? '#4ade80' : '#666', animation: loading ? 'pulse 1.5s infinite' : 'none' }} />
+            <span style={{ fontSize: 11, color: loading ? '#f59e0b' : reports.length > 0 ? '#4ade80' : '#666', fontWeight: 600 }}>{loading ? 'A carregar...' : 'Auto-geracao activa'}</span>
+            <span style={{ fontSize: 10, color: '#555' }}>({reports.length} relatorios)</span>
+          </div>
+        </div>
+
+        {/* GENERATE MODAL */}
+        {showGen && (
+          <div style={S.card}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 12 }}>Novo Relatorio</div>
+            <input value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Nome do cliente" style={{ ...S.input, marginBottom: 10 }} />
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+              {['7d', '30d', '90d'].map(p => (
+                <button key={p} onClick={() => setPeriod(p)} style={{ flex: 1, padding: '6px 0', borderRadius: 8, fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer', background: period === p ? '#ff4444' : 'rgba(255,255,255,0.06)', color: period === p ? '#fff' : '#888' }}>{p === '7d' ? '7 dias' : p === '30d' ? '30 dias' : '90 dias'}</button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setShowGen(false)} style={{ ...S.btnOutline, flex: 1 }}>Cancelar</button>
+              <button onClick={generate} disabled={generating} style={{ ...S.btn, flex: 1 }}>{generating ? 'A gerar...' : 'Gerar'}</button>
+            </div>
+          </div>
+        )}
+
+        {/* REPORT LIST */}
+        {reports.length === 0 && !loading && (
+          <div style={{ ...S.textS, fontSize: 13, textAlign: 'center', padding: 40 }}>
+            <FileBarChart size={32} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
+            Sem relatorios gerados
+          </div>
+        )}
+        {reports.map((r: any) => (
+          <div key={r.id} style={S.card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{r.clientName}</div>
+              <span style={{ ...S.textS, fontSize: 10 }}>{new Date(r.generatedAt).toLocaleDateString('pt-AO')}</span>
+            </div>
+            <div style={{ fontSize: 11, color: '#888', marginBottom: 8 }}>{new Date(r.periodStart).toLocaleDateString('pt-AO')} — {new Date(r.periodEnd).toLocaleDateString('pt-AO')}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
+              {[
+                { label: 'Posts', value: r.postsPublished, color: '#ff4444' },
+                { label: 'Likes', value: r.totalLikes, color: '#4ade80' },
+                { label: 'DMs', value: r.totalDMs, color: '#38bdf8' },
+              ].map((m, i) => (
+                <div key={i} style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: m.color }}>{m.value}</div>
+                  <div style={{ fontSize: 10, color: '#666' }}>{m.label}</div>
+                </div>
+              ))}
+            </div>
+            {r.summary && <div style={{ fontSize: 12, color: '#aaa', lineHeight: 1.5, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8 }}>{r.summary}</div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ===== TAB 9: A/B TESTING =====
+function ABTestTab() {
+  const [tests, setTests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [topic, setTopic] = useState('');
+  const [abPlatform, setAbPlatform] = useState('instagram');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const fetchTests = async () => {
+    setLoading(true);
+    try {
+      var res = await apiCall('/cmd/ab-test', { action: 'list' });
+      if (res.success) setTests(res.data || []);
+    } catch(e) { console.warn('JARVIS:', e); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchTests(); }, []);
+
+  const createTest = async () => {
+    if (!topic.trim()) return;
+    setCreating(true);
+    await apiCall('/cmd/ab-test', { action: 'create', topic, platform: abPlatform });
+    await fetchTests();
+    setTopic('');
+    setCreating(false);
+  };
+
+  const startTest = async (id: string) => {
+    await apiCall('/cmd/ab-test', { action: 'start', id });
+    await fetchTests();
+  };
+
+  const concludeTest = async (id: string) => {
+    await apiCall('/cmd/ab-test', { action: 'conclude', id });
+    await fetchTests();
+  };
+
+  const deleteTest = async (id: string) => {
+    await apiCall('/cmd/ab-test', { action: 'delete', id });
+    await fetchTests();
+  };
+
+  if (loading && tests.length === 0) return <Spinner />;
+
+  var statusColor = (s: string) => {
+    if (s === 'running') return '#4ade80';
+    if (s === 'completed') return '#3b82f6';
+    if (s === 'draft') return '#f59e0b';
+    return '#666';
+  };
+  var statusLabel = (s: string) => {
+    if (s === 'running') return 'A decorrer';
+    if (s === 'completed') return 'Concluido';
+    if (s === 'draft') return 'Rascunho';
+    return s;
+  };
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: 16, WebkitOverflowScrolling: 'touch' }}>
+      <div style={{ maxWidth: 480, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>🧪 A/B Testing</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: 7, height: 7, borderRadius: '50%', background: loading ? '#f59e0b' : tests.length > 0 ? '#4ade80' : '#666', animation: loading ? 'pulse 1.5s infinite' : 'none' }} />
+          <span style={{ fontSize: 11, color: loading ? '#f59e0b' : tests.length > 0 ? '#4ade80' : '#666', fontWeight: 600 }}>{loading ? 'A carregar...' : 'Auto-testes activos'}</span>
+          <span style={{ fontSize: 10, color: '#555' }}>({tests.length} testes)</span>
+        </div>
+
+        {/* CREATE */}
+        <div style={S.card}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 12 }}>Novo Teste</div>
+          <input value={topic} onChange={e => setTopic(e.target.value)} placeholder="Topico do post..." style={{ ...S.input, marginBottom: 10 }} />
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            {['instagram', 'facebook', 'tiktok'].map(p => (
+              <button key={p} onClick={() => setAbPlatform(p)} style={{ flex: 1, padding: '6px 0', borderRadius: 8, fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer', background: abPlatform === p ? '#ff4444' : 'rgba(255,255,255,0.06)', color: abPlatform === p ? '#fff' : '#888', textTransform: 'capitalize' }}>{p}</button>
+            ))}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center', padding: 10, background: 'rgba(74,222,128,0.05)', borderRadius: 8, border: '1px solid rgba(74,222,128,0.1)', marginTop: 12 }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: creating ? '#f59e0b' : '#4ade80' }} />
+            <span style={{ fontSize: 11, color: creating ? '#f59e0b' : '#4ade80', fontWeight: 600 }}>{creating ? 'A gerar variantes...' : 'Testes A/B criados automaticamente por cron'}</span>
+          </div>
+        </div>
+
+        {/* TEST LIST */}
+        {tests.length === 0 && !loading && (
+          <div style={{ ...S.textS, fontSize: 13, textAlign: 'center', padding: 40 }}>
+            <FlaskConical size={32} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
+            Sem testes A/B
+          </div>
+        )}
+        {tests.map((t: any) => (
+          <div key={t.id} style={S.card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
+                <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                  <span style={S.badge(statusColor(t.status))}>{statusLabel(t.status)}</span>
+                  <span style={{ ...S.textS, fontSize: 10 }}>{t.platform}</span>
+                  {t.winner && <span style={{ ...S.badge('#4ade80'), fontSize: 10 }}>Vencedor: {t.winner}</span>}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                {t.status === 'draft' && <span style={{ ...S.badge('#f59e0b'), fontSize: 9 }}>Pendente auto-inicio</span>}
+                {t.status === 'running' && <span style={{ ...S.badge('#4ade80'), fontSize: 9 }}>A decorrer</span>}
+                {t.status === 'completed' && <span style={{ ...S.badge('#3b82f6'), fontSize: 9 }}>Concluido</span>}
+                <button onClick={() => deleteTest(t.id)} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: 4 }}><Trash2 size={14} /></button>
+              </div>
+            </div>
+            <button onClick={() => setExpandedId(expandedId === t.id ? null : t.id)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontSize: 11, padding: 0, marginBottom: 8 }}>{expandedId === t.id ? 'Ocultar' : 'Ver variantes'}</button>
+            {expandedId === t.id && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div style={{ padding: 10, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,68,68,0.15)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#ff4444', marginBottom: 6 }}>Variante A</div>
+                  <div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.5, marginBottom: 8 }}>{(t.variantA || '').slice(0, 200)}</div>
+                  <div style={{ display: 'flex', gap: 8, fontSize: 10, color: '#888' }}>
+                    <span>L: {t.likesA}</span><span>C: {t.commentsA}</span><span>I: {t.impressionsA}</span>
+                  </div>
+                </div>
+                <div style={{ padding: 10, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(56,189,248,0.15)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#38bdf8', marginBottom: 6 }}>Variante B</div>
+                  <div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.5, marginBottom: 8 }}>{(t.variantB || '').slice(0, 200)}</div>
+                  <div style={{ display: 'flex', gap: 8, fontSize: 10, color: '#888' }}>
+                    <span>L: {t.likesB}</span><span>C: {t.commentsB}</span><span>I: {t.impressionsB}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ===== MAIN APP SHELL =====
 function MainApp({ onLogout }: { onLogout: () => void }) {
   const [tab, setTab] = useState('chat');
@@ -1573,20 +2401,20 @@ function MainApp({ onLogout }: { onLogout: () => void }) {
 
     var fetchNotifs = async () => {
       try {
-        var res = await fetch('/cmd/autonomous', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'get_notifications', unreadOnly: true }) });
+        var res = await fetch('/cmd/autonomous', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sg('jt', '') }, body: JSON.stringify({ action: 'get_notifications', unreadOnly: true }) });
         var data = await res.json();
         if (data.success) {
           setUnreadCount((data.data || []).length);
         }
-      } catch(e) {}
+      } catch(e) { console.warn('JARVIS:', e); }
     };
 
     var runAutonomousCycle = async () => {
       setAutoStatus('running');
       try {
-        await fetch('/cmd/autonomous', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'full_cycle' }) });
+        await fetch('/cmd/autonomous', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sg('jt', '') }, body: JSON.stringify({ action: 'full_cycle' }) });
         await fetchNotifs();
-      } catch(e) {}
+      } catch(e) { console.warn('JARVIS:', e); }
       setAutoStatus('active');
     };
 
@@ -1604,10 +2432,10 @@ function MainApp({ onLogout }: { onLogout: () => void }) {
 
   const fetchAllNotifs = async () => {
     try {
-      var res = await fetch('/cmd/autonomous', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'get_notifications', unreadOnly: false }) });
+      var res = await fetch('/cmd/autonomous', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sg('jt', '') }, body: JSON.stringify({ action: 'get_notifications', unreadOnly: false }) });
       var data = await res.json();
       if (data.success) setNotifications(data.data || []);
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
   };
 
   const markAllRead = async () => {
@@ -1628,6 +2456,10 @@ function MainApp({ onLogout }: { onLogout: () => void }) {
     { id: 'crm', label: 'CRM', icon: '👥' },
     { id: 'content', label: 'Content', icon: '✨' },
     { id: 'scheduler', label: 'Scheduler', icon: '⏰' },
+    { id: 'abtest', label: 'A/B', icon: '🧪' },
+    { id: 'reports', label: 'Reports', icon: '📄' },
+    { id: 'settings', label: 'Config', icon: '⚙️' },
+    { id: 'mcp', label: 'MCP', icon: '🔌' },
   ];
 
   return (
@@ -1671,6 +2503,10 @@ function MainApp({ onLogout }: { onLogout: () => void }) {
         {tab === 'crm' && <CrmTab />}
         {tab === 'content' && <ContentTab />}
         {tab === 'scheduler' && <SchedulerTab />}
+        {tab === 'abtest' && <ABTestTab />}
+        {tab === 'reports' && <ReportsTab />}
+        {tab === 'settings' && <SettingsTab />}
+        {tab === 'mcp' && <McpTab />}
       </div>
 
       {/* NOTIFICATION PANEL */}
@@ -1710,7 +2546,18 @@ export default function JarvisApp() {
   const [authed, setAuthed] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { var s = sg('ja', ''); if (s) setAuthed(true); setLoading(false); }, []);
+  useEffect(() => {
+    var token = sg('jt', '');
+    if (!token) { setLoading(false); return; }
+    fetch('/api/auth', { method: 'GET', headers: { 'Authorization': 'Bearer ' + token } })
+      .then(r => r.ok)
+      .then(valid => {
+        if (valid) setAuthed(true);
+        else { sd('jt'); sd('ja'); }
+        setLoading(false);
+      })
+      .catch(() => { sd('jt'); sd('ja'); setLoading(false); });
+  }, []);
 
   if (loading) return <div style={{ width: '100vw', height: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>A carregar...</div></div>;
 

@@ -72,7 +72,7 @@ async function publishDuePosts(): Promise<any> {
           publishPayload.mediaType = content.mediaType || 'image';
         }
 
-        var res = await fetch('https://api.upload-post.com/v1/posts', {
+        var res = await fetch('https://api.upload-post.com/api/uploadposts/upload', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -156,28 +156,22 @@ async function publishDuePosts(): Promise<any> {
           });
         }
       } else {
-        // Sem UploadPost key — marcar como "published" localmente (modo offline)
+        // Sem UploadPost key — NAO fingir que publicou
         await db.scheduledPost.update({
           where: { id: sp.id },
-          data: { status: 'published' },
+          data: { status: 'failed' },
         });
-        await db.contentPost.update({
-          where: { id: content.id },
-          data: { publishedAt: new Date(), status: 'published' },
-        });
+        results.errors.push(sp.id + ': UPLOADPOST_KEY nao configurada');
         await db.automationLog.create({
           data: {
             type: 'cron_publish',
-            action: 'published_local_only',
+            action: 'publish_skipped',
             platform: platform,
             targetId: sp.id,
-            targetName: content.caption.slice(0, 50),
-            status: 'success',
-            result: 'Publicado localmente (sem UploadPost key)',
-            completedAt: new Date(),
+            status: 'failed',
+            result: 'Sem UPLOADPOST_KEY — post nao publicado',
           },
         });
-        results.published++;
       }
     } catch (e: any) {
       await db.scheduledPost.update({

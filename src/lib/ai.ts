@@ -39,7 +39,7 @@ export async function generateAIResponse(
     if (context.platform) parts.push('Plataforma: ' + context.platform);
     if (context.notes) parts.push('Notas: ' + context.notes);
     if (context.category) parts.push('Categoria: ' + context.category);
-    if (context.bio) parts.push('Bio: ' + context.bio.slice(0, 200));
+    if (context.bio) parts.push('Bio: ' + (context.bio || '').slice(0, 200));
     if (parts.length > 0) fullSystem += '\n\nContexto: ' + parts.join('. ');
   }
 
@@ -67,7 +67,8 @@ export async function generateAIResponse(
 
     const data = await res.json();
     return cleanAIResponse(data);
-  } catch {
+  } catch (e: any) {
+    console.error('JARVIS AI Error:', e?.message || e);
     return 'Obrigado pela mensagem! A Mwango Brain vai ver isso com atencao. Entraremos em contacto em breve.';
   }
 }
@@ -122,12 +123,16 @@ export async function chatCompletion(messages: any[], maxTokens = 400): Promise<
 
     const data = await res.json();
     return cleanAIResponse(data);
-  } catch {
+  } catch (e: any) {
+    console.error('JARVIS AI Error:', e?.message || e);
     return 'Erro de conexao. Tenta novamente.';
   }
 }
 
 /** Limpa formatacao de resposta IA */
 function cleanAIResponse(data: any): string {
-  return data.choices?.[0]?.message?.content?.replace(/^\*+[^*]+\*+\s*/g, '').trim() || '';
+  var content = data.choices?.[0]?.message?.content || '';
+  // Strip only the first **Title:** prefix if present, keep other formatting
+  content = content.replace(/^\*{1,2}[^*]+\*{1,2}[\s\n]*/, '').trim();
+  return content;
 }

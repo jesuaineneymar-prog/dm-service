@@ -12,8 +12,8 @@ export var maxDuration = 60;
 // ── helpers ────────────────────────────────────────────────
 
 async function hikerFetch(path: string) {
-  var res = await fetch('https://hikerapi.com/v2' + path, {
-    headers: { 'X-HikerAPI-Key': HIKERAPI_KEY },
+  var res = await fetch('https://api.hikerapi.com' + path, {
+    headers: { 'x-access-key': HIKERAPI_KEY },
   });
   if (!res.ok) throw new Error('HikerAPI erro ' + res.status + ': ' + (await res.text()).slice(0, 200));
   return res.json();
@@ -21,7 +21,7 @@ async function hikerFetch(path: string) {
 
 async function uploadPostFetch(path: string) {
   var res = await fetch('https://api.upload-post.com/v1' + path, {
-    headers: { Authorization: 'Bearer ' + UPLOADPOST_KEY },
+    headers: { Authorization: 'Apikey ' + UPLOADPOST_KEY },
   });
   if (!res.ok) throw new Error('UploadPost erro ' + res.status + ': ' + (await res.text()).slice(0, 200));
   return res.json();
@@ -80,16 +80,17 @@ async function getStats() {
     }
   }
 
-  // Store analytics event for historical tracking
+  // Store analytics event for historical tracking (deduplicated — max 1 per hour)
   try {
-    await db.analyticsEvent.create({
-      data: {
-        platform: 'instagram',
-        eventType: 'followers',
-        metricValue: followers,
-        metadata: JSON.stringify({ username: IG_USERNAME, following, posts, engagementRate }),
-      },
+    var oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    var existing = await db.analyticsEvent.findFirst({
+      where: { platform: 'instagram', eventType: 'followers', recordedAt: { gte: oneHourAgo } },
     });
+    if (!existing) {
+      await db.analyticsEvent.create({
+        data: { platform: 'instagram', eventType: 'followers', metricValue: followers, metadata: JSON.stringify({ username: IG_USERNAME, following, posts, engagementRate }) },
+      });
+    }
   } catch (e: any) {
     console.error('Erro ao guardar AnalyticsEvent:', e.message);
   }

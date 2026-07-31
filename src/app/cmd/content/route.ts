@@ -71,11 +71,13 @@ async function generatePost(platform: string, topic: string, tone: string, langu
   var aiResponse = await generateContent(userPrompt);
   var extracted = extractFromAI(aiResponse);
 
-  // Save as draft in Prisma
+  // Save as draft in Prisma — persistir hashtags tambem
+  var hashtagsStr = extracted.hashtags.length > 0 ? extracted.hashtags.join(' ') : null;
   var post = await db.contentPost.create({
     data: {
       platform: platform,
       caption: extracted.caption,
+      hashtags: hashtagsStr,
       mediaType: extracted.suggestedMedia ? 'suggested' : null,
       status: 'draft',
     },
@@ -165,7 +167,7 @@ async function publishDraft(id: string, platforms: string[]) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + UPLOADPOST_KEY,
+          'Authorization': 'Apikey ' + UPLOADPOST_KEY,
         },
         body: JSON.stringify({
           platform: plat,
@@ -181,10 +183,14 @@ async function publishDraft(id: string, platforms: string[]) {
     }
   }
 
-  // Update post status
+  // Update post status — only mark published if at least one succeeded
+  var anySuccess = results.some(function(r: any) { return r.success; });
   var updatedPost = await db.contentPost.update({
     where: { id },
-    data: { status: 'published', publishedAt: new Date() },
+    data: {
+      status: anySuccess ? 'published' : 'failed',
+      publishedAt: anySuccess ? new Date() : null,
+    },
   });
 
   // Create ScheduledPost records for tracking multi-platform

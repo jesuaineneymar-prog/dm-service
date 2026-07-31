@@ -11,7 +11,7 @@ import { HIKERAPI_KEY, UPLOADPOST_KEY, MANYCHAT_KEY, N8N_WEBHOOK_URL } from './c
 // Pricing: $0.0006/request, 100 free requests
 // No proxy needed, no captcha, no bans
 
-var HIKER_BASE = 'https://hikerapi.com/v2';
+var HIKER_BASE = 'https://api.hikerapi.com';
 
 export interface HikerConfig {
   apiKey: string; // Get from hikerapi.com dashboard
@@ -20,8 +20,8 @@ export interface HikerConfig {
 // HikerAPI: Get user profile by username
 export async function hikerGetUser(apiKey: string, username: string) {
   try {
-    var res = await fetch(HIKER_BASE + '/users/by/username?username=' + encodeURIComponent(username), {
-      headers: { 'X-HikerAPI-Key': apiKey, 'Accept': 'application/json' },
+    var res = await fetch(HIKER_BASE + '/v1/user/by/username?username=' + encodeURIComponent(username), {
+      headers: { 'x-access-key': apiKey, 'Accept': 'application/json' },
     });
     if (!res.ok) return { success: false, error: 'HTTP ' + res.status };
     var data = await res.json();
@@ -34,9 +34,9 @@ export async function hikerGetUser(apiKey: string, username: string) {
 // HikerAPI: Get user's posts (feed)
 export async function hikerGetUserPosts(apiKey: string, userId: string, count?: number) {
   try {
-    var url = HIKER_BASE + '/users/' + userId + '/posts?count=' + (count || 10);
+    var url = HIKER_BASE + '/v1/user/posts?user_id=' + userId + '&amount=' + (count || 10);
     var res = await fetch(url, {
-      headers: { 'X-HikerAPI-Key': apiKey, 'Accept': 'application/json' },
+      headers: { 'x-access-key': apiKey, 'Accept': 'application/json' },
     });
     if (!res.ok) return { success: false, error: 'HTTP ' + res.status };
     var data = await res.json();
@@ -49,9 +49,9 @@ export async function hikerGetUserPosts(apiKey: string, userId: string, count?: 
 // HikerAPI: Get comments on a post
 export async function hikerGetComments(apiKey: string, mediaId: string, count?: number) {
   try {
-    var url = HIKER_BASE + '/media/' + mediaId + '/comments?count=' + (count || 20);
+    var url = HIKER_BASE + '/v1/media/comments?media_id=' + mediaId + '&amount=' + (count || 20);
     var res = await fetch(url, {
-      headers: { 'X-HikerAPI-Key': apiKey, 'Accept': 'application/json' },
+      headers: { 'x-access-key': apiKey, 'Accept': 'application/json' },
     });
     if (!res.ok) return { success: false, error: 'HTTP ' + res.status };
     var data = await res.json();
@@ -73,9 +73,9 @@ export async function hikerGetUserId(apiKey: string, username: string): Promise<
 // HikerAPI: Get user's followers
 export async function hikerGetFollowers(apiKey: string, userId: string, count?: number) {
   try {
-    var url = HIKER_BASE + '/users/' + userId + '/followers?count=' + (count || 20);
+    var url = HIKER_BASE + '/v1/user/followers?user_id=' + userId + '&amount=' + (count || 20);
     var res = await fetch(url, {
-      headers: { 'X-HikerAPI-Key': apiKey, 'Accept': 'application/json' },
+      headers: { 'x-access-key': apiKey, 'Accept': 'application/json' },
     });
     if (!res.ok) return { success: false, error: 'HTTP ' + res.status };
     var data = await res.json();
@@ -88,9 +88,9 @@ export async function hikerGetFollowers(apiKey: string, userId: string, count?: 
 // HikerAPI: Search users by query
 export async function hikerSearchUsers(apiKey: string, query: string) {
   try {
-    var url = HIKER_BASE + '/users/search?query=' + encodeURIComponent(query);
+    var url = HIKER_BASE + '/v1/user/search?query=' + encodeURIComponent(query);
     var res = await fetch(url, {
-      headers: { 'X-HikerAPI-Key': apiKey, 'Accept': 'application/json' },
+      headers: { 'x-access-key': apiKey, 'Accept': 'application/json' },
     });
     if (!res.ok) return { success: false, error: 'HTTP ' + res.status };
     var data = await res.json();
@@ -103,9 +103,9 @@ export async function hikerSearchUsers(apiKey: string, query: string) {
 // HikerAPI: Get user's stories
 export async function hikerGetStories(apiKey: string, userId: string) {
   try {
-    var url = HIKER_BASE + '/users/' + userId + '/stories';
+    var url = HIKER_BASE + '/v1/user/stories?user_id=' + userId;
     var res = await fetch(url, {
-      headers: { 'X-HikerAPI-Key': apiKey, 'Accept': 'application/json' },
+      headers: { 'x-access-key': apiKey, 'Accept': 'application/json' },
     });
     if (!res.ok) return { success: false, error: 'HTTP ' + res.status };
     var data = await res.json();
@@ -118,9 +118,9 @@ export async function hikerGetStories(apiKey: string, userId: string) {
 // HikerAPI: Get media insights (likes, views, etc.)
 export async function hikerGetMediaInsights(apiKey: string, mediaId: string) {
   try {
-    var url = HIKER_BASE + '/media/' + mediaId + '/insights';
+    var url = HIKER_BASE + '/v1/media/insights?media_id=' + mediaId;
     var res = await fetch(url, {
-      headers: { 'X-HikerAPI-Key': apiKey, 'Accept': 'application/json' },
+      headers: { 'x-access-key': apiKey, 'Accept': 'application/json' },
     });
     if (!res.ok) return { success: false, error: 'HTTP ' + res.status };
     var data = await res.json();
@@ -135,7 +135,7 @@ export async function hikerGetMediaInsights(apiKey: string, mediaId: string) {
 // Pricing: $16/mo (5 profiles), $24/mo (unlimited)
 // Posts to: Instagram, TikTok, Facebook, YouTube + 19 more
 
-var UP_BASE = 'https://api.upload-post.com/v1';
+var UP_BASE = 'https://api.upload-post.com/api/uploadposts';
 
 export interface UploadPostConfig {
   apiKey: string; // Get from upload-post.com dashboard
@@ -160,7 +160,7 @@ export async function upPost(apiKey: string, options: {
     if (options.profileId) body.profileId = options.profileId;
     if (options.publishAt) body.publishAt = options.publishAt;
 
-    var res = await fetch(UP_BASE + '/posts', {
+    var res = await fetch(UP_BASE + '/upload', {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer ' + apiKey,
@@ -184,7 +184,7 @@ export async function upPost(apiKey: string, options: {
 // Upload-Post: Get post status
 export async function upGetPostStatus(apiKey: string, postId: string) {
   try {
-    var res = await fetch(UP_BASE + '/posts/' + postId, {
+    var res = await fetch(UP_BASE + '/status?id=' + postId, {
       headers: {
         'Authorization': 'Bearer ' + apiKey,
         'Accept': 'application/json',
@@ -201,7 +201,7 @@ export async function upGetPostStatus(apiKey: string, postId: string) {
 // Upload-Post: List available profiles
 export async function upListProfiles(apiKey: string) {
   try {
-    var res = await fetch(UP_BASE + '/profiles', {
+    var res = await fetch(UP_BASE + '/users', {
       headers: {
         'Authorization': 'Bearer ' + apiKey,
         'Accept': 'application/json',
@@ -217,8 +217,17 @@ export async function upListProfiles(apiKey: string) {
 
 // Upload-Post: List supported platforms
 export async function upListPlatforms(apiKey: string) {
+  // Upload-Post supports: Instagram, TikTok, Facebook, YouTube, LinkedIn,
+  // Pinterest, Google Business, X/Twitter, and more
+  return { success: true, data: {
+    platforms: ['instagram', 'tiktok', 'facebook', 'youtube', 'linkedin', 'pinterest', 'google_business', 'twitter', 'threads'],
+  }};
+}
+
+// Upload-Post: Get post analytics
+export async function upGetAnalytics(apiKey: string, postId: string) {
   try {
-    var res = await fetch(UP_BASE + '/platforms', {
+    var res = await fetch(UP_BASE + '/post-analytics?id=' + postId, {
       headers: {
         'Authorization': 'Bearer ' + apiKey,
         'Accept': 'application/json',
@@ -229,6 +238,42 @@ export async function upListPlatforms(apiKey: string) {
     return { success: true, data: data };
   } catch (e: any) {
     return { success: false, error: e.message };
+  }
+}
+
+// Upload-Post: Get upload history
+export async function upGetHistory(apiKey: string) {
+  try {
+    var res = await fetch(UP_BASE + '/history', {
+      headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Accept': 'application/json',
+      },
+    });
+    if (!res.ok) return { success: false, error: 'HTTP ' + res.status };
+    var data = await res.json();
+    return { success: true, data: data };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+// Upload-Post: Check API key validity
+export async function upCheckKey(apiKey: string) {
+  try {
+    var res = await fetch(UP_BASE + '/users', {
+      headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Accept': 'application/json',
+      },
+    });
+    var data = await res.json();
+    if (data.success) {
+      return { valid: true, accounts: data.data };
+    }
+    return { valid: false, error: data.message || 'Invalid key' };
+  } catch (e: any) {
+    return { valid: false, error: e.message };
   }
 }
 
@@ -252,7 +297,7 @@ export async function mcSendDM(apiKey: string, options: {
     var res = await fetch(MC_BASE + '/fb/v2/messages', {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + apiKey,
+        'Authorization': 'Apikey ' + apiKey,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
@@ -281,7 +326,7 @@ export async function mcGetConversations(apiKey: string, platform?: string) {
     if (platform) url += '?platform=' + platform;
     var res = await fetch(url, {
       headers: {
-        'Authorization': 'Bearer ' + apiKey,
+        'Authorization': 'Apikey ' + apiKey,
         'Accept': 'application/json',
       },
     });
@@ -303,7 +348,7 @@ export async function mcTriggerFlow(apiKey: string, options: {
     var res = await fetch(MC_BASE + '/fb/v2/flows/trigger', {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + apiKey,
+        'Authorization': 'Apikey ' + apiKey,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },

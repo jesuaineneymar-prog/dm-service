@@ -17,7 +17,9 @@ import {
 } from '@/lib/zernio';
 
 import { requireAuth } from '@/lib/auth';
-import { generateDMReply } from '@/lib/ai';
+import { generateDMReply, generateContent } from '@/lib/ai';
+import { getTikTokStatus } from '@/lib/tiktok-engine';
+import { monitorTikTokDMs } from '@/app/cmd/tiktok/route';
 
 export var maxDuration = 120;
 
@@ -164,6 +166,22 @@ async function processFollowUps(): Promise<any> {
       take: 10,
     });
 
+    if (dueFollowUps.length === 0) return results;
+
+    // BATCH: Fetch all conversations for each platform ONCE (not per follow-up)
+    var allConversations: Record<string, any[]> = {};
+    var platformsNeeded = [...new Set(dueFollowUps.map(function(fu: any) { return fu.prospect.platform || 'instagram'; }))];
+    for (var pi = 0; pi < platformsNeeded.length; pi++) {
+      var plat = platformsNeeded[pi];
+      var convRes = await zernioListConversations({ platform: plat, limit: 100 });
+      if (convRes.success) {
+        var convData = convRes.data;
+        allConversations[plat] = Array.isArray(convData) ? convData : (convData?.data || convData?.conversations || []);
+      } else {
+        allConversations[plat] = [];
+      }
+    }
+
     for (var i = 0; i < dueFollowUps.length; i++) {
       var fu = dueFollowUps[i];
       var prospect = fu.prospect;
@@ -172,14 +190,8 @@ async function processFollowUps(): Promise<any> {
       var followUpMessage = fu.message || 'Ola ' + (prospect.displayName || '@' + prospect.username) + ', passei para saber se ainda tens interesse nos nossos servicos. A Mwango Brain tem novidades!';
       var platform = prospect.platform || 'instagram';
 
-      var convRes = await zernioListConversations({ platform: platform, limit: 50 });
-      if (!convRes.success) {
-        await db.followUp.update({ where: { id: fu.id }, data: { status: 'failed', result: 'Conversations failed' } });
-        continue;
-      }
-
-      var convData = convRes.data;
-      var conversations: any[] = Array.isArray(convData) ? convData : (convData?.data || convData?.conversations || []);
+      // Use pre-fetched conversations (no API call per follow-up!)
+      var conversations = allConversations[platform] || [];
 
       var matchingConv = conversations.find(function(c: any) {
         var pName = c.participant?.name || c.participant?.username || '';
@@ -205,12 +217,14 @@ async function processFollowUps(): Promise<any> {
         await db.prospect.update({ where: { id: prospect.id }, data: { lastContactedAt: new Date(), status: 'contacted' } });
         await db.automationLog.create({ data: { type: 'follow_up', action: 'auto_followup_3days', platform, targetId: prospect.id, targetName: prospect.username, status: 'success', result: 'Follow-up enviado', completedAt: new Date() } });
 
-        // Schedule next follow-up (7 days from now)
-        var nextDate = new Date();
-        nextDate.setDate(nextDate.getDate() + 7);
-        await db.followUp.create({
-          data: { prospectId: prospect.id, scheduledAt: nextDate, message: 'Lembrete: @' + prospect.username + ', queremos mesmo trabalhar contigo!' },
-        });
+        // Schedule next follow-up ONLY if prospect is not converted/lost
+        if (prospect.status !== 'converted' && prospect.status !== 'lost' && prospect.status !== 'not_interested') {
+          var nextDate = new Date();
+          nextDate.setDate(nextDate.getDate() + 7);
+          await db.followUp.create({
+            data: { prospectId: prospect.id, scheduledAt: nextDate, message: 'Lembrete: @' + prospect.username + ', queremos mesmo trabalhar contigo!' },
+          });
+        }
       } else {
         await db.followUp.update({ where: { id: fu.id }, data: { status: 'failed', result: sendRes.error || 'Send failed' } });
       }
@@ -230,6 +244,7 @@ async function autoCreateFollowUps(): Promise<number> {
   var prospects = await db.prospect.findMany({
     where: {
       status: { in: ['contacted', 'responded', 'new'] },
+      NOT: { status: { in: ['converted', 'lost', 'not_interested'] } },
       OR: [{ lastContactedAt: { lt: threeDaysAgo } }, { lastContactedAt: null }],
     },
     include: { followUps: true },
@@ -255,6 +270,61 @@ async function autoCreateFollowUps(): Promise<number> {
   }
 
   return created;
+}
+
+// Auto-generate weekly report if due
+async function autoGenerateReport(): Promise<boolean> {
+  try {
+    // Check if there is a report this week already
+    var weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+
+    var existing = await db.clientReport.findFirst({
+      where: { generatedAt: { gte: weekStart } },
+    });
+    if (existing) return false; // Already generated this week
+
+    // Check settings for report frequency
+    var freqSetting = await db.systemSetting.findUnique({ where: { key: 'report_frequency' } });
+    var freq = freqSetting?.value || 'weekly';
+    if (freq !== 'weekly') return false;
+
+    var clientSetting = await db.systemSetting.findUnique({ where: { key: 'agency_name' } });
+    var clientName = clientSetting?.value || 'Mwango Brain';
+
+    var periodStart = new Date(Date.now() - 7 * 86400000).toISOString();
+    var periodEnd = new Date().toISOString();
+
+    // Gather metrics
+    var postsPublished = await db.contentPost.count({ where: { publishedAt: { gte: new Date(periodStart) } } });
+    var analyticsEvents = await db.analyticsEvent.findMany({ where: { recordedAt: { gte: new Date(periodStart) } } });
+    var totalLikes = 0; var totalComments = 0;
+    for (var i = 0; i < analyticsEvents.length; i++) {
+      if (analyticsEvents[i].eventType === 'likes' || analyticsEvents[i].eventType === 'like') totalLikes += analyticsEvents[i].metricValue;
+      if (analyticsEvents[i].eventType === 'comments' || analyticsEvents[i].eventType === 'comment') totalComments += analyticsEvents[i].metricValue;
+    }
+    var totalDMs = await db.message.count({ where: { sentAt: { gte: new Date(periodStart) }, direction: 'inbound' } });
+    var newProspects = await db.prospect.count({ where: { createdAt: { gte: new Date(periodStart) } } });
+    var conversions = await db.prospect.count({ where: { status: 'converted', updatedAt: { gte: new Date(periodStart) } } });
+
+    var aiSummary = await generateContent(
+      'Gera um sumario semanal profissional em portugues para a agencia "' + clientName + '". ' +
+      'Metricas: ' + postsPublished + ' posts, ' + Math.round(totalLikes) + ' likes, ' + Math.round(totalComments) + ' comentarios, ' +
+      totalDMs + ' DMs, ' + newProspects + ' novos prospects, ' + conversions + ' conversoes. ' +
+      'Responde APENAS com 2-3 frases profissionais.'
+    );
+
+    await db.clientReport.create({
+      data: { clientName, periodStart: new Date(periodStart), periodEnd: new Date(), postsPublished, totalLikes: Math.round(totalLikes), totalComments: Math.round(totalComments), totalDMs, newProspects, conversions, summary: aiSummary },
+    });
+
+    await db.notification.create({ data: { type: 'report', title: 'Relatorio semanal gerado', message: 'Relatorio automatico da semana criado com ' + postsPublished + ' posts analisados.', platform: 'system' } });
+
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
 export async function POST(request: Request) {
@@ -306,11 +376,13 @@ export async function POST(request: Request) {
 
     if (action === 'full_cycle') {
       var monitorData = await monitorAndRespond();
+      var ttData = await monitorTikTokDMs();
       var followUpData = await processFollowUps();
       var autoCreated = await autoCreateFollowUps();
+      var reportGenerated = await autoGenerateReport();
       return NextResponse.json({
         success: true, action: 'full_cycle',
-        data: { monitor: monitorData, followUps: followUpData, autoCreatedFollowUps: autoCreated, timestamp: new Date().toISOString() },
+        data: { monitor: monitorData, tiktok: ttData, followUps: followUpData, autoCreatedFollowUps: autoCreated, autoReportGenerated: reportGenerated, timestamp: new Date().toISOString() },
       });
     }
 

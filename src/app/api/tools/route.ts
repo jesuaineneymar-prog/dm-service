@@ -5,6 +5,7 @@
 // ============================================================
 
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 import {
   hikerGetUser, hikerGetUserPosts, hikerGetComments,
   hikerGetUserId, hikerSearchUsers, hikerGetFollowers,
@@ -18,6 +19,8 @@ import {
 export var maxDuration = 300;
 
 export async function POST(request: Request) {
+  const authError = requireAuth(request);
+  if (authError) return authError;
   var body = await request.json().catch(function() { return {}; });
   var tool = body.tool || '';
   var action = body.action || '';
