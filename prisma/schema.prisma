@@ -5,7 +5,6 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:local.db"
 }
 
 model Prospect {
@@ -39,21 +38,21 @@ model Message {
   direction    String
   content      String
   platform     String?
-  sentAt       DateTime  @default(now())
-  isRead       Boolean   @default(false)
+  sentAt       DateTime @default(now())
+  isRead       Boolean  @default(false)
 }
 
 model FollowUp {
   id           String    @id @default(cuid())
   prospectId   String
-  prospect     Prospect  @relation(fields: [prospectId], references: [id], onDelete: Cascade)
-  scheduledAt  DateTime
-  status       String    @default("pending")
+  prospect    Prospect  @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  scheduledAt DateTime
+  status       String   @default("pending")
   message      String?
   sentAt       DateTime?
   result       String?
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime @default(now())
 }
 
 model AnalyticsEvent {
@@ -77,7 +76,7 @@ model ContentPost {
   publishedAt  DateTime?
   engagementData String?
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime @default(now())
 
   scheduledPosts ScheduledPost[]
 }
@@ -91,7 +90,7 @@ model ScheduledPost {
   status       String   @default("pending")
   uploadPostId String?
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime @default(now())
 }
 
 model Notification {
@@ -107,7 +106,7 @@ model Notification {
 }
 
 model AutomationLog {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   type          String
   action        String
   platform      String?
@@ -123,18 +122,18 @@ model ABTest {
   id             String   @id @default(cuid())
   name           String
   platform       String
-  variantA       String   // caption variante A
-  variantB       String   // caption variante B
+  variantA       String
+  variantB       String
   hashtagsA      String?
   hashtagsB      String?
-  status         String   @default("draft") // draft, running, completed, cancelled
+  status         String   @default("draft")
   impressionsA   Int      @default(0)
   impressionsB   Int      @default(0)
   likesA         Int      @default(0)
   likesB         Int      @default(0)
   commentsA      Int      @default(0)
   commentsB      Int      @default(0)
-  winner         String?  // "A", "B", or "tie"
+  winner         String?
   contentPostId  String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -155,12 +154,12 @@ model ClientReport {
   newProspects   Int      @default(0)
   conversions    Int      @default(0)
   summary        String?
-  generatedAt    DateTime @default(now())
+  generatedAt   DateTime @default(now())
 }
 
 model SystemSetting {
   id        String   @id @default(cuid())
-  key       String   @unique
+  key       String
   value     String
   updatedAt DateTime @updatedAt
 }
