@@ -1,15 +1,9 @@
 // ============================================================
-<<<<<<< HEAD
-//  JARVIS HEALTH CHECK
-=======
 //  JARVIS HEALTH CHECK — Testa todas as integracoes
->>>>>>> 789c38943ef5c4d1541a53ec8f56b213ff07a530
 // ============================================================
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-<<<<<<< HEAD
-=======
 import { SOCIAVAULT_KEY, COMPOSIO_KEY, UPLOADPOST_KEY, HIKERAPI_KEY, CRON_SECRET, TURSO_URL, BROWSERLESS_KEY, IG_USERNAME } from '@/lib/config';
 
 async function testSociaVault() {
@@ -27,7 +21,7 @@ async function testUploadPost() {
   if (!UPLOADPOST_KEY) return { configured: false, status: 'no_key' };
   try {
     var res = await fetch('https://api.upload-post.com/api/uploadposts/users', {
-      headers: { 'Authorization': 'Bearer ' + UPLOADPOST_KEY },
+      headers: { 'Authorization': 'Apikey ' + UPLOADPOST_KEY },
     });
     var data = await res.json();
     return { configured: true, status: data.success ? 'ok' : 'fail', msg: data.success ? 'connected' : (data.message || 'unknown error') };
@@ -56,27 +50,10 @@ async function testHikerAPI() {
     return { configured: true, status: res.ok ? 'ok' : 'fail ' + res.status };
   } catch (e: any) { return { configured: true, status: 'error', msg: e.message }; }
 }
->>>>>>> 789c38943ef5c4d1541a53ec8f56b213ff07a530
 
 export async function GET() {
   var dbOk = false;
   var dbError = '';
-<<<<<<< HEAD
-  try {
-    await db.prospect.count();
-    dbOk = true;
-  } catch (e: any) {
-    dbError = e.message;
-  }
-
-  return NextResponse.json({
-    status: dbOk ? 'healthy' : 'degraded',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    checks: {
-      database: dbOk ? 'ok' : 'error: ' + dbError,
-      server: 'ok',
-=======
   try { await db.prospect.count(); dbOk = true; } catch (e: any) { dbError = e.message; }
 
   // Test all integrations in parallel
@@ -101,7 +78,6 @@ export async function GET() {
       uploadpost,
       composio,
       hikerapi,
->>>>>>> 789c38943ef5c4d1541a53ec8f56b213ff07a530
     },
   });
 }

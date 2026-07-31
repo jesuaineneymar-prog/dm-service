@@ -193,10 +193,6 @@ async function schedulePost(contentPostId: string, platforms: string[], schedule
           headers: {
             'Authorization': 'Apikey ' + UPLOADPOST_KEY,
             'Content-Type': 'application/json',
-<<<<<<< HEAD
-=======
-            'Authorization': 'Apikey ' + UPLOADPOST_KEY,
->>>>>>> 789c38943ef5c4d1541a53ec8f56b213ff07a530
           },
           body: JSON.stringify({
             user: 'jarvis',

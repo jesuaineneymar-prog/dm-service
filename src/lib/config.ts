@@ -41,6 +41,9 @@ export var META_ADS_MCP_KEY = env('META_ADS_MCP_KEY', '');
 export var SOCIALYNC_KEY = env('SOCIALYNC_KEY', '');
 export var COMPOSIO_KEY = env('COMPOSIO_API_KEY', '') || env('COMPOSIO_KEY', '');
 
+// --- Sociavault (Scraping) ---
+export var SOCIAVAULT_KEY = env('SOCIAVAULT_API_KEY', '');
+
 // --- Validacao rapida ---
 export function getMissingKeys(): string[] {
   var missing: string[] = [];

@@ -82,11 +82,7 @@ async function publishDuePosts(): Promise<any> {
           upBody = 'user=jarvis&title=' + encodeURIComponent(content.caption || '') + '&platform[]=' + platform;
         }
 
-<<<<<<< HEAD
         var res = await fetch(upUrl, {
-=======
-        var res = await fetch('https://api.upload-post.com/api/uploadposts/upload', {
->>>>>>> 789c38943ef5c4d1541a53ec8f56b213ff07a530
           method: 'POST',
           headers: upHeaders,
           body: upBody,

@@ -39,8 +39,6 @@ import {
   listConnectedAccounts,
   MWANGO_TOOLKITS,
 } from '@/lib/composio-engine';
-<<<<<<< HEAD
-=======
 import {
   svTikTokProfile,
   svTikTokVideos,
@@ -77,7 +75,6 @@ import {
   svHealthCheck,
   SOCIAVAULT_PLATFORMS,
 } from '@/lib/sociavault-engine';
->>>>>>> 789c38943ef5c4d1541a53ec8f56b213ff07a530
 
 export var maxDuration = 60;
 
@@ -301,8 +298,6 @@ export async function POST(request: Request) {
       return NextResponse.json(extractResult);
     }
 
-<<<<<<< HEAD
-=======
     // === SOCIAVAULT: STATUS ===
     if (action === 'sv_status') {
       var svHealth = await svHealthCheck();
@@ -483,7 +478,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, data: SOCIAVAULT_PLATFORMS });
     }
 
->>>>>>> 789c38943ef5c4d1541a53ec8f56b213ff07a530
     return NextResponse.json({ success: false, error: 'Accao desconhecida: ' + action });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message });
