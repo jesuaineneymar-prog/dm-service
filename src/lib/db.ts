@@ -1,3 +1,8 @@
+// Esta importação deve ser PRIMEIRA para corrigir process.env do Prisma
+// Turbopack substitui process.env.DATABASE_URL por undefined no runtime
+// Aqui forçamos a leitura correta
+import './turso-env-fix';
+
 import { PrismaClient } from '@prisma/client';
 import { PrismaLibSql } from '@prisma/adapter-libsql';
 import { createClient } from '@libsql/client';
