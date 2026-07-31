@@ -1,13 +1,14 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaLibSql } from '@prisma/adapter-libsql';
 import { createClient } from '@libsql/client';
+import { TURSO_URL, TURSO_AUTH_TOKEN } from './config';
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | null; dbInitialized: boolean };
 
 function createPrismaClient(): PrismaClient {
-  var url = process.env.TURSO_URL || '';
+  var url = TURSO_URL;
   if (!url) throw new Error('TURSO_URL nao configurada. Define no .env.local ou Vercel env.');
-  var token = process.env.TURSO_AUTH_TOKEN || '';
+  var token = TURSO_AUTH_TOKEN;
   if (!token) throw new Error('TURSO_AUTH_TOKEN nao configurada. Define no .env.local ou Vercel env.');
 
   var libsql = createClient({ url, authToken: token });

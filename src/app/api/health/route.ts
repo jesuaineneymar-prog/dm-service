@@ -4,7 +4,7 @@
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { SOCIAVAULT_KEY, COMPOSIO_KEY, UPLOADPOST_KEY, HIKERAPI_KEY, CRON_SECRET, TURSO_URL, BROWSERLESS_KEY, IG_USERNAME } from '@/lib/config';
+import { SOCIAVAULT_KEY, COMPOSIO_KEY, UPLOADPOST_KEY, HIKERAPI_KEY, CRON_SECRET, TURSO_URL, BROWSERLESS_KEY, IG_USERNAME, ZERNIO_KEY } from '@/lib/config';
 
 async function testSociaVault() {
   if (!SOCIAVAULT_KEY) return { configured: false, status: 'no_key' };
@@ -51,17 +51,30 @@ async function testHikerAPI() {
   } catch (e: any) { return { configured: true, status: 'error', msg: e.message }; }
 }
 
+async function testZernio() {
+  if (!ZERNIO_KEY) return { configured: false, status: 'no_key' };
+  try {
+    var res = await fetch('https://api.zernio.com/v1/accounts', {
+      headers: { 'Authorization': 'Bearer ' + ZERNIO_KEY },
+    });
+    var data = await res.json();
+    var count = data.accounts ? data.accounts.length : 0;
+    return { configured: true, status: res.ok ? 'ok' : 'fail ' + res.status, accounts: count };
+  } catch (e: any) { return { configured: true, status: 'error', msg: e.message }; }
+}
+
 export async function GET() {
   var dbOk = false;
   var dbError = '';
   try { await db.prospect.count(); dbOk = true; } catch (e: any) { dbError = e.message; }
 
   // Test all integrations in parallel
-  var [sociavault, uploadpost, composio, hikerapi] = await Promise.all([
+  var [sociavault, uploadpost, composio, hikerapi, zernio] = await Promise.all([
     testSociaVault(),
     testUploadPost(),
     testComposio(),
     testHikerAPI(),
+    testZernio(),
   ]);
 
   return NextResponse.json({
@@ -78,6 +91,7 @@ export async function GET() {
       uploadpost,
       composio,
       hikerapi,
+      zernio,
     },
   });
 }
