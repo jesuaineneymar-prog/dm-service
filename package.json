@@ -1,9 +1,9 @@
 {
-  "name": "jarvis",
+  "name": "aura",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "postinstall": "npx prisma@6 generate",
+    "postinstall": "prisma generate",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
