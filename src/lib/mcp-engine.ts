@@ -8,7 +8,7 @@
 //    2. TikTok Ads — gestao de campanhas publicitarias TikTok
 //    3. Meta Ads — gestao de campanhas Facebook/Instagram Ads
 //    4. Socialync — publicacao multi-plataforma (TikTok, IG, YT, FB, X, LinkedIn)
-//    5. Composio — OAuth e integracao com 1000+ apps (do video Top 7 MCPs)
+//    5. Arcade — Actions runtime para AI agents (Google, Gmail, Sheets, Slack, Notion, LinkedIn...)
 //    6. Playwright MCP — automacao de browser (do video Top 7 MCPs)
 //
 //  Arquitetura: chamadas HTTP diretas aos MCP servers (remote)
@@ -20,7 +20,7 @@ import {
   TIKTOK_ADS_MCP_KEY,
   META_ADS_MCP_KEY,
   SOCIALYNC_KEY,
-  COMPOSIO_KEY,
+  ARCADE_KEY,
 } from './config';
 
 // === MCP SERVER REGISTRY ===
@@ -113,34 +113,27 @@ export var MCP_SERVERS: MCPServer[] = [
     ],
   },
   {
-    id: 'composio',
-    name: 'Composio',
-    description: '1000+ apps via OAuth. Login uma vez, acesso a Instagram, TikTok, Facebook, LinkedIn, X, YouTube, Google Analytics, Google Ads, Gmail, Google Sheets, Canva, Slack e muito mais. SDK com session management, tool discovery, e execucao direta. API key: COMPOSIO_API_KEY.',
-    url: 'https://backend.composio.dev/api/v3.1/tool_router',
-    authType: 'apikey',
-    authHeader: 'x-api-key',
-    status: COMPOSIO_KEY ? 'active' : 'inactive',
-    category: 'Integracao & OAuth',
-    pricing: 'Free tier disponivel (1000+ apps)',
-    setupUrl: 'https://dashboard.composio.dev/settings',
+    id: 'arcade',
+    name: 'Arcade',
+    description: 'Actions runtime para AI agents. Google Search, Gmail, Google Docs, Google Sheets, Slack, Notion, LinkedIn, e 100+ ferramentas com OAuth gerido. SDK @arcadeai/arcadejs.',
+    url: 'https://api.arcade.dev',
+    authType: 'bearer',
+    authHeader: 'Authorization',
+    status: ARCADE_KEY ? 'active' : 'inactive',
+    category: 'Acoes & Automacao',
+    pricing: 'Free tier disponivel',
+    setupUrl: 'https://app.arcade.dev',
     tools: [
-      { name: 'create_session', description: 'Criar sessao com toolkits de redes sociais (Instagram, TikTok, Facebook, LinkedIn, X, YouTube, Google Analytics, etc.)', category: 'session', server: 'composio' },
-      { name: 'search_tools', description: 'Pesquisar ferramentas por caso de uso (ex: "postar foto no Instagram", "analisar metricas TikTok")', category: 'discovery', server: 'composio' },
-      { name: 'execute_tool', description: 'Executar qualquer ferramenta de qualquer app conectada (post, analytics, DM, etc.)', category: 'action', server: 'composio' },
-      { name: 'get_connect_link', description: 'Gerar link OAuth para conectar uma app (Instagram, Gmail, Google Sheets, etc.)', category: 'auth', server: 'composio' },
-      { name: 'list_toolkits', description: 'Listar todos os toolkits disponiveis na sessao com status de conexao', category: 'session', server: 'composio' },
-      { name: 'list_connected_accounts', description: 'Ver todas as contas OAuth conectadas e seus status', category: 'auth', server: 'composio' },
-      { name: 'instagram_post', description: 'Publicar conteudo no Instagram (feed, stories, reels)', category: 'social', server: 'composio' },
-      { name: 'tiktok_post', description: 'Publicar video no TikTok via tool discovery', category: 'social', server: 'composio' },
-      { name: 'facebook_post', description: 'Publicar no Facebook (page, group, stories)', category: 'social', server: 'composio' },
-      { name: 'linkedin_post', description: 'Publicar no LinkedIn (perfil, pagina)', category: 'social', server: 'composio' },
-      { name: 'twitter_post', description: 'Publicar tweet no X/Twitter', category: 'social', server: 'composio' },
-      { name: 'youtube_upload', description: 'Fazer upload de video no YouTube', category: 'social', server: 'composio' },
-      { name: 'google_analytics', description: 'Obter metricas do Google Analytics (trafego, conversoes, usuarios)', category: 'analytics', server: 'composio' },
-      { name: 'google_ads_insights', description: 'Obter insights de campanhas Google Ads', category: 'ads', server: 'composio' },
-      { name: 'gmail_send', description: 'Enviar email via Gmail', category: 'communication', server: 'composio' },
-      { name: 'sheets_update', description: 'Atualizar Google Sheets (relatorios, dados de clientes)', category: 'productivity', server: 'composio' },
-      { name: 'canva_design', description: 'Criar designs no Canva (posts, stories, thumbnails)', category: 'design', server: 'composio' },
+      { name: 'google_search', description: 'Pesquisar no Google', category: 'search', server: 'arcade' },
+      { name: 'google_news_search', description: 'Pesquisar noticias no Google News', category: 'search', server: 'arcade' },
+      { name: 'gmail_send', description: 'Enviar email via Gmail', category: 'communication', server: 'arcade' },
+      { name: 'gmail_read', description: 'Ler emails do Gmail', category: 'communication', server: 'arcade' },
+      { name: 'google_sheets_read', description: 'Ler dados do Google Sheets', category: 'productivity', server: 'arcade' },
+      { name: 'google_sheets_update', description: 'Atualizar Google Sheets', category: 'productivity', server: 'arcade' },
+      { name: 'slack_message', description: 'Enviar mensagem no Slack', category: 'communication', server: 'arcade' },
+      { name: 'notion_read', description: 'Ler paginas do Notion', category: 'productivity', server: 'arcade' },
+      { name: 'notion_update', description: 'Atualizar paginas do Notion', category: 'productivity', server: 'arcade' },
+      { name: 'linkedin_read', description: 'Ler perfil LinkedIn', category: 'social', server: 'arcade' },
     ],
   },
   {
@@ -191,7 +184,7 @@ function getServerKey(serverId: string): string {
     case 'tiktok_ads': return TIKTOK_ADS_MCP_KEY;
     case 'meta_ads': return META_ADS_MCP_KEY;
     case 'socialync': return SOCIALYNC_KEY;
-    case 'composio': return COMPOSIO_KEY;
+    case 'arcade': return ARCADE_KEY;
     case 'playwright': return process.env.BROWSERLESS_KEY || '';
     default: return '';
   }

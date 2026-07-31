@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://docs.arcade.dev",
+    "name": "Arcade Docs | Arcade Docs",
+    "snippet": "Jul 18, 2026 — Arcade is the enterprise-ready actions runtime for AI agents. Call tools in agents. Setup ( TypeScript ) Create your own MCP servers and custom  ...",
+    "host_name": "docs.arcade.dev",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.arcade.dev/get-started/quickstarts/call-tool-agent",
+    "name": "Calling tools in your agent | Arcade Docs",
+    "snippet": "Jul 18, 2026 — Arcade gives your AI agents the power to act. With Arcade -hosted tools , your AI-powered apps can send Gmail, update Notion, message in Slack, ...",
+    "host_name": "docs.arcade.dev",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.scalekit.com/blog/arcade-alternatives",
+    "name": "Best Arcade.dev Alternatives for AI Agent Tool Calling (2026)",
+    "snippet": "Apr 29, 2026 — Compare Arcade.dev alternatives for AI agent tool calling — Scalekit, Composio, Nango, Merge, and Paragon . Tool definitions are TypeScript ...",
+    "host_name": "www.scalekit.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.arcade.dev/guides/agent-frameworks/vercelai",
+    "name": "Build an AI Chatbot with Arcade and Vercel AI SDK",
+    "snippet": "Jul 18, 2026 — The Vercel AI SDK is a TypeScript toolkit for building AI-powered applications . It provides streaming responses, support for React, Next.js, ...",
+    "host_name": "docs.arcade.dev",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/api-evangelist/arcade",
+    "name": "api-evangelist/arcade: Arcade.dev is an agent",
+    "snippet": "May 22, 2026 — Arcade.dev is an agent infrastructure platform that lets AI agents securely call APIs and tools on behalf of users with managed auth, evals, ...",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

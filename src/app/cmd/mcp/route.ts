@@ -28,17 +28,7 @@ import {
   socialyncGetAnalytics,
   socialyncListAccounts,
 } from '@/lib/mcp-engine';
-import {
-  createSession,
-  getSession,
-  getComposioStatus,
-  searchTools,
-  executeTool,
-  getConnectLink,
-  listSessionToolkits,
-  listConnectedAccounts,
-  MWANGO_TOOLKITS,
-} from '@/lib/composio-engine';
+import { arcadeListTools, arcadeExecuteTool, arcadeAuthorize, getArcadeStatus, arcadeSearchTools } from '@/lib/arcade-engine';
 import {
   svTikTokProfile,
   svTikTokVideos,
@@ -226,62 +216,37 @@ export async function POST(request: Request) {
       return NextResponse.json(syncAccounts);
     }
 
-    // === COMPOSIO: STATUS ===
-    if (action === 'composio_status') {
-      var compStatus = await getComposioStatus();
-      return NextResponse.json({ success: true, data: compStatus });
+    // === ARCADE: STATUS ===
+    if (action === 'arcade_status') {
+      var arcadeStatus = await getArcadeStatus();
+      return NextResponse.json({ success: true, data: arcadeStatus });
     }
 
-    // === COMPOSIO: CREATE SESSION ===
-    if (action === 'composio_create_session') {
-      var sessionResult = await createSession(body.toolkits);
-      return NextResponse.json(sessionResult);
+    // === ARCADE: LIST TOOLS ===
+    if (action === 'arcade_list_tools') {
+      var arcadeTools = await arcadeListTools(body.limit);
+      return NextResponse.json(arcadeTools);
     }
 
-    // === COMPOSIO: GET SESSION ===
-    if (action === 'composio_session') {
-      var sessInfo = await getSession();
-      return NextResponse.json(sessInfo);
+    // === ARCADE: EXECUTE TOOL ===
+    if (action === 'arcade_execute') {
+      if (!body.tool) return NextResponse.json({ success: false, error: 'tool necessario' });
+      var arcadeResult = await arcadeExecuteTool(body.tool, body.params, body.userId);
+      return NextResponse.json(arcadeResult);
     }
 
-    // === COMPOSIO: LIST TOOLKITS ===
-    if (action === 'composio_toolkits') {
-      var toolkits = await listSessionToolkits();
-      return NextResponse.json(toolkits);
+    // === ARCADE: AUTHORIZE (OAuth) ===
+    if (action === 'arcade_authorize') {
+      if (!body.tool) return NextResponse.json({ success: false, error: 'tool necessario' });
+      var authRes = await arcadeAuthorize(body.tool, body.userId);
+      return NextResponse.json(authRes);
     }
 
-    // === COMPOSIO: MWANGO TOOLKITS (pre-definidos) ===
-    if (action === 'composio_mwango_toolkits') {
-      return NextResponse.json({ success: true, data: MWANGO_TOOLKITS });
-    }
-
-    // === COMPOSIO: SEARCH TOOLS ===
-    if (action === 'composio_search') {
-      if (!body.queries || !Array.isArray(body.queries)) {
-        return NextResponse.json({ success: false, error: 'queries (array) necessario' });
-      }
-      var searchResult = await searchTools(body.queries);
-      return NextResponse.json(searchResult);
-    }
-
-    // === COMPOSIO: EXECUTE TOOL ===
-    if (action === 'composio_execute') {
-      if (!body.toolSlug) return NextResponse.json({ success: false, error: 'toolSlug necessario' });
-      var execResult = await executeTool(body.toolSlug, body.params || {});
-      return NextResponse.json(execResult);
-    }
-
-    // === COMPOSIO: CONNECT LINK (OAuth) ===
-    if (action === 'composio_connect') {
-      if (!body.toolkit) return NextResponse.json({ success: false, error: 'toolkit necessario (ex: instagram, gmail)' });
-      var linkResult = await getConnectLink(body.toolkit);
-      return NextResponse.json(linkResult);
-    }
-
-    // === COMPOSIO: CONNECTED ACCOUNTS ===
-    if (action === 'composio_accounts') {
-      var compAccounts = await listConnectedAccounts();
-      return NextResponse.json(compAccounts);
+    // === ARCADE: SEARCH TOOLS ===
+    if (action === 'arcade_search') {
+      if (!body.query) return NextResponse.json({ success: false, error: 'query necessario' });
+      var arcadeSearch = await arcadeSearchTools(body.query);
+      return NextResponse.json(arcadeSearch);
     }
 
     // === PLAYWRIGHT: NAVIGATE ===

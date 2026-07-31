@@ -22,9 +22,6 @@ export var OR_KEY = env('OR_KEY', '');
 // --- Zernio (DMs) ---
 export var ZERNIO_KEY = env('ZERNIO_KEY', '');
 
-// --- Blackbox AI ---
-export var BLACKBOX_KEY = env('BLACKBOX_KEY', '');
-
 // --- Contas ---
 export var IG_USERNAME = env('IG_USERNAME', '');
 
@@ -42,7 +39,9 @@ export var SOCIALCRAWL_KEY = env('SOCIALCRAWL_KEY', '');
 export var TIKTOK_ADS_MCP_KEY = env('TIKTOK_ADS_MCP_KEY', '');
 export var META_ADS_MCP_KEY = env('META_ADS_MCP_KEY', '');
 export var SOCIALYNC_KEY = env('SOCIALYNC_KEY', '');
-export var COMPOSIO_KEY = env('COMPOSIO_API_KEY', '') || env('COMPOSIO_KEY', '');
+// --- Arcade (Actions Runtime) ---
+export var ARCADE_KEY = env('ARCADE_KEY', '');
+export var ARCADE_USER_ID = env('ARCADE_USER_ID', 'mwango-brain-agent');
 
 // --- SerpAPI (Google Search) ---
 export var SERPAPI_KEY = env('SERPAPI_KEY', '');
@@ -56,6 +55,5 @@ export function getMissingKeys(): string[] {
   if (!TURSO_URL) missing.push('TURSO_URL');
   if (!TURSO_AUTH_TOKEN) missing.push('TURSO_AUTH_TOKEN');
   if (!CRON_SECRET) missing.push('CRON_SECRET');
-  if (!OR_KEY) missing.push('OR_KEY');
   return missing;
 }

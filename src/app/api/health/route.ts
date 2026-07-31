@@ -4,7 +4,7 @@
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { SOCIAVAULT_KEY, COMPOSIO_KEY, UPLOADPOST_KEY, HIKERAPI_KEY, CRON_SECRET, TURSO_URL, BROWSERLESS_KEY, IG_USERNAME, ZERNIO_KEY } from '@/lib/config';
+import { SOCIAVAULT_KEY, ARCADE_KEY, UPLOADPOST_KEY, HIKERAPI_KEY, CRON_SECRET, TURSO_URL, BROWSERLESS_KEY, IG_USERNAME, ZERNIO_KEY } from '@/lib/config';
 
 async function testSociaVault() {
   if (!SOCIAVAULT_KEY) return { configured: false, status: 'no_key' };
@@ -28,16 +28,8 @@ async function testUploadPost() {
   } catch (e: any) { return { configured: true, status: 'error', msg: e.message }; }
 }
 
-async function testComposio() {
-  if (!COMPOSIO_KEY) return { configured: false, status: 'no_key' };
-  try {
-    var res = await fetch('https://backend.composio.dev/api/v3.1/toolkits?limit=1', {
-      headers: { 'x-api-key': COMPOSIO_KEY, 'Content-Type': 'application/json' },
-    });
-    var data = await res.json();
-    if (data?.error) return { configured: true, status: 'replaced', msg: 'Usando APIs directas (Upload-Post, Sociavault, HikerAPI, Zernio)' };
-    return { configured: true, status: 'ok' };
-  } catch (e: any) { return { configured: true, status: 'replaced', msg: 'Usando APIs directas' }; }
+async function testArcade() {
+  return { configured: !!ARCADE_KEY, status: ARCADE_KEY ? 'ok' : 'no_key' };
 }
 
 async function testHikerAPI() {
@@ -68,10 +60,10 @@ export async function GET() {
   try { await db.prospect.count(); dbOk = true; } catch (e: any) { dbError = e.message; }
 
   // Test all integrations in parallel
-  var [sociavault, uploadpost, composio, hikerapi, zernio] = await Promise.all([
+  var [sociavault, uploadpost, arcade, hikerapi, zernio] = await Promise.all([
     testSociaVault(),
     testUploadPost(),
-    testComposio(),
+    testArcade(),
     testHikerAPI(),
     testZernio(),
   ]);
@@ -88,7 +80,7 @@ export async function GET() {
       browserless: !!BROWSERLESS_KEY,
       sociavault,
       uploadpost,
-      composio,
+      arcade,
       hikerapi,
       zernio,
     },
