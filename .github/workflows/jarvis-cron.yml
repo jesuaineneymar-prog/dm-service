@@ -43,3 +43,15 @@ jobs:
       - run: |
           M=$(date +%M)
           test $((M % 10)) -eq 0 && curl -sSf "${JARVIS_URL}/api/cron/publish?secret=${CRON_KEY}" || true
+
+  analytics:
+    name: Analytics
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      JARVIS_URL: ${{ secrets.JARVIS_URL }}
+      CRON_KEY: ${{ secrets.CRON_SECRET }}
+    steps:
+      - run: |
+          H=$(date +%H)
+          test "$H" = "05" && curl -sSf "${JARVIS_URL}/api/cron/analytics?secret=${CRON_KEY}" || true

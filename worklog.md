@@ -142,3 +142,47 @@ Stage Summary:
 - Secrets: JARVIS_URL + CRONS_SECRET (configurados)
 - PASSO FINAL: User precisa activar Actions em https://github.com/jesuaineneymar-prog/dm-service/actions (1 clique)
 - Apos activar, crons rodam 24/7 gratuitamente via GitHub Actions
+
+---
+Task ID: 10
+Agent: sub-agent
+Task: Add auth middleware to all /cmd/* routes
+
+Work Log:
+- Read /home/z/my-project/src/lib/auth.ts — understood requireAuth(request) API
+  - Returns null if auth OK, or NextResponse 401 if not
+  - Session-based: extracts Bearer token or ?token= query param
+  - PUBLIC_PATHS: /api/cron/ and /api/webhook/ (excluded from auth)
+- Read all 9 route files to identify exported handlers and import positions
+- Confirmed: all 9 files have only POST handlers, no GET handlers
+- Confirmed: none of the 9 files are under /api/cron/* or /api/webhook/* (all are under /cmd/*)
+- Added `import { requireAuth } from '@/lib/auth';` + auth guard to all 9 files
+
+Files modified (9):
+1. src/app/cmd/route.ts — POST handler (main command API)
+2. src/app/cmd/zernio/route.ts — POST handler (Zernio DM API)
+3. src/app/cmd/autonomous/route.ts — POST handler (autonomous engine)
+4. src/app/cmd/crm/route.ts — POST handler (CRM/prospects)
+5. src/app/cmd/content/route.ts — POST handler (content generation)
+6. src/app/cmd/analytics/route.ts — POST handler (analytics/stats)
+7. src/app/cmd/scheduler/route.ts — POST handler (scheduling)
+8. src/app/cmd/tools/route.ts — POST handler (external tools)
+9. src/app/cmd/browserless/route.ts — POST handler (browserless/scraping)
+
+Change pattern applied to each file:
+  1. Added import: `import { requireAuth } from '@/lib/auth';` after existing imports
+  2. Added auth guard at start of POST body:
+     ```typescript
+     const authError = requireAuth(request);
+     if (authError) return authError;
+     ```
+
+Issues found: None. All edits applied cleanly.
+  - No GET handlers found in any /cmd/* route (only POST)
+  - No public endpoints in /cmd/* scope (public paths are only /api/cron/* and /api/webhook/*)
+  - No files already had the auth import
+
+Stage Summary:
+- All 9 /cmd/* routes now protected by session-based auth
+- Unauthenticated requests receive 401 JSON response
+- /api/cron/* and /api/webhook/* routes remain public (untouched)

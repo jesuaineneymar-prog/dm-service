@@ -17,60 +17,10 @@ import {
   zernioSendDM,
 } from '@/lib/zernio';
 
-import { CRON_SECRET, OR_KEY, OR_URL, OR_MODEL, OR_FALLBACK_MODEL } from '@/lib/config';
+import { CRON_SECRET } from '@/lib/config';
+import { generateDMReply } from '@/lib/ai';
 
 export var maxDuration = 120;
-
-// Gerar resposta AI para um prospect
-async function generateAIResponse(senderName: string, platform: string, messageText: string, prospectContext: any): Promise<string> {
-  var systemPrompt = 'Es o assistente virtual da Mwango Brain, uma agencia criativa angolana. FALAS PORTUGUES DE ANGOLA. Responde de forma simpatica e profissional. Mantem respostas curtas (2-3 frases). Nunca digas que es IA. O teu nome e JARVIS. ';
-
-  if (prospectContext) {
-    systemPrompt += 'Contexto do prospect: ' + (prospectContext.username || senderName);
-    if (prospectContext.notes) systemPrompt += '. Notas: ' + prospectContext.notes;
-    if (prospectContext.category) systemPrompt += '. Categoria: ' + prospectContext.category;
-    if (prospectContext.bio) systemPrompt += '. Bio: ' + prospectContext.bio.slice(0, 200);
-  }
-
-  var messages: any[] = [
-    { role: 'system', content: systemPrompt },
-    { role: 'user', content: 'Mensagem recebida de @' + senderName + ' no ' + platform + ': "' + messageText + '"\n\nResponde de forma natural e simpatica.' },
-  ];
-
-  try {
-    var res = await fetch(OR_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + OR_KEY,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://jarvis-khaki-chi.vercel.app',
-        'X-Title': 'JARVIS',
-      },
-      body: JSON.stringify({ model: OR_MODEL, messages, max_tokens: 200, temperature: 0.7 }),
-    });
-
-    if (!res.ok) {
-      // Fallback para modelo secundario
-      var res2 = await fetch(OR_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + OR_KEY,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://jarvis-khaki-chi.vercel.app',
-          'X-Title': 'JARVIS',
-        },
-        body: JSON.stringify({ model: OR_FALLBACK_MODEL, messages, max_tokens: 200, temperature: 0.7 }),
-      });
-      var data2 = await res2.json();
-      return data2.choices?.[0]?.message?.content?.replace(/^\*+[^*]+\*+\s*/g, '').trim() || '';
-    }
-
-    var data = await res.json();
-    return data.choices?.[0]?.message?.content?.replace(/^\*+[^*]+\*+\s*/g, '').trim() || '';
-  } catch (e: any) {
-    return 'Obrigado pela mensagem! A Mwango Brain vai ver isso com atencao. Entraremos em contacto em breve.';
-  }
-}
 
 // Verificar mensagens por ler e responder automaticamente
 async function monitorAndRespond(): Promise<any> {
@@ -195,7 +145,7 @@ async function monitorAndRespond(): Promise<any> {
 
             // AUTO-REPLY com IA
             if (prospect && messageText.length > 0) {
-              var aiReply = await generateAIResponse(senderName, platform, messageText, prospect);
+              var aiReply = await generateDMReply(senderName, platform, messageText, prospect);
               var sendRes = await zernioSendDM(convId, accountId, aiReply);
 
               if (sendRes.success) {

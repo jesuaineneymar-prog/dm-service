@@ -1,29 +1,41 @@
 // ============================================================
 //  JARVIS ZERNIO WEBHOOK — recebe eventos de DM em tempo real
 //  Events: message.received, message.sent, conversation.started
+//  Verificacao HMAC-SHA256 real
 // ============================================================
 
 import { NextResponse } from 'next/server';
+import { createHmac } from 'crypto';
 import { db } from '@/lib/db';
 
 export var maxDuration = 30;
 
-var ZERNIO_WEBHOOK_SECRET = process.env.ZERNIO_WEBHOOK_SECRET || 'jarvis_webhook_secret_mwango_2024';
+const WEBHOOK_SECRET = process.env.ZERNIO_WEBHOOK_SECRET || 'jarvis_webhook_secret_mwango_2024';
 
-// Verify HMAC-SHA256 signature from Zernio
+// Verificacao HMAC-SHA256 real
 function verifySignature(body: string, signature: string): boolean {
-  // In production, use Node.js crypto to verify HMAC-SHA256
-  // For now we accept all webhooks and verify via presence of signature header
-  return !!signature;
+  if (!signature || !body) return false;
+  try {
+    const expected = 'sha256=' + createHmac('sha256', WEBHOOK_SECRET).update(body).digest('hex');
+    // Compara timing-safe para evitar timing attacks
+    if (signature.length !== expected.length) return false;
+    let result = 0;
+    for (let i = 0; i < signature.length; i++) {
+      result |= signature.charCodeAt(i) ^ expected.charCodeAt(i);
+    }
+    return result === 0;
+  } catch {
+    return false;
+  }
 }
 
 // Create a notification when a new DM arrives
 async function createNotification(eventType: string, platform: string, senderInfo: any, messageText: string, conversationId: string) {
-  var title = '';
-  var message = '';
+  let title = '';
+  let message = '';
 
   if (eventType === 'message.received') {
-    var senderName = senderInfo?.name || senderInfo?.username || senderInfo?.contactId || 'Alguem';
+    const senderName = senderInfo?.name || senderInfo?.username || senderInfo?.contactId || 'Alguem';
     title = 'Nova mensagem de ' + senderName;
     message = messageText ? messageText.slice(0, 150) : '(sem texto)';
   } else if (eventType === 'conversation.started') {
@@ -37,12 +49,12 @@ async function createNotification(eventType: string, platform: string, senderInf
     message = 'Evento recebido no ' + platform;
   }
 
-  var notification = await db.notification.create({
+  const notification = await db.notification.create({
     data: {
       type: eventType,
-      title: title,
-      message: message,
-      platform: platform,
+      title,
+      message,
+      platform,
       sourceId: conversationId,
       metadata: senderInfo ? JSON.stringify(senderInfo) : null,
     },
@@ -53,16 +65,15 @@ async function createNotification(eventType: string, platform: string, senderInf
 
 // Auto-detect if sender is a prospect and update CRM
 async function updateProspectFromDM(platform: string, senderInfo: any) {
-  var username = senderInfo?.username || senderInfo?.name || '';
+  const username = senderInfo?.username || senderInfo?.name || '';
   if (!username) return null;
 
-  var prospect = await db.prospect.findFirst({
-    where: { platform: platform, username: username },
+  const prospect = await db.prospect.findFirst({
+    where: { platform, username },
   });
 
   if (prospect) {
-    // Update last reply timestamp
-    var updated = await db.prospect.update({
+    const updated = await db.prospect.update({
       where: { id: prospect.id },
       data: {
         lastRepliedAt: new Date(),
@@ -78,10 +89,10 @@ async function updateProspectFromDM(platform: string, senderInfo: any) {
 
 // Auto-check for follow-ups needed (prospects not contacted in 3+ days)
 async function checkAndCreateFollowUps() {
-  var threeDaysAgo = new Date();
+  const threeDaysAgo = new Date();
   threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
-  var pendingProspects = await db.prospect.findMany({
+  const pendingProspects = await db.prospect.findMany({
     where: {
       status: { in: ['contacted', 'new', 'responded'] },
       OR: [
@@ -92,22 +103,19 @@ async function checkAndCreateFollowUps() {
     include: { followUps: true },
   });
 
-  var created = 0;
-  for (var i = 0; i < pendingProspects.length; i++) {
-    var p = pendingProspects[i];
-    // Check if already has a pending follow-up
-    var hasPending = p.followUps.some(function(fu) { return fu.status === 'pending'; });
+  let created = 0;
+  for (const p of pendingProspects) {
+    const hasPending = p.followUps.some(function(fu) { return fu.status === 'pending'; });
     if (hasPending) continue;
 
-    // Create automatic follow-up 3 days from now
-    var followUpDate = new Date();
-    followUpDate.setDate(followUpDate.getDate() + 1); // Follow up in 1 day since already 3+ days passed
+    const followUpDate = new Date();
+    followUpDate.setDate(followUpDate.getDate() + 1);
 
     await db.followUp.create({
       data: {
         prospectId: p.id,
         scheduledAt: followUpDate,
-        message: 'Seguimento automatico: Olá ' + (p.displayName || '@' + p.username) + ', estou a passar para saber se ainda tens interesse. A Mwango Brain tem novidades que podem interessar-te!',
+        message: 'Seguimento automatico: Ola ' + (p.displayName || '@' + p.username) + ', estou a passar para saber se ainda tens interesse. A Mwango Brain tem novidades que podem interessar-te!',
       },
     });
 
@@ -119,28 +127,27 @@ async function checkAndCreateFollowUps() {
 
 export async function POST(request: Request) {
   try {
-    var body = await request.text();
-    var signature = request.headers.get('x-zernio-signature') || '';
+    const body = await request.text();
+    const signature = request.headers.get('x-zernio-signature') || '';
 
-    // Verify webhook signature
+    // Verificacao HMAC-SHA256 real
     if (!verifySignature(body, signature)) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
-    var payload: any;
+    let payload: any;
     try {
       payload = JSON.parse(body);
     } catch {
       return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
     }
 
-    var event = payload.event || 'unknown';
-    var conversation = payload.conversation || {};
-    var message = payload.message || {};
-    var accountId = payload.accountId || '';
+    const event = payload.event || 'unknown';
+    const conversation = payload.conversation || {};
+    const message = payload.message || {};
 
     // Create notification
-    var notification = await createNotification(
+    const notification = await createNotification(
       event,
       conversation.platform || 'unknown',
       message.sender || {},
@@ -152,10 +159,9 @@ export async function POST(request: Request) {
     if (event === 'message.received' && conversation.platform) {
       await updateProspectFromDM(conversation.platform, message.sender || {});
 
-      // Log the message in the prospect's history
-      var senderName = message.sender?.username || message.sender?.name || '';
+      const senderName = message.sender?.username || message.sender?.name || '';
       if (senderName) {
-        var prospect = await db.prospect.findFirst({
+        const prospect = await db.prospect.findFirst({
           where: { platform: conversation.platform, username: senderName },
         });
         if (prospect) {
@@ -170,21 +176,19 @@ export async function POST(request: Request) {
         }
       }
 
-      // Check for follow-ups needed
       await checkAndCreateFollowUps();
     }
 
     return NextResponse.json({
       success: true,
       notificationId: notification.id,
-      event: event,
+      event,
     });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
 
-// GET endpoint to test webhook is alive
 export async function GET() {
   return NextResponse.json({
     status: 'active',

@@ -51,6 +51,7 @@ model FollowUp {
   status       String    @default("pending")
   message      String?
   sentAt       DateTime?
+  result       String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -68,6 +69,7 @@ model ContentPost {
   id           String   @id @default(cuid())
   platform     String?
   caption      String
+  hashtags     String?
   mediaUrl     String?
   mediaType    String?
   status       String   @default("draft")

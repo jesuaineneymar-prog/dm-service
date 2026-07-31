@@ -17,9 +17,13 @@ import {
   zernioGetConnectUrl,
 } from '@/lib/zernio';
 
+import { requireAuth } from '@/lib/auth';
+
 export var maxDuration = 60;
 
 export async function POST(request: Request) {
+  const authError = requireAuth(request);
+  if (authError) return authError;
   var body = await request.json().catch(function() { return {}; });
   var action = body.action || '';
 

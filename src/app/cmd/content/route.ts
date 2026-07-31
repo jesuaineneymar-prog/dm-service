@@ -4,36 +4,13 @@
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { OR_KEY, UPLOADPOST_KEY } from '@/lib/config';
+import { UPLOADPOST_KEY } from '@/lib/config';
+import { requireAuth } from '@/lib/auth';
+import { generateContent } from '@/lib/ai';
 
 export var maxDuration = 60;
 
-var SYSTEM_PROMPT = 'Tu es JARVIS, assistente de IA da Mwango Brain, uma agencia criativa angolana. A Mwango Brain faz branding, design grafico, gestao de redes sociais, marketing digital e producao de conteudo multimedia. Servicos: Design de logos, identidade visual, gestao de Instagram/Facebook/TikTok, producao de videos, fotografias profissionais, consultoria de marketing digital. Missao: Transformar marcas africanas em referencias globais. Toma: profissional mas acessivel, criativo, juventude angolana. Linguagem predominante: Portugues angolano.';
-
 // ── helpers ────────────────────────────────────────────────
-
-async function callOpenRouter(userPrompt: string) {
-  var res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + OR_KEY,
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.0-flash-exp:free',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt },
-      ],
-    }),
-  });
-  if (!res.ok) {
-    var errText = await res.text();
-    throw new Error('OpenRouter erro ' + res.status + ': ' + errText.slice(0, 200));
-  }
-  var json = await res.json();
-  return json.choices[0].message.content || '';
-}
 
 function extractFromAI(text: string) {
   var caption = text;
@@ -91,7 +68,7 @@ async function generatePost(platform: string, topic: string, tone: string, langu
 
   var userPrompt = platformNote + '\n\n' + topicPrompt + toneNote + langNote + hashtagNote + lengthNote + '\n\nResponde no seguinte formato JSON:\n{"caption": "...", "hashtags": ["#...", "#..."], "suggestedMedia": "descricao da imagem ou video sugerida"}';
 
-  var aiResponse = await callOpenRouter(userPrompt);
+  var aiResponse = await generateContent(userPrompt);
   var extracted = extractFromAI(aiResponse);
 
   // Save as draft in Prisma
@@ -121,7 +98,7 @@ async function generateHashtags(topic: string, platform: string, count: number) 
     ' Mistura hashtags populares com nicho. ' +
     ' Responde APENAS com uma lista JSON de strings, ex: ["#branding", "#angola"]';
 
-  var aiResponse = await callOpenRouter(userPrompt);
+  var aiResponse = await generateContent(userPrompt);
   try {
     var jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
     if (jsonMatch) return JSON.parse(jsonMatch[0]);
@@ -143,7 +120,7 @@ async function improveCaption(caption: string, platform: string, goal: string) {
     ' Mantem o tom da Mwango Brain (criativo, profissional, angolano).\n' +
     ' Responde APENAS com a legenda melhorada, sem explicacoes.';
 
-  var improved = await callOpenRouter(userPrompt);
+  var improved = await generateContent(userPrompt);
   // Clean up any quotes wrapping
   improved = improved.replace(/^['"]|['"]$/g, '').trim();
   return improved;
@@ -237,6 +214,8 @@ async function publishDraft(id: string, platforms: string[]) {
 // ── main handler ───────────────────────────────────────────
 
 export async function POST(request: Request) {
+  const authError = requireAuth(request);
+  if (authError) return authError;
   try {
     var body = await request.json().catch(function () { return {}; });
     var action = body.action || '';
