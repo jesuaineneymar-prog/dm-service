@@ -164,6 +164,22 @@ async function processFollowUps(): Promise<any> {
       take: 10,
     });
 
+    if (dueFollowUps.length === 0) return results;
+
+    // BATCH: Fetch all conversations for each platform ONCE (not per follow-up)
+    var allConversations: Record<string, any[]> = {};
+    var platformsNeeded = [...new Set(dueFollowUps.map(function(fu: any) { return fu.prospect.platform || 'instagram'; }))];
+    for (var pi = 0; pi < platformsNeeded.length; pi++) {
+      var plat = platformsNeeded[pi];
+      var convRes = await zernioListConversations({ platform: plat, limit: 100 });
+      if (convRes.success) {
+        var convData = convRes.data;
+        allConversations[plat] = Array.isArray(convData) ? convData : (convData?.data || convData?.conversations || []);
+      } else {
+        allConversations[plat] = [];
+      }
+    }
+
     for (var i = 0; i < dueFollowUps.length; i++) {
       var fu = dueFollowUps[i];
       var prospect = fu.prospect;
@@ -172,14 +188,8 @@ async function processFollowUps(): Promise<any> {
       var followUpMessage = fu.message || 'Ola ' + (prospect.displayName || '@' + prospect.username) + ', passei para saber se ainda tens interesse nos nossos servicos. A Mwango Brain tem novidades!';
       var platform = prospect.platform || 'instagram';
 
-      var convRes = await zernioListConversations({ platform: platform, limit: 50 });
-      if (!convRes.success) {
-        await db.followUp.update({ where: { id: fu.id }, data: { status: 'failed', result: 'Conversations failed' } });
-        continue;
-      }
-
-      var convData = convRes.data;
-      var conversations: any[] = Array.isArray(convData) ? convData : (convData?.data || convData?.conversations || []);
+      // Use pre-fetched conversations (no API call per follow-up!)
+      var conversations = allConversations[platform] || [];
 
       var matchingConv = conversations.find(function(c: any) {
         var pName = c.participant?.name || c.participant?.username || '';
@@ -205,12 +215,14 @@ async function processFollowUps(): Promise<any> {
         await db.prospect.update({ where: { id: prospect.id }, data: { lastContactedAt: new Date(), status: 'contacted' } });
         await db.automationLog.create({ data: { type: 'follow_up', action: 'auto_followup_3days', platform, targetId: prospect.id, targetName: prospect.username, status: 'success', result: 'Follow-up enviado', completedAt: new Date() } });
 
-        // Schedule next follow-up (7 days from now)
-        var nextDate = new Date();
-        nextDate.setDate(nextDate.getDate() + 7);
-        await db.followUp.create({
-          data: { prospectId: prospect.id, scheduledAt: nextDate, message: 'Lembrete: @' + prospect.username + ', queremos mesmo trabalhar contigo!' },
-        });
+        // Schedule next follow-up ONLY if prospect is not converted/lost
+        if (prospect.status !== 'converted' && prospect.status !== 'lost' && prospect.status !== 'not_interested') {
+          var nextDate = new Date();
+          nextDate.setDate(nextDate.getDate() + 7);
+          await db.followUp.create({
+            data: { prospectId: prospect.id, scheduledAt: nextDate, message: 'Lembrete: @' + prospect.username + ', queremos mesmo trabalhar contigo!' },
+          });
+        }
       } else {
         await db.followUp.update({ where: { id: fu.id }, data: { status: 'failed', result: sendRes.error || 'Send failed' } });
       }
@@ -230,6 +242,7 @@ async function autoCreateFollowUps(): Promise<number> {
   var prospects = await db.prospect.findMany({
     where: {
       status: { in: ['contacted', 'responded', 'new'] },
+      NOT: { status: { in: ['converted', 'lost', 'not_interested'] } },
       OR: [{ lastContactedAt: { lt: threeDaysAgo } }, { lastContactedAt: null }],
     },
     include: { followUps: true },

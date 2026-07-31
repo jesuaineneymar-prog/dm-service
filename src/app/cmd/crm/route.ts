@@ -12,8 +12,8 @@ export var maxDuration = 60;
 // ── helpers ────────────────────────────────────────────────
 
 async function hikerFetch(path: string) {
-  var res = await fetch('https://hikerapi.com/v2' + path, {
-    headers: { 'X-HikerAPI-Key': HIKERAPI_KEY },
+  var res = await fetch('https://api.hikerapi.com' + path, {
+    headers: { 'x-access-key': HIKERAPI_KEY },
   });
   if (!res.ok) throw new Error('HikerAPI erro ' + res.status + ': ' + (await res.text()).slice(0, 200));
   return res.json();
@@ -280,6 +280,32 @@ export async function POST(request: Request) {
       }
       var fu = await scheduleFollowUp(body.prospectId, body.scheduledAt, body.message || '');
       return NextResponse.json({ success: true, data: fu });
+    }
+
+    if (action === 'migrate_local') {
+      var localProspects = body.prospects || [];
+      var migrated = 0;
+      var skipped = 0;
+      for (var mi = 0; mi < localProspects.length; mi++) {
+        var lp = localProspects[mi];
+        if (!lp.username || !lp.platform) { skipped++; continue; }
+        var existing = await db.prospect.findFirst({ where: { platform: lp.platform, username: lp.username } });
+        if (!existing) {
+          await db.prospect.create({
+            data: {
+              platform: lp.platform,
+              username: lp.username,
+              displayName: lp.name || lp.displayName || null,
+              followers: lp.followers || 0,
+              bio: lp.bio || null,
+              category: lp.category || 'prospect',
+              notes: lp.notes || null,
+            },
+          });
+          migrated++;
+        } else { skipped++; }
+      }
+      return NextResponse.json({ success: true, data: { migrated, skipped, total: localProspects.length } });
     }
 
     if (action === 'get_stats') {

@@ -12,8 +12,8 @@ export var maxDuration = 60;
 // ── helpers ────────────────────────────────────────────────
 
 async function hikerFetch(path: string) {
-  var res = await fetch('https://hikerapi.com/v2' + path, {
-    headers: { 'X-HikerAPI-Key': HIKERAPI_KEY },
+  var res = await fetch('https://api.hikerapi.com' + path, {
+    headers: { 'x-access-key': HIKERAPI_KEY },
   });
   if (!res.ok) throw new Error('HikerAPI erro ' + res.status + ': ' + (await res.text()).slice(0, 200));
   return res.json();
@@ -117,16 +117,17 @@ function findNextOptimalTime(optimalTimes: any): Date {
   }
 
   var now = new Date();
-  for (var attempt = 0; attempt < 14; attempt++) {
+  for (var weekOffset = 0; weekOffset < 3; weekOffset++) {
     for (var i = 0; i < recommended.length; i++) {
       var slot = recommended[i];
-      var candidate = new Date();
-      candidate.setUTCHours(slot.hour, 0, 0, 0);
+      var candidate = new Date(now);
       var currentDay = candidate.getUTCDay();
       var targetDay = slot.dayIndex;
-      var diff = (targetDay - currentDay + 7) % 7;
-      if (attempt > 0 || diff > 0) candidate.setDate(candidate.getDate() + (attempt > 0 ? 0 : diff) + (attempt * 7));
-      else if (diff === 0 && candidate <= now) candidate.setDate(candidate.getDate() + 7);
+      var daysUntilTarget = (targetDay - currentDay + 7) % 7;
+      if (daysUntilTarget === 0 && candidate.getUTCHours() >= slot.hour) {
+        daysUntilTarget = 7;
+      }
+      candidate.setUTCDate(candidate.getUTCDate() + daysUntilTarget + (weekOffset * 7));
       candidate.setUTCHours(slot.hour, 0, 0, 0);
       if (candidate > now) return candidate;
     }
@@ -173,7 +174,7 @@ async function schedulePost(contentPostId: string, platforms: string[], schedule
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + UPLOADPOST_KEY,
+            'Authorization': 'Apikey ' + UPLOADPOST_KEY,
           },
           body: JSON.stringify({
             platform: plat,

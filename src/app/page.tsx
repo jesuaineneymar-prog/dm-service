@@ -8,8 +8,8 @@ import { MessageSquare, BarChart3, Users, Sparkles, Clock, Send, Plus, Trash2, C
 
 // ===== HELPERS =====
 const sg = (k: string, d?: string) => { try { var v = localStorage?.getItem(k); return v || d || ''; } catch(e) { return d || ''; } };
-const ss = (k: string, v: string) => { try { localStorage?.setItem(k, v); } catch(e) {} };
-const sd = (k: string) => { try { localStorage?.removeItem(k); } catch(e) {} };
+const ss = (k: string, v: string) => { try { localStorage?.setItem(k, v); } catch(e) { console.warn('JARVIS:', e); } };
+const sd = (k: string) => { try { localStorage?.removeItem(k); } catch(e) { console.warn('JARVIS:', e); } };
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const ft = (d: string) => { var dt = new Date(d); if (isNaN(dt.getTime())) return d; return dt.toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' }); };
 const apiCall = async (endpoint: string, body: any) => {
@@ -126,7 +126,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
               value={code}
               onChange={e => setCode(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') tryLogin(); }}
-              placeholder="Enter your password"
+              placeholder="Introduz a tua senha"
               type="password"
               style={{
                 width: '100%', height: 48, background: 'rgba(20,20,22,0.8)',
@@ -192,7 +192,7 @@ function ChatTab({ onLogout }: { onLogout: () => void }) {
     var prosps = getProspects();
     var res = await fetch('/cmd', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sg('jt', '') },
       body: JSON.stringify({ action, credentials: creds, prospects: prosps, ...extra }),
     }).then(r => r.ok ? r.json() : null).catch(() => null);
     if (res && res.sessions) saveSessions(res.sessions);
@@ -760,11 +760,20 @@ function CrmTab() {
       ]);
       if (s.success) setStats(s.data);
       if (p.success) setProspects(p.data || []);
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+    // One-time: migrate localStorage prospects to DB
+    var localProspects = getProspects();
+    if (localProspects.length > 0) {
+      apiCall('/cmd/crm', { action: 'migrate_local', prospects: localProspects }).then(function(res: any) {
+        if (res.success && res.data.migrated > 0) console.log('Migrados ' + res.data.migrated + ' prospects para a DB');
+      });
+    }
+  }, []);
 
   const fetchMessages = async (prospectId: string) => {
     var res = await apiCall('/cmd/crm', { action: 'get_messages', prospectId });
@@ -946,7 +955,7 @@ function ContentTab() {
       }
       var res = await apiCall('/cmd/content', body);
       if (res.success) setGenerated(res.data);
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
     setGenerating(false);
   };
 
@@ -967,7 +976,7 @@ function ContentTab() {
     try {
       var res = await apiCall('/cmd/content', { action: 'improve_caption', caption: generated.caption, platform });
       if (res.success) setGenerated({ ...generated, caption: res.data.caption });
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
     setGenerating(false);
   };
 
@@ -977,7 +986,7 @@ function ContentTab() {
     try {
       var res = await apiCall('/cmd/content', { action: 'generate_hashtags', topic: hashTopic, platform, count: hashCount });
       if (res.success) setHashtags(res.data || []);
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
     setHashLoading(false);
   };
 
@@ -986,7 +995,7 @@ function ContentTab() {
     try {
       var res = await apiCall('/cmd/content', { action: 'list_drafts' });
       if (res.success) setDrafts(res.data || []);
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
     setDraftsLoading(false);
   };
 
@@ -997,7 +1006,7 @@ function ContentTab() {
       await fetchDrafts();
       setShowPublish(null);
       setGenerated(null);
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
     setPublishing(null);
   };
 
@@ -1163,7 +1172,7 @@ function SchedulerTab() {
       if (t.success) setOptimalTimes(t.data);
       if (s.success) setScheduled(s.data || []);
       if (st.success) setSchedStats(st.data);
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
     setLoading(false);
   };
 
@@ -1305,7 +1314,7 @@ function DmTab() {
         if (!Array.isArray(convs) && convs.conversations) convs = convs.conversations;
         setConversations(convs);
       }
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
     setLoading(false);
   };
 
@@ -1317,7 +1326,7 @@ function DmTab() {
         if (!Array.isArray(accs) && accs.accounts) accs = accs.accounts;
         setAccounts(accs);
       }
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
   };
 
   const openConversation = async (conv: any) => {
@@ -1332,7 +1341,7 @@ function DmTab() {
       }
       // Mark as read
       await apiCall('/cmd/zernio', { action: 'mark_read', conversationId: conv.id });
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
   };
 
   const sendReply = async () => {
@@ -1346,7 +1355,7 @@ function DmTab() {
       if (res.success) {
         setMessages(m => [...m, { id: uid(), text, isFromMe: true, createdAt: new Date().toISOString(), senderType: 'account' }]);
       }
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
     setSending(false);
   };
 
@@ -1573,20 +1582,20 @@ function MainApp({ onLogout }: { onLogout: () => void }) {
 
     var fetchNotifs = async () => {
       try {
-        var res = await fetch('/cmd/autonomous', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'get_notifications', unreadOnly: true }) });
+        var res = await fetch('/cmd/autonomous', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sg('jt', '') }, body: JSON.stringify({ action: 'get_notifications', unreadOnly: true }) });
         var data = await res.json();
         if (data.success) {
           setUnreadCount((data.data || []).length);
         }
-      } catch(e) {}
+      } catch(e) { console.warn('JARVIS:', e); }
     };
 
     var runAutonomousCycle = async () => {
       setAutoStatus('running');
       try {
-        await fetch('/cmd/autonomous', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'full_cycle' }) });
+        await fetch('/cmd/autonomous', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sg('jt', '') }, body: JSON.stringify({ action: 'full_cycle' }) });
         await fetchNotifs();
-      } catch(e) {}
+      } catch(e) { console.warn('JARVIS:', e); }
       setAutoStatus('active');
     };
 
@@ -1604,10 +1613,10 @@ function MainApp({ onLogout }: { onLogout: () => void }) {
 
   const fetchAllNotifs = async () => {
     try {
-      var res = await fetch('/cmd/autonomous', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'get_notifications', unreadOnly: false }) });
+      var res = await fetch('/cmd/autonomous', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sg('jt', '') }, body: JSON.stringify({ action: 'get_notifications', unreadOnly: false }) });
       var data = await res.json();
       if (data.success) setNotifications(data.data || []);
-    } catch(e) {}
+    } catch(e) { console.warn('JARVIS:', e); }
   };
 
   const markAllRead = async () => {
@@ -1710,7 +1719,18 @@ export default function JarvisApp() {
   const [authed, setAuthed] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { var s = sg('ja', ''); if (s) setAuthed(true); setLoading(false); }, []);
+  useEffect(() => {
+    var token = sg('jt', '');
+    if (!token) { setLoading(false); return; }
+    fetch('/api/auth', { method: 'GET', headers: { 'Authorization': 'Bearer ' + token } })
+      .then(r => r.ok)
+      .then(valid => {
+        if (valid) setAuthed(true);
+        else { sd('jt'); sd('ja'); }
+        setLoading(false);
+      })
+      .catch(() => { sd('jt'); sd('ja'); setLoading(false); });
+  }, []);
 
   if (loading) return <div style={{ width: '100vw', height: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>A carregar...</div></div>;
 

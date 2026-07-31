@@ -165,7 +165,7 @@ async function publishDraft(id: string, platforms: string[]) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + UPLOADPOST_KEY,
+          'Authorization': 'Apikey ' + UPLOADPOST_KEY,
         },
         body: JSON.stringify({
           platform: plat,
@@ -181,10 +181,14 @@ async function publishDraft(id: string, platforms: string[]) {
     }
   }
 
-  // Update post status
+  // Update post status — only mark published if at least one succeeded
+  var anySuccess = results.some(function(r: any) { return r.success; });
   var updatedPost = await db.contentPost.update({
     where: { id },
-    data: { status: 'published', publishedAt: new Date() },
+    data: {
+      status: anySuccess ? 'published' : 'failed',
+      publishedAt: anySuccess ? new Date() : null,
+    },
   });
 
   // Create ScheduledPost records for tracking multi-platform

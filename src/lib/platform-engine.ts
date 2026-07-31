@@ -1,36 +1,31 @@
 // ============================================================
 //  JARVIS PLATFORM ENGINE — REAL HTTP API FOR IG, FB, TT
 //  All actions are REAL, zero simulation
-//  Credentials loaded from .env.local (never in source code)
+//  Credentials loaded from config.ts (centralized)
 // ============================================================
 
-// --- Load credentials from environment (server-side only) ---
-var _env = (typeof process !== 'undefined' && process.env) ? process.env : {} as any;
-var IG_USERNAME = _env.IG_USERNAME || '';
-var IG_PASSWORD = _env.IG_PASSWORD || '';
-var FB_USERNAME = _env.FB_USERNAME || '';
-var FB_PASSWORD = _env.FB_PASSWORD || '';
-var FB_DISPLAY_NAME = _env.FB_DISPLAY_NAME || '';
-var TT_USERNAME = _env.TT_USERNAME || '';
-var TT_PASSWORD = _env.TT_PASSWORD || '';
+import { env, OR_KEY, OR_URL, OR_MODEL, OR_FALLBACK_MODEL, HIKERAPI_KEY, UPLOADPOST_KEY, MANYCHAT_KEY, N8N_WEBHOOK_URL } from '@/lib/config';
+
+// --- Credentials ---
+var IG_USERNAME = env('IG_USERNAME');
+var IG_PASSWORD = env('IG_PASSWORD');
+var FB_USERNAME = env('FB_USERNAME');
+var FB_PASSWORD = env('FB_PASSWORD');
+var FB_DISPLAY_NAME = env('FB_DISPLAY_NAME');
+var TT_USERNAME = env('TT_USERNAME');
+var TT_PASSWORD = env('TT_PASSWORD');
 
 // --- AI config ---
-var OR_KEY = _env.OR_KEY || '';
-var OR_URL = 'https://openrouter.ai/api/v1/chat/completions';
-var OR_MODEL = 'google/gemini-2.0-flash-exp:free';
-var OR_FALLBACK = 'meta-llama/llama-3.2-3b-instruct:free';
+var OR_FALLBACK = OR_FALLBACK_MODEL;
 
 // --- CAPTCHA Solver ---
-var NOCAPTCHA_KEY = _env.NOCAPTCHA_KEY || '';
+var NOCAPTCHA_KEY = env('NOCAPTCHA_KEY');
 
-// --- API Services (ready for integration) ---
-var HIKERAPI_KEY = _env.HIKERAPI_KEY || '';
-var UPLOADPOST_KEY = _env.UPLOADPOST_KEY || '';
-var UP_PROFILE = _env.UP_PROFILE || 'jarvis';
-var MANYCHAT_KEY = _env.MANYCHAT_KEY || '';
-var BROWSERLESS_KEY = _env.BROWSERLESS_KEY || '';
-var N8N_URL = _env.N8N_URL || '';
-var N8N_API_KEY = _env.N8N_API_KEY || '';
+// --- API Services ---
+var UP_PROFILE = env('UP_PROFILE', 'jarvis');
+var BROWSERLESS_KEY = env('BROWSERLESS_KEY');
+var N8N_URL = N8N_WEBHOOK_URL;
+var N8N_API_KEY = env('N8N_API_KEY');
 
 // --- Helpers ---
 var fetchW = function(url: string, opts: any, timeout?: number) {
@@ -779,18 +774,23 @@ export async function igReplyComment(sessionid: string, csrftoken: string, media
 // Upload photo and create post
 export async function igUploadPost(sessionid: string, csrftoken: string, imageData: Buffer, caption: string): Promise<{ success: boolean; mediaId?: string; error?: string }> {
   try {
-    // Step 1: Upload photo
+    // Step 1: Upload photo using FormData (proper multipart)
     var uploadId = Date.now().toString();
-    var boundary = '----JARVIS' + Date.now();
-    var uploadBody = '--' + boundary + '\r\nContent-Disposition: form-data; name="upload_id"\r\n\r\n' + uploadId + '\r\n--' + boundary + '\r\nContent-Disposition: form-data; name="photo"; filename="photo.jpg"\r\nContent-Type: image/jpeg\r\n\r\n';
+    var formData = new FormData();
+    formData.append('upload_id', uploadId);
+    formData.append('photo', new Blob([imageData], { type: 'image/jpeg' }), 'photo.jpg');
 
     // For serverless, we use the v2 upload endpoint
     var uploadRes = await fetchW('https://www.instagram.com/api/v2/upload/photo/', {
       method: 'POST',
       headers: {
-        ...IG_HEADERS(sessionid, csrftoken, { 'Content-Type': 'multipart/form-data; boundary=' + boundary }),
+        'User-Agent': IG_UA,
+        'X-IG-App-ID': '936619743392459',
+        'X-CSRFToken': csrftoken,
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept-Language': 'pt-PT,pt;q=0.9',
       },
-      body: imageData,
+      body: formData,
     }, 30000);
 
     if (!uploadRes || !uploadRes.ok) {

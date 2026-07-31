@@ -11,7 +11,7 @@ import { HIKERAPI_KEY, UPLOADPOST_KEY, MANYCHAT_KEY, N8N_WEBHOOK_URL } from './c
 // Pricing: $0.0006/request, 100 free requests
 // No proxy needed, no captcha, no bans
 
-var HIKER_BASE = 'https://hikerapi.com/v2';
+var HIKER_BASE = 'https://api.hikerapi.com';
 
 export interface HikerConfig {
   apiKey: string; // Get from hikerapi.com dashboard
@@ -163,7 +163,7 @@ export async function upPost(apiKey: string, options: {
     var res = await fetch(UP_BASE + '/posts', {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + apiKey,
+        'Authorization': 'Apikey ' + apiKey,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
@@ -186,7 +186,7 @@ export async function upGetPostStatus(apiKey: string, postId: string) {
   try {
     var res = await fetch(UP_BASE + '/posts/' + postId, {
       headers: {
-        'Authorization': 'Bearer ' + apiKey,
+        'Authorization': 'Apikey ' + apiKey,
         'Accept': 'application/json',
       },
     });
@@ -203,7 +203,7 @@ export async function upListProfiles(apiKey: string) {
   try {
     var res = await fetch(UP_BASE + '/profiles', {
       headers: {
-        'Authorization': 'Bearer ' + apiKey,
+        'Authorization': 'Apikey ' + apiKey,
         'Accept': 'application/json',
       },
     });
@@ -220,7 +220,7 @@ export async function upListPlatforms(apiKey: string) {
   try {
     var res = await fetch(UP_BASE + '/platforms', {
       headers: {
-        'Authorization': 'Bearer ' + apiKey,
+        'Authorization': 'Apikey ' + apiKey,
         'Accept': 'application/json',
       },
     });
@@ -252,7 +252,7 @@ export async function mcSendDM(apiKey: string, options: {
     var res = await fetch(MC_BASE + '/fb/v2/messages', {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + apiKey,
+        'Authorization': 'Apikey ' + apiKey,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
@@ -281,7 +281,7 @@ export async function mcGetConversations(apiKey: string, platform?: string) {
     if (platform) url += '?platform=' + platform;
     var res = await fetch(url, {
       headers: {
-        'Authorization': 'Bearer ' + apiKey,
+        'Authorization': 'Apikey ' + apiKey,
         'Accept': 'application/json',
       },
     });
@@ -303,7 +303,7 @@ export async function mcTriggerFlow(apiKey: string, options: {
     var res = await fetch(MC_BASE + '/fb/v2/flows/trigger', {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + apiKey,
+        'Authorization': 'Apikey ' + apiKey,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
