@@ -27,8 +27,8 @@ export var IG_USERNAME = env('IG_USERNAME', '');
 
 // --- OpenRouter (IA) ---
 export var OR_URL = 'https://openrouter.ai/api/v1/chat/completions';
-export var OR_MODEL = 'google/gemma-4-31b-it:free';
-export var OR_FALLBACK_MODEL = 'nvidia/nemotron-3-super-120b-a12b:free';
+export var OR_MODEL = 'openrouter/free';
+export var OR_FALLBACK_MODEL = 'inclusionai/ling-3.0-flash:free';
 
 // --- ManyChat / N8N (opcional) ---
 export var MANYCHAT_KEY = env('MANYCHAT_API_KEY', '');
