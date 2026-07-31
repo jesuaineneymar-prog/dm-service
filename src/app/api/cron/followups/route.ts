@@ -19,6 +19,8 @@ import { CRON_SECRET } from '@/lib/config';
 
 export var maxDuration = 120;
 
+var MAX_FOLLOWUPS = 3; // Maximo 3 follow-ups por prospect (anti-spam)
+
 // Criar follow-ups automáticos para prospects sem contacto há 3+ dias
 async function autoCreateFollowUps(): Promise<number> {
   var threeDaysAgo = new Date();
@@ -43,11 +45,20 @@ async function autoCreateFollowUps(): Promise<number> {
     var hasPending = p.followUps.some(function(fu: any) { return fu.status === 'pending'; });
     if (hasPending) continue;
 
+    // Verificar quantos follow-ups já foram enviados
+    var sentCount = p.followUps.filter(function(fu: any) { return fu.status === 'sent'; }).length;
+    if (sentCount >= MAX_FOLLOWUPS) continue;
+
     // Criar follow-up para 1 dia a partir de agora (já se passaram 3+ dias)
     var followUpDate = new Date();
     followUpDate.setDate(followUpDate.getDate() + 1);
 
-    var message = 'Seguimento automatico: Ola ' + (p.displayName || '@' + p.username) + ', estou a passar para saber se ainda tens interesse nos nossos servicos criativos. A Mwango Brain tem novidades que podem interessar-te!';
+    var messages = [
+      'Ola ' + (p.displayName || '@' + p.username) + ', estou a passar para saber se ainda tens interesse nos nossos servicos criativos. A Mwango Brain tem novidades que podem interessar-te!',
+      'Hey ' + (p.displayName || '@' + p.username) + ', a Mwango Brain tem novos projectos incriveis! Querias ver alguns exemplos do nosso trabalho?',
+      'Ultima mensagem da Mwango Brain para ti ' + (p.displayName || '@' + p.username) + ' — se algum dia precisares de design ou marketing, estamos aqui!',
+    ];
+    var message = messages[Math.min(sentCount, messages.length - 1)];
 
     await db.followUp.create({
       data: {
@@ -192,29 +203,58 @@ async function sendPendingFollowUps(): Promise<any> {
           },
         });
 
-        // Agendar proximo follow-up (7 dias depois)
-        var nextDate = new Date();
-        nextDate.setDate(nextDate.getDate() + 7);
-
-        await db.followUp.create({
-          data: {
-            prospectId: prospect.id,
-            scheduledAt: nextDate,
-            message: 'Lembrete: Ola ' + (prospect.displayName || '@' + prospect.username) + ', a Mwango Brain continua interessada em trabalhar contigo! Tens algum projecto em mente?',
-          },
+        // Contar follow-ups enviados para este prospect
+        var totalSent = await db.followUp.count({
+          where: { prospectId: prospect.id, status: 'sent' },
         });
 
-        await db.automationLog.create({
-          data: {
-            type: 'cron_followup_create',
-            action: 'next_followup_scheduled',
-            platform: platform,
-            targetId: prospect.id,
-            targetName: prospect.username,
-            status: 'success',
-            result: 'Proximo follow-up agendado para ' + nextDate.toISOString(),
-          },
-        });
+        // So agendar proximo se ainda nao atingiu o limite
+        if (totalSent < MAX_FOLLOWUPS) {
+          var nextDate = new Date();
+          nextDate.setDate(nextDate.getDate() + 7);
+
+          var nextMessages = [
+            'Lembrete: Ola ' + (prospect.displayName || '@' + prospect.username) + ', a Mwango Brain continua interessada em trabalhar contigo!',
+            'A Mwango Brain tem novidades ' + (prospect.displayName || '@' + prospect.username) + ' — querias ver o nosso portfolio actualizado?',
+          ];
+
+          await db.followUp.create({
+            data: {
+              prospectId: prospect.id,
+              scheduledAt: nextDate,
+              message: nextMessages[Math.min(totalSent, nextMessages.length - 1)],
+            },
+          });
+
+          await db.automationLog.create({
+            data: {
+              type: 'cron_followup_create',
+              action: 'next_followup_scheduled',
+              platform: platform,
+              targetId: prospect.id,
+              targetName: prospect.username,
+              status: 'success',
+              result: 'Follow-up ' + (totalSent + 1) + '/' + MAX_FOLLOWUPS + ' agendado para ' + nextDate.toISOString(),
+            },
+          });
+        } else {
+          // Marcar prospect como 'closed' — limite atingido
+          await db.prospect.update({
+            where: { id: prospect.id },
+            data: { status: 'closed' },
+          });
+          await db.automationLog.create({
+            data: {
+              type: 'cron_followup_create',
+              action: 'prospect_closed_max_followups',
+              platform: platform,
+              targetId: prospect.id,
+              targetName: prospect.username,
+              status: 'success',
+              result: 'Prospect fechado — maximo de ' + MAX_FOLLOWUPS + ' follow-ups atingido',
+            },
+          });
+        }
       } else {
         await db.followUp.update({
           where: { id: fu.id },

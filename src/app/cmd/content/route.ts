@@ -186,8 +186,20 @@ async function publishDraft(id: string, platforms: string[]) {
 
       var res = await fetch(upUrl, {
         method: 'POST',
+<<<<<<< HEAD
         headers: upReqHeaders,
         body: upBody,
+=======
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Apikey ' + UPLOADPOST_KEY,
+        },
+        body: JSON.stringify({
+          platform: plat,
+          caption: post.caption,
+          mediaUrl: post.mediaUrl || undefined,
+        }),
+>>>>>>> 789c38943ef5c4d1541a53ec8f56b213ff07a530
       });
       var json = await res.json();
       results.push({ platform: plat, success: res.ok, data: json });

@@ -20,7 +20,11 @@ async function hikerFetch(path: string) {
 }
 
 async function uploadPostFetch(path: string) {
+<<<<<<< HEAD
   var res = await fetch('https://api.upload-post.com/api' + path, {
+=======
+  var res = await fetch('https://api.upload-post.com/v1' + path, {
+>>>>>>> 789c38943ef5c4d1541a53ec8f56b213ff07a530
     headers: { Authorization: 'Apikey ' + UPLOADPOST_KEY },
   });
   if (!res.ok) throw new Error('UploadPost erro ' + res.status + ': ' + (await res.text()).slice(0, 200));

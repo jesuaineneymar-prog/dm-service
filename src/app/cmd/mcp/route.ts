@@ -39,6 +39,45 @@ import {
   listConnectedAccounts,
   MWANGO_TOOLKITS,
 } from '@/lib/composio-engine';
+<<<<<<< HEAD
+=======
+import {
+  svTikTokProfile,
+  svTikTokVideos,
+  svTikTokVideoInfo,
+  svTikTokTranscript,
+  svTikTokComments,
+  svTikTokTrending,
+  svTikTokSearchUsers,
+  svTikTokSearchKeyword,
+  svTikTokSearchHashtag,
+  svTikTokSearchMusic,
+  svTikTokFollowers,
+  svTikTokDemographics,
+  svTikTokAdLibrarySearch,
+  svRedditSearch,
+  svRedditSubredditPosts,
+  svInstagramProfile,
+  svInstagramPosts,
+  svInstagramReels,
+  svInstagramComments,
+  svYouTubeChannel,
+  svYouTubeVideo,
+  svYouTubeSearch,
+  svYouTubeVideoTranscript,
+  svYouTubeShortsTrending,
+  svTwitterProfile,
+  svTwitterSearch,
+  svTwitterTweet,
+  svFacebookProfile,
+  svMetaAdLibrarySearch,
+  svFacebookAdLibraryCompanyAds,
+  svThreadsProfile,
+  svCheckCredits,
+  svHealthCheck,
+  SOCIAVAULT_PLATFORMS,
+} from '@/lib/sociavault-engine';
+>>>>>>> 789c38943ef5c4d1541a53ec8f56b213ff07a530
 
 export var maxDuration = 60;
 
@@ -262,6 +301,189 @@ export async function POST(request: Request) {
       return NextResponse.json(extractResult);
     }
 
+<<<<<<< HEAD
+=======
+    // === SOCIAVAULT: STATUS ===
+    if (action === 'sv_status') {
+      var svHealth = await svHealthCheck();
+      var svCredits = await svCheckCredits();
+      return NextResponse.json({ success: true, data: { health: svHealth, credits: svCredits, platforms: SOCIAVAULT_PLATFORMS.length } });
+    }
+
+    // === SOCIAVAULT: TIKTOK PROFILE ===
+    if (action === 'sv_tiktok_profile') {
+      if (!body.username) return NextResponse.json({ success: false, error: 'username necessario' });
+      return NextResponse.json(await svTikTokProfile(body.username));
+    }
+
+    // === SOCIAVAULT: TIKTOK VIDEOS ===
+    if (action === 'sv_tiktok_videos') {
+      if (!body.username) return NextResponse.json({ success: false, error: 'username necessario' });
+      return NextResponse.json(await svTikTokVideos(body.username, body.cursor));
+    }
+
+    // === SOCIAVAULT: TIKTOK VIDEO INFO ===
+    if (action === 'sv_tiktok_video_info') {
+      if (!body.videoId) return NextResponse.json({ success: false, error: 'videoId necessario' });
+      return NextResponse.json(await svTikTokVideoInfo(body.videoId));
+    }
+
+    // === SOCIAVAULT: TIKTOK COMMENTS ===
+    if (action === 'sv_tiktok_comments') {
+      if (!body.videoId) return NextResponse.json({ success: false, error: 'videoId necessario' });
+      return NextResponse.json(await svTikTokComments(body.videoId, body.cursor));
+    }
+
+    // === SOCIAVAULT: TIKTOK TRANSCRIPT ===
+    if (action === 'sv_tiktok_transcript') {
+      if (!body.videoId) return NextResponse.json({ success: false, error: 'videoId necessario' });
+      return NextResponse.json(await svTikTokTranscript(body.videoId));
+    }
+
+    // === SOCIAVAULT: TIKTOK TRENDING ===
+    if (action === 'sv_tiktok_trending') {
+      return NextResponse.json(await svTikTokTrending(body.cursor));
+    }
+
+    // === SOCIAVAULT: TIKTOK SEARCH USERS ===
+    if (action === 'sv_tiktok_search_users') {
+      if (!body.query) return NextResponse.json({ success: false, error: 'query necessario' });
+      return NextResponse.json(await svTikTokSearchUsers(body.query, body.cursor));
+    }
+
+    // === SOCIAVAULT: TIKTOK SEARCH KEYWORD ===
+    if (action === 'sv_tiktok_search') {
+      if (!body.keyword) return NextResponse.json({ success: false, error: 'keyword necessario' });
+      return NextResponse.json(await svTikTokSearchKeyword(body.keyword, body.cursor));
+    }
+
+    // === SOCIAVAULT: TIKTOK SEARCH HASHTAG ===
+    if (action === 'sv_tiktok_hashtag') {
+      if (!body.hashtag) return NextResponse.json({ success: false, error: 'hashtag necessario' });
+      return NextResponse.json(await svTikTokSearchHashtag(body.hashtag, body.cursor));
+    }
+
+    // === SOCIAVAULT: TIKTOK MUSIC POPULAR ===
+    if (action === 'sv_tiktok_music') {
+      if (!body.query) return NextResponse.json({ success: false, error: 'query necessario' });
+      return NextResponse.json(await svTikTokSearchMusic(body.query, body.cursor));
+    }
+
+    // === SOCIAVAULT: TIKTOK FOLLOWERS ===
+    if (action === 'sv_tiktok_followers') {
+      if (!body.username) return NextResponse.json({ success: false, error: 'username necessario' });
+      return NextResponse.json(await svTikTokFollowers(body.username, body.cursor));
+    }
+
+    // === SOCIAVAULT: TIKTOK DEMOGRAPHICS ===
+    if (action === 'sv_tiktok_demographics') {
+      if (!body.username) return NextResponse.json({ success: false, error: 'username necessario' });
+      return NextResponse.json(await svTikTokDemographics(body.username));
+    }
+
+    // === SOCIAVAULT: TIKTOK AD LIBRARY ===
+    if (action === 'sv_tiktok_ads') {
+      if (!body.query) return NextResponse.json({ success: false, error: 'query necessario' });
+      return NextResponse.json(await svTikTokAdLibrarySearch(body.query, body.cursor));
+    }
+
+    // === SOCIAVAULT: TIKTOK SHOP (nao disponivel na API atual) ===
+    if (action === 'sv_tiktok_shop') {
+      return NextResponse.json({ success: false, error: 'TikTok Shop search nao esta disponivel na Sociavault API' });
+    }
+
+    // === SOCIAVAULT: INSTAGRAM PROFILE ===
+    if (action === 'sv_ig_profile') {
+      if (!body.username) return NextResponse.json({ success: false, error: 'username necessario' });
+      return NextResponse.json(await svInstagramProfile(body.username));
+    }
+
+    // === SOCIAVAULT: INSTAGRAM POSTS ===
+    if (action === 'sv_ig_posts') {
+      if (!body.username) return NextResponse.json({ success: false, error: 'username necessario' });
+      return NextResponse.json(await svInstagramPosts(body.username, body.cursor));
+    }
+
+    // === SOCIAVAULT: INSTAGRAM REELS ===
+    if (action === 'sv_ig_reels') {
+      if (!body.username) return NextResponse.json({ success: false, error: 'username necessario' });
+      return NextResponse.json(await svInstagramReels(body.username, body.cursor));
+    }
+
+    // === SOCIAVAULT: INSTAGRAM COMMENTS ===
+    if (action === 'sv_ig_comments') {
+      if (!body.postId) return NextResponse.json({ success: false, error: 'postId necessario' });
+      return NextResponse.json(await svInstagramComments(body.postId, body.cursor));
+    }
+
+    // === SOCIAVAULT: YOUTUBE ===
+    if (action === 'sv_yt_channel') {
+      if (!body.channelId) return NextResponse.json({ success: false, error: 'channelId necessario' });
+      return NextResponse.json(await svYouTubeChannel(body.channelId));
+    }
+    if (action === 'sv_yt_video') {
+      if (!body.videoId) return NextResponse.json({ success: false, error: 'videoId necessario' });
+      return NextResponse.json(await svYouTubeVideo(body.videoId));
+    }
+    if (action === 'sv_yt_search') {
+      if (!body.query) return NextResponse.json({ success: false, error: 'query necessario' });
+      return NextResponse.json(await svYouTubeSearch(body.query, body.cursor));
+    }
+    if (action === 'sv_yt_transcript') {
+      if (!body.videoId) return NextResponse.json({ success: false, error: 'videoId necessario' });
+      return NextResponse.json(await svYouTubeVideoTranscript(body.videoId));
+    }
+    if (action === 'sv_yt_shorts_trending') {
+      return NextResponse.json(await svYouTubeShortsTrending(body.cursor));
+    }
+
+    // === SOCIAVAULT: TWITTER ===
+    if (action === 'sv_tw_profile') {
+      if (!body.username) return NextResponse.json({ success: false, error: 'username necessario' });
+      return NextResponse.json(await svTwitterProfile(body.username));
+    }
+    if (action === 'sv_tw_search') {
+      if (!body.query) return NextResponse.json({ success: false, error: 'query necessario' });
+      return NextResponse.json(await svTwitterSearch(body.query, body.cursor));
+    }
+    if (action === 'sv_tw_comments') {
+      if (!body.tweetId) return NextResponse.json({ success: false, error: 'tweetId necessario' });
+      var tweetData = await svTwitterTweet(body.tweetId);
+      return NextResponse.json(tweetData);
+    }
+
+    // === SOCIAVAULT: FACEBOOK ===
+    if (action === 'sv_fb_profile') {
+      if (!body.username) return NextResponse.json({ success: false, error: 'username necessario' });
+      return NextResponse.json(await svFacebookProfile(body.username));
+    }
+    if (action === 'sv_fb_ad_library') {
+      if (!body.query) return NextResponse.json({ success: false, error: 'query necessario' });
+      return NextResponse.json(await svMetaAdLibrarySearch(body.query, body.country, body.cursor));
+    }
+
+    // === SOCIAVAULT: REDDIT ===
+    if (action === 'sv_reddit_search') {
+      if (!body.query) return NextResponse.json({ success: false, error: 'query necessario' });
+      return NextResponse.json(await svRedditSearch(body.query, body.cursor));
+    }
+    if (action === 'sv_reddit_subreddit') {
+      if (!body.subreddit) return NextResponse.json({ success: false, error: 'subreddit necessario' });
+      return NextResponse.json(await svRedditSubredditPosts(body.subreddit, body.cursor));
+    }
+
+    // === SOCIAVAULT: THREADS ===
+    if (action === 'sv_threads_profile') {
+      if (!body.username) return NextResponse.json({ success: false, error: 'username necessario' });
+      return NextResponse.json(await svThreadsProfile(body.username));
+    }
+
+    // === SOCIAVAULT: PLATFORMS LIST ===
+    if (action === 'sv_platforms') {
+      return NextResponse.json({ success: true, data: SOCIAVAULT_PLATFORMS });
+    }
+
+>>>>>>> 789c38943ef5c4d1541a53ec8f56b213ff07a530
     return NextResponse.json({ success: false, error: 'Accao desconhecida: ' + action });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message });

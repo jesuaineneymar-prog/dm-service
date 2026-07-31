@@ -26,3 +26,5 @@ tsconfig.tsbuildinfo
 ig-debug.png
 .vercel
 .env*
+scripts/
+upload/
