@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.facebook.com/business/help/1456422242197840",
+    "name": "Manage Ads from an AI Agent with Meta Ads AI connectors - Facebook",
+    "snippet": "Below Integrations, select Ads MCP server. Note: If you don't see this, you do not have access to this feature yet.",
+    "host_name": "www.facebook.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/business/news/meta-ads-ai-connectors",
+    "name": "Introducing Meta Ads AI Connectors: Manage Your Meta  - Facebook",
+    "snippet": "On July 16, 2026, we introduced two new capabilities to Meta's ads MCP server. For MCP, no developer credentials, API setup, or coding required. Find supported ...",
+    "host_name": "www.facebook.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/pipeboard-co/meta-ads-mcp",
+    "name": "GitHub - pipeboard-co/meta-ads-mcp",
+    "snippet": "No downloads, no configuration - just connect your ads account and start getting AI insights on your campaigns immediately! no self-hosting required.",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.facebook.com/blog/post/2026/07/16/meta-ads-mcp-server",
+    "name": "Meta's ads MCP server is now available for developers",
+    "snippet": "Go to the developer dashboard and select the app. In the popup, click Ads and monetization, select Create & manage ads with ads MCP server, and click Save. ...",
+    "host_name": "developers.facebook.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=m3ozKloLTko",
+    "name": "How to Install the OFFICIAL META ADS MCP in CLAUDE  - YouTube",
+    "snippet": "Meta just released its official Meta Ads MCP server for Claude no more unofficial scripts, no more ad account bans. In this tutorial I show ...",
+    "host_name": "www.youtube.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.markifact.com/meta-ads-mcp",
+    "name": "The Meta Ads MCP server for Facebook & Instagram - Markifact",
+    "snippet": "Use Markifact as your Meta Ads MCP server for Claude, ChatGPT, and AI agents. Analyze Facebook and Instagram ad performance, create campaigns and creatives, ...",
+    "host_name": "www.markifact.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.hyperfx.ai/blog/meta-ads-mcp-guide-ai-advertising-agents",
+    "name": "Meta Ads MCP: The Complete Guide to AI-Powered Ad  - Hyper AI",
+    "snippet": "Updated May 2026. Meta shipped its official first-party Meta Ads MCP plus CLI on April 29, 2026, joining Google (October 2025) plus Amazon ...",
+    "host_name": "www.hyperfx.ai",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.get-ryze.ai/blog/best-mcp-for-meta-ads",
+    "name": "Best MCP for Meta Ads in 2026 — 7 Servers Compared & Ranked",
+    "snippet": "Free · Business/Productivity Apr 30, 2026 · This guide ranks and reviews the 7 best MCP (Model Context Protocol) servers for Meta Ads (Facebook + Instagram) in 2026. Each server is scored ...",
+    "host_name": "www.get-ryze.ai",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

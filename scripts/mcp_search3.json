@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://github.com/punkpeye/awesome-mcp-servers",
+    "name": "GitHub - punkpeye/awesome-mcp-servers: A collection of",
+    "snippet": "A curated list of awesome Model Context Protocol (MCP) servers . MCP is an open protocol that enables AI models to securely interact with local and remote ...",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.k2view.com/blog/awesome-mcp-servers",
+    "name": "Awesome MCP servers: Directory of the top 15 for 2026",
+    "snippet": "This comprehensive MCP directory for 2026 rates 15 awesome MCP servers in terms of how they access AI tools, inject enterprise data, enable RAG, and more.",
+    "host_name": "www.k2view.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://mcpservers.org",
+    "name": "Awesome MCP Servers",
+    "snippet": "Explore 9800+ official and community MCP servers for Claude, Codex, Cursor, and other AI agents. Find the right tools and setup guides for your workflow.",
+    "host_name": "mcpservers.org",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://modelcontextprotocol.io/docs/2026-07-28/develop/build-server",
+    "name": "Build an MCP server",
+    "snippet": "3 days ago — MCP servers can provide three main types of capabilities: This tutorial will primarily focus on tools.",
+    "host_name": "modelcontextprotocol.io",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.shareuhack.com/en/posts/best-mcp-servers-guide-2026",
+    "name": "Best MCP Servers 2026: Top 15 Ranked by Developer Use",
+    "snippet": "Mar 15, 2026 — The definitive 2026 MCP server guide: 15 tools ranked for coding (Context7, Playwright), research (Exa, Brave), database (Supabase, ...",
+    "host_name": "www.shareuhack.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@riccardo.tartaglia/5-essential-mcp-servers-every-developer-should-know-72e828cae18e",
+    "name": "5 Essential MCP Servers Every Developer Should Know",
+    "snippet": "It uses the Model Context Protocol's standard approach — you specify allowed directories when you start the server , and everything is sandboxed ...",
+    "host_name": "medium.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://vibehackers.io/blog/best-mcp-servers",
+    "name": "Best MCP Servers for Claude Code, Cursor & Windsurf",
+    "snippet": "Mar 27, 2026 — Looking for the full searchable directory? Browse all 5,000+ Model Context Protocol servers — with AI-extracted summaries, install configs, ...",
+    "host_name": "vibehackers.io",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=ClN7eViudxU",
+    "name": "Top 5 MCP Servers for 2026 | Best MCP Servers",
+    "snippet": "Discover the top 5 MCPs ( Model Context Protocols ) that are transforming how AI models interact with external data and tools. In this video, we ...",
+    "host_name": "www.youtube.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.developersdigest.tech/blog/mcp-servers-directory-2026",
+    "name": "The Best MCP Servers in 2026: A Complete Directory",
+    "snippet": "Apr 2, 2026 — A searchable directory of 184+ MCP servers organized by category. Find the right server for databases, browsers, APIs, DevOps, and more.",
+    "host_name": "www.developersdigest.tech",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/modelcontextprotocol/servers",
+    "name": "modelcontextprotocol/servers: Model Context Protocol",
+    "snippet": "This repository is a collection of reference implementations for the Model Context Protocol ( MCP ), as well as references to community-built servers and ... Read more",
+    "host_name": "github.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://glama.ai/mcp/servers?query=free-ai-tools-for-generating-images-and-videos",
+    "name": "free-ai-tools-for-generating-images-and-videos MCP Servers",
+    "snippet": "An MCP server for generating and editing images using OpenAI's GPT Image and DALL·E models. It provides tools for image generation, editing, variation creation, ...",
+    "host_name": "glama.ai",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://mcpservers.org/agent-skills/qu-skills/ai-video-generation",
+    "name": "ai-video-generation | Agent Skills Library",
+    "snippet": "Generate AI videos with Google Veo, Seedance 2.0, HappyHorse, Wan, Grok and 40+ models via inference.sh CLI. Models: Veo 3.1, Veo 3, Seedance 2.0, ...\nGenerate AI videos with Google Veo , Capabilities: text-to-video, image-to-video, reference-to-video, video editing, lipsync, Triggers: video generation,  ...",
+    "host_name": "mcpservers.org",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/punkpeye/awesome-mcp-servers",
+    "name": "GitHub - punkpeye/awesome-mcp-servers: A collection of",
+    "snippet": "- Plugin-based MCP server + Chrome extension that gives AI agents access to web applications through the user's authenticated browser session.",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/n8n/comments/1k575uq/i_made_a_free_mcp_server_to_create_short_videos",
+    "name": "I made a free MCP server to create short videos locally with",
+    "snippet": "I've built an MCP (and REST) server to use with n8n workflows, and open-sourced it. An AI Agent node can fully automate the short video generation.",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/chiefai/posts/2777203149139636",
+    "name": "MCP-B enables AI-controllable browser automation",
+    "snippet": "MCP-B is turning any website into an AI-controllable endpoint Browser automation just got a major upgrade. MCP-B extends Anthropic's Model ...",
+    "host_name": "www.facebook.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/ClaudeAI/comments/1orplvu/mcp_for_browser_automation",
+    "name": "MCP for Browser automation : r/ClaudeAI",
+    "snippet": "Official MCPs (Playwright and Chrome dev tools) spawns new browser instance in headless mode, without existing sessions, easily detectable as ...",
+    "host_name": "www.reddit.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://snyk.io/articles/8-ai-mcp-servers-speeding-up-content-creator-workflows",
+    "name": "8 AI MCP Servers Speeding Up Content Creator Workflows",
+    "snippet": "Discover 8 powerful MCP servers that revolutionize content creation workflows. From video generation to SEO optimization, these AI-powered tools streamline ...",
+    "host_name": "snyk.io",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://glama.ai/mcp/categories/image-and-video-processing",
+    "name": "Image & Video Processing MCP Servers & Connectors",
+    "snippet": "Supports video generation from images and text prompts, image creation , video upscaling and editing , and task management. enabling automatic generation of  ...",
+    "host_name": "glama.ai",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=SY8kQ6qe4YQ&vl=en",
+    "name": "This 1 MCP Just Made AI Image & Video 100x EASIER",
+    "snippet": "AI image and video generation just got 100x easier inside Claude Code. Higgsfield dropped a brand new MCP server , and now every image model ...",
+    "host_name": "www.youtube.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://fast.io/resources/best-mcp-servers-video-processing",
+    "name": "Best MCP Servers for Video Processing: Top 7 Tools 2026",
+    "snippet": "Video MCP servers automate many common transcoding workflows . They allow agents to handle format conversion, metadata extraction, and basic editing without ...",
+    "host_name": "fast.io",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

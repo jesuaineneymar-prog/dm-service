@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://github.com/TensorBlock/awesome-mcp-servers/blob/main/docs/social-media--content-platforms.md",
+    "name": "awesome-mcp-servers/docs/social-media",
+    "snippet": "Official remote and local MCP server for publishing and scheduling short-form videos to TikTok, Instagram Reels, No installation required - just add endpoint ...\nOfficial remote and local MCP server for publishing and scheduling short-form videos to TikTok, Instagram Reels, YouTube Shorts, X, and Facebook through Taisly.",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.socialync.io/blog/best-social-media-mcp-servers-2026",
+    "name": "Best Social Media MCP Servers in 2026 (The Honest List)",
+    "snippet": "Apr 29, 2026 — Socialync is the only social media scheduler with a native MCP server that posts to all 8 (TikTok, Instagram, YouTube, X, LinkedIn, Facebook, ...\nApr 29, 2026 — Socialync is the only social media scheduler with a native MCP server that posts to all 8 (TikTok, Instagram, YouTube, X, LinkedIn, Facebook, ... Read more",
+    "host_name": "www.socialync.io",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://bundle.social/social-media-mcp-server",
+    "name": "Social media MCP server for AI clients, posting, and",
+    "snippet": "Social media MCP server for AI clients, posting, and scheduling. Drop the official bundle.social MCP server into Claude Desktop, Claude Code, Cursor or any ...\nSocial media MCP server for AI clients, posting, and schedul ing … gains first-class tools for posting, scheduling, media uploads and analytics across 14+ ...",
+    "host_name": "bundle.social",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://opentweet.io/blog/best-mcp-servers-social-media-2026",
+    "name": "5 Best MCP Servers for Social Media Management in 2026",
+    "snippet": "Mar 1, 2026 — you can schedule posts, check analytics , 12 Setup time: 2 minutes Install: npx. Create and schedule tweets and threads. TikTok, YouTube, ...\nMar 1, 2026 — Ayrshare MCP Server — Best for Multi-Platform. Platforms: Twitter/X, Facebook, Instagram, LinkedIn, TikTok, YouTube, Pinterest, Reddit, Threads, ... Read more",
+    "host_name": "opentweet.io",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.socialcrawl.dev/mcp-server",
+    "name": "MCP Server for Social Media Data",
+    "snippet": "The SocialCrawl MCP server gives any AI agent 46 platforms and 368 endpoints of social media data. Run npx socialcrawl- mcp in Claude, Cursor, or Windsurf.",
+    "host_name": "www.socialcrawl.dev",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://zernio.com/blog/social-media-mcp",
+    "name": "Social media MCP: how to automate posting, analytics, and",
+    "snippet": "May 29, 2026 — How to set up a social media MCP server , connect 15 platforms, and let AI agents post, analyze, and boost ads from one tool list.",
+    "host_name": "zernio.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://mcpservers.org/servers/socialcrawl/mcp",
+    "name": "Socialcrawl MCP Server",
+    "snippet": "socialcrawl-mcp is an MCP (Model Context Protocol) server that connects AI agents to the SocialCrawl API — a unified data API covering 44 platforms and 357 ...",
+    "host_name": "mcpservers.org",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.upload-post.com/mcp",
+    "name": "Social Media MCP for ChatGPT, Claude & Any AI Agent",
+    "snippet": "The social media MCP server : connect ChatGPT, Claude, Gemini or any AI agent to 50 tools that publish, schedule and analyze posts on TikTok , Instagram , ...",
+    "host_name": "www.upload-post.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.outstand.so/mcp",
+    "name": "Social Media MCP Server - 27 Tools for AI Agents",
+    "snippet": "Model Context Protocol ( MCP ). Stop switching tabs to post on social media . Tell your AI to post to X, LinkedIn, Instagram , and 8 more platforms.",
+    "host_name": "www.outstand.so",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.socialync.io",
+    "name": "Socialync: Post to All Social Media at Once",
+    "snippet": "Socialync helps you post to all social . A social media scheduler that actually supports TikTok, Instagram, and YouTube together. MCP and API access.",
+    "host_name": "www.socialync.io",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]
