@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS ZERNIO API — DM & Inbox via Zernio
+//  Aura ZERNIO API — DM & Inbox via Zernio
 //  Instagram + Facebook DMs with REST API
 // ============================================================
 

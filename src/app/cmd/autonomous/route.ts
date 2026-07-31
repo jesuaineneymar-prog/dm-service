@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS AUTONOMOUS ENGINE — sistema 100% autonomo e onipresente
+//  Aura AUTONOMOUS ENGINE — sistema 100% autonomo e onipresente
 //  - Monitoriza DMs em tempo real (Zernio polling)
 //  - Responde automaticamente com IA
 //  - Follow-ups automaticos apos 3 dias

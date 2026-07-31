@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS AI — OpenRouter centralizado
+//  Aura AI — OpenRouter centralizado
 //  Unifica toda a geracao de respostas IA num so lugar
 //  Usado por: autonomous, cron/monitor, cmd/content, chat
 // ============================================================
@@ -13,12 +13,12 @@ interface AIOptions {
   context?: Record<string, any>;
 }
 
-const DEFAULT_SYSTEM = 'Es o assistente virtual da Mwango Brain, uma agencia criativa angolana. FALAS PORTUGUES DE ANGOLA. Responde de forma simpatica e profissional. Mantens respostas curtas (2-3 frases). Nunca digas que es IA. O teu nome e JARVIS.';
+const DEFAULT_SYSTEM = 'Es o assistente virtual da Mwango Brain, uma agencia criativa angolana. FALAS PORTUGUES DE ANGOLA. Responde de forma simpatica e profissional. Mantens respostas curtas (2-3 frases). Nunca digas que es IA. O teu nome e Aura.';
 
 const JARVIS_HEADERS = {
   'Content-Type': 'application/json',
   'HTTP-Referer': 'https://jarvis-khaki-chi.vercel.app',
-  'X-Title': 'JARVIS',
+  'X-Title': 'Aura',
 };
 
 /**
@@ -68,7 +68,7 @@ export async function generateAIResponse(
     const data = await res.json();
     return cleanAIResponse(data);
   } catch (e: any) {
-    console.error('JARVIS AI Error:', e?.message || e);
+    console.error('Aura AI Error:', e?.message || e);
     return 'Obrigado pela mensagem! A Mwango Brain vai ver isso com atencao. Entraremos em contacto em breve.';
   }
 }
@@ -101,7 +101,7 @@ export async function generateContent(prompt: string, maxTokens = 500): Promise<
  * Chat genérico (para o chat tab) — usado via API route, nunca no client
  */
 export async function chatCompletion(messages: any[], maxTokens = 400): Promise<string> {
-  const sysMsg = 'Es o JARVIS da Mwango Brain. FALAS PORTUGUES DE ANGOLA, frases curtas (2-3 linhas). Nunca digas que es IA.';
+  const sysMsg = 'Es o Aura da Mwango Brain. FALAS PORTUGUES DE ANGOLA, frases curtas (2-3 linhas). Nunca digas que es IA.';
   const fullMessages = [{ role: 'system', content: sysMsg }, ...messages];
 
   try {
@@ -124,7 +124,7 @@ export async function chatCompletion(messages: any[], maxTokens = 400): Promise<
     const data = await res.json();
     return cleanAIResponse(data);
   } catch (e: any) {
-    console.error('JARVIS AI Error:', e?.message || e);
+    console.error('Aura AI Error:', e?.message || e);
     return 'Erro de conexao. Tenta novamente.';
   }
 }

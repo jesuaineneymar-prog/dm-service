@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS ZERNIO WEBHOOK — recebe eventos de DM em tempo real
+//  Aura ZERNIO WEBHOOK — recebe eventos de DM em tempo real
 //  Events: message.received, message.sent, conversation.started
 //  Verificacao HMAC-SHA256 real
 // ============================================================
@@ -193,7 +193,7 @@ export async function POST(request: Request) {
 export async function GET() {
   return NextResponse.json({
     status: 'active',
-    service: 'JARVIS Zernio Webhook',
+    service: 'Aura Zernio Webhook',
     events: ['message.received', 'message.sent', 'conversation.started'],
   });
 }

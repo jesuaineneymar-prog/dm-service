@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS CONTENT API — gerador de conteudo com IA
+//  Aura CONTENT API — gerador de conteudo com IA
 // ============================================================
 
 import { NextResponse } from 'next/server';

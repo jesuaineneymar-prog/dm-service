@@ -1,7 +1,7 @@
 import { HIKERAPI_KEY, UPLOADPOST_KEY, MANYCHAT_KEY, N8N_WEBHOOK_URL } from './config';
 
 // ============================================================
-//  JARVIS EXTERNAL API INTEGRATIONS
+//  Aura EXTERNAL API INTEGRATIONS
 //  HikerAPI (Instagram), Upload-Post (Publishing), ManyChat (DMs)
 //  All REAL — zero simulation
 // ============================================================
@@ -341,7 +341,7 @@ export async function mcTriggerFlow(apiKey: string, options: {
 
 // --- N8N Webhook Integration ---
 // Self-hosted N8N on VPS: http://YOUR_VPS:5678
-// Create workflows with webhook triggers, JARVIS calls them
+// Create workflows with webhook triggers, Aura calls them
 
 export async function n8nTrigger(webhookUrl: string, payload: any) {
   try {
@@ -360,7 +360,7 @@ export async function n8nTrigger(webhookUrl: string, payload: any) {
 
 // ============================================================
 //  CONFIG MANAGEMENT
-//  User adds API keys in the JARVIS chat or via modal
+//  User adds API keys in the Aura chat or via modal
 // ============================================================
 
 export interface ExternalConfig {

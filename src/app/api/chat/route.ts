@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS CHAT API — Server-side AI chat
+//  Aura CHAT API — Server-side AI chat
 //  O client NUNCA chama OpenRouter directamente
 //  Protegido por sessao (auth middleware)
 // ============================================================

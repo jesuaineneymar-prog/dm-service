@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS SCHEDULER API — agendamento inteligente baseado em dados
+//  Aura SCHEDULER API — agendamento inteligente baseado em dados
 // ============================================================
 
 import { NextResponse } from 'next/server';

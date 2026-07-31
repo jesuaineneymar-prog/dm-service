@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS TIKTOK API — DMs via ManyChat + analytics + posting
+//  Aura TIKTOK API — DMs via ManyChat + analytics + posting
 //  Deep search Jul 2026: ManyChat é parceiro oficial TikTok
 // ============================================================
 

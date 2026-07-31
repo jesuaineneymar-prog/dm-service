@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS CRON — Follow-ups Automáticos (a cada 30 minutos)
+//  Aura CRON — Follow-ups Automáticos (a cada 30 minutos)
 //  - Cria follow-ups para prospects sem contacto há 3+ dias
 //  - Envia follow-ups pendentes cujo horário já chegou
 //  - Agenda próximo follow-up (7 dias depois)

@@ -8,8 +8,8 @@ import { MessageSquare, BarChart3, Users, Sparkles, Clock, Send, Plus, Trash2, C
 
 // ===== HELPERS =====
 const sg = (k: string, d?: string) => { try { var v = localStorage?.getItem(k); return v || d || ''; } catch(e) { return d || ''; } };
-const ss = (k: string, v: string) => { try { localStorage?.setItem(k, v); } catch(e) { console.warn('JARVIS:', e); } };
-const sd = (k: string) => { try { localStorage?.removeItem(k); } catch(e) { console.warn('JARVIS:', e); } };
+const ss = (k: string, v: string) => { try { localStorage?.setItem(k, v); } catch(e) { console.warn('Aura:', e); } };
+const sd = (k: string) => { try { localStorage?.removeItem(k); } catch(e) { console.warn('Aura:', e); } };
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const ft = (d: string) => { var dt = new Date(d); if (isNaN(dt.getTime())) return d; return dt.toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' }); };
 const apiCall = async (endpoint: string, body: any) => {
@@ -109,7 +109,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
       ))}
       <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: 340, padding: '0 24px' }}>
         <HexLogo size={48} />
-        <div style={{ fontFamily: "-apple-system,'SF Pro Display',sans-serif", fontSize: 32, fontWeight: 700, color: '#fff', letterSpacing: 4, marginTop: 16 }}>JARVIS</div>
+        <div style={{ fontFamily: "-apple-system,'SF Pro Display',sans-serif", fontSize: 32, fontWeight: 700, color: '#fff', letterSpacing: 4, marginTop: 16 }}>Aura</div>
         <div style={{ fontSize: 9, color: '#666', letterSpacing: 3, textTransform: 'uppercase', marginTop: 6 }}>ASSISTENTE AUTONOMO</div>
         {booting ? (
           <div style={{ marginTop: 40, fontFamily: "'SF Mono',Menlo,monospace", fontSize: 11, textAlign: 'left' }}>
@@ -637,7 +637,7 @@ function ChatTab({ onLogout }: { onLogout: () => void }) {
           {chatHistory.map((m, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 10, animation: 'fadeIn .2s ease' }}>
               <div style={{ maxWidth: '85%', padding: '12px 16px', borderRadius: 16, background: m.role === 'user' ? 'rgba(255,45,45,0.12)' : 'rgba(255,255,255,0.04)', border: '1px solid ' + (m.role === 'user' ? 'rgba(255,45,45,0.2)' : 'rgba(255,255,255,0.06)'), color: '#e8e8ec', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                {m.role === 'assistant' && <div style={{ color: '#ff2d2d', fontSize: 10, fontWeight: 700, marginBottom: 4, letterSpacing: 1 }}>JARVIS</div>}
+                {m.role === 'assistant' && <div style={{ color: '#ff2d2d', fontSize: 10, fontWeight: 700, marginBottom: 4, letterSpacing: 1 }}>Aura</div>}
                 {m.content}
                 <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: 9, marginTop: 4 }}>{ft(m.ts)}</div>
               </div>
@@ -652,7 +652,7 @@ function ChatTab({ onLogout }: { onLogout: () => void }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, maxWidth: 480, margin: '0 auto' }}>
           <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
             <input ref={fileRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={e => { var file = e.target.files?.[0]; if (!file) return; var fileName = file.name; var reader = new FileReader(); reader.onload = ev => { var text = ev.target?.result as string; var count = importCSV(text); setChatHistory(h => [...h, { role: 'system', content: 'CSV importado: ' + fileName + ' (' + count + ' prospects)', ts: new Date().toISOString() }]); }; reader.readAsText(file); e.target.value = ''; }} />
-            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) send(); }} placeholder="Pergunte ou instrua o Jarvis..." style={{ width: '100%', height: 48, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 26, padding: '0 48px 0 20px', color: '#e8e8ec', fontSize: 14, outline: 'none', fontFamily: "-apple-system,sans-serif", transition: 'all .3s', boxSizing: 'border-box' as const }} />
+            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) send(); }} placeholder="Pergunte ou instrua o Aura..." style={{ width: '100%', height: 48, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 26, padding: '0 48px 0 20px', color: '#e8e8ec', fontSize: 14, outline: 'none', fontFamily: "-apple-system,sans-serif", transition: 'all .3s', boxSizing: 'border-box' as const }} />
             <button onClick={() => fileRef.current?.click()} style={{ position: 'absolute', right: 12, width: 28, height: 28, background: 'rgba(255,45,45,0.15)', border: 'none', borderRadius: '50%', color: '#ff2d2d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, cursor: 'pointer', fontWeight: 300 }}>+</button>
           </div>
           <button onClick={send} disabled={loading || !input.trim()} style={{ width: 48, height: 48, background: '#ff2d2d', border: 'none', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 16px rgba(255,45,45,0.35)', flexShrink: 0, transition: 'transform .15s' }}>
@@ -806,7 +806,7 @@ function CrmTab() {
       ]);
       if (s.success) setStats(s.data);
       if (p.success) setProspects(p.data || []);
-    } catch(e) { console.warn('JARVIS:', e); }
+    } catch(e) { console.warn('Aura:', e); }
     setLoading(false);
   };
 
@@ -1001,7 +1001,7 @@ function ContentTab() {
       }
       var res = await apiCall('/cmd/content', body);
       if (res.success) setGenerated(res.data);
-    } catch(e) { console.warn('JARVIS:', e); }
+    } catch(e) { console.warn('Aura:', e); }
     setGenerating(false);
   };
 
@@ -1022,7 +1022,7 @@ function ContentTab() {
     try {
       var res = await apiCall('/cmd/content', { action: 'improve_caption', caption: generated.caption, platform });
       if (res.success) setGenerated({ ...generated, caption: res.data.caption });
-    } catch(e) { console.warn('JARVIS:', e); }
+    } catch(e) { console.warn('Aura:', e); }
     setGenerating(false);
   };
 
@@ -1032,7 +1032,7 @@ function ContentTab() {
     try {
       var res = await apiCall('/cmd/content', { action: 'generate_hashtags', topic: hashTopic, platform, count: hashCount });
       if (res.success) setHashtags(res.data || []);
-    } catch(e) { console.warn('JARVIS:', e); }
+    } catch(e) { console.warn('Aura:', e); }
     setHashLoading(false);
   };
 
@@ -1041,7 +1041,7 @@ function ContentTab() {
     try {
       var res = await apiCall('/cmd/content', { action: 'list_drafts' });
       if (res.success) setDrafts(res.data || []);
-    } catch(e) { console.warn('JARVIS:', e); }
+    } catch(e) { console.warn('Aura:', e); }
     setDraftsLoading(false);
   };
 
@@ -1052,7 +1052,7 @@ function ContentTab() {
       await fetchDrafts();
       setShowPublish(null);
       setGenerated(null);
-    } catch(e) { console.warn('JARVIS:', e); }
+    } catch(e) { console.warn('Aura:', e); }
     setPublishing(null);
   };
 
@@ -1219,7 +1219,7 @@ function SchedulerTab() {
       if (t.success) setOptimalTimes(t.data);
       if (s.success) setScheduled(s.data || []);
       if (st.success) setSchedStats(st.data);
-    } catch(e) { console.warn('JARVIS:', e); }
+    } catch(e) { console.warn('Aura:', e); }
     setLoading(false);
   };
 
@@ -1374,7 +1374,7 @@ function DmTab() {
         if (!Array.isArray(accs) && accs.accounts) accs = accs.accounts;
         setAccounts(accs);
       }
-    } catch(e) { console.warn('JARVIS:', e); }
+    } catch(e) { console.warn('Aura:', e); }
   };
 
   const openConversation = async (conv: any) => {
@@ -1389,7 +1389,7 @@ function DmTab() {
       }
       // Mark as read
       await apiCall('/cmd/zernio', { action: 'mark_read', conversationId: conv.id });
-    } catch(e) { console.warn('JARVIS:', e); }
+    } catch(e) { console.warn('Aura:', e); }
   };
 
   const sendReply = async () => {
@@ -1403,7 +1403,7 @@ function DmTab() {
       if (res.success) {
         setMessages(m => [...m, { id: uid(), text, isFromMe: true, createdAt: new Date().toISOString(), senderType: 'account' }]);
       }
-    } catch(e) { console.warn('JARVIS:', e); }
+    } catch(e) { console.warn('Aura:', e); }
     setSending(false);
   };
 
@@ -1643,7 +1643,7 @@ function SettingsTab() {
           dm_response_tone: sett.data.dm_response_tone || 'profissional',
         }));
       }
-    } catch(e) { console.warn('JARVIS:', e); }
+    } catch(e) { console.warn('Aura:', e); }
     setLoading(false);
   };
 
@@ -2037,7 +2037,7 @@ function McpTab() {
             <span style={{ ...S.badge(compStatus?.configured ? (compStatus?.sessionActive ? '#4ade80' : '#f59e0b') : '#666') }}>{compStatus?.configured ? (compStatus?.sessionActive ? 'Sessao activa' : 'Configurada') : 'Nao configurada'}</span>
           </div>
           <div style={{ fontSize: 10, color: '#888', lineHeight: 1.5, marginBottom: 12 }}>
-            OAuth para Instagram, TikTok, Facebook, LinkedIn, X, YouTube, Google Analytics, Google Ads, Gmail, Google Sheets, Canva e mais. Conecta uma vez, JARVIS usa em todas as automacoes.
+            OAuth para Instagram, TikTok, Facebook, LinkedIn, X, YouTube, Google Analytics, Google Ads, Gmail, Google Sheets, Canva e mais. Conecta uma vez, Aura usa em todas as automacoes.
           </div>
 
           <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
@@ -2088,7 +2088,7 @@ function McpTab() {
         <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(255,68,68,0.03)', border: '1px solid rgba(255,68,68,0.1)' }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#ff8c00', marginBottom: 6 }}>Sobre MCP Servers</div>
           <div style={{ fontSize: 10, color: '#888', lineHeight: 1.6 }}>
-            MCP (Model Context Protocol) permite ao JARVIS aceder a ferramentas externas — scraping, ads, publishing — como se fossem extensoes nativas. Cada servidor adiciona novas capacidades sem modificar o codigo existente. Adicione as API keys como variaveis de ambiente no Vercel.
+            MCP (Model Context Protocol) permite a Aura aceder a ferramentas externas — scraping, ads, publishing — como se fossem extensoes nativas. Cada servidor adiciona novas capacidades sem modificar o codigo existente. Adicione as API keys como variaveis de ambiente no Vercel.
           </div>
         </div>
       </div>
@@ -2110,7 +2110,7 @@ function ReportsTab() {
     try {
       var res = await apiCall('/cmd/reports', { action: 'list' });
       if (res.success) setReports(res.data || []);
-    } catch(e) { console.warn('JARVIS:', e); }
+    } catch(e) { console.warn('Aura:', e); }
     setLoading(false);
   };
 
@@ -2205,7 +2205,7 @@ function ABTestTab() {
     try {
       var res = await apiCall('/cmd/ab-test', { action: 'list' });
       if (res.success) setTests(res.data || []);
-    } catch(e) { console.warn('JARVIS:', e); }
+    } catch(e) { console.warn('Aura:', e); }
     setLoading(false);
   };
 
@@ -2344,7 +2344,7 @@ function MainApp({ onLogout }: { onLogout: () => void }) {
         if (data.success) {
           setUnreadCount((data.data || []).length);
         }
-      } catch(e) { console.warn('JARVIS:', e); }
+      } catch(e) { console.warn('Aura:', e); }
     };
 
     var runAutonomousCycle = async () => {
@@ -2352,7 +2352,7 @@ function MainApp({ onLogout }: { onLogout: () => void }) {
       try {
         await fetch('/cmd/autonomous', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sg('jt', '') }, body: JSON.stringify({ action: 'full_cycle' }) });
         await fetchNotifs();
-      } catch(e) { console.warn('JARVIS:', e); }
+      } catch(e) { console.warn('Aura:', e); }
       setAutoStatus('active');
     };
 
@@ -2373,7 +2373,7 @@ function MainApp({ onLogout }: { onLogout: () => void }) {
       var res = await fetch('/cmd/autonomous', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sg('jt', '') }, body: JSON.stringify({ action: 'get_notifications', unreadOnly: false }) });
       var data = await res.json();
       if (data.success) setNotifications(data.data || []);
-    } catch(e) { console.warn('JARVIS:', e); }
+    } catch(e) { console.warn('Aura:', e); }
   };
 
   const markAllRead = async () => {
@@ -2408,7 +2408,7 @@ function MainApp({ onLogout }: { onLogout: () => void }) {
       <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.95)', backdropFilter: 'blur(10px)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <HexLogo size={28} />
-          <span style={{ fontSize: 14, fontWeight: 800, letterSpacing: 2, color: '#fff', textTransform: 'uppercase' }}>JARVIS</span>
+          <span style={{ fontSize: 14, fontWeight: 800, letterSpacing: 2, color: '#fff', textTransform: 'uppercase' }}>Aura</span>
           {/* Autonomous status indicator */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 8, padding: '2px 8px', borderRadius: 20, background: autoStatus === 'active' ? 'rgba(74,222,128,0.1)' : autoStatus === 'running' ? 'rgba(255,68,68,0.15)' : 'rgba(255,255,255,0.05)', border: '1px solid ' + (autoStatus === 'active' ? 'rgba(74,222,128,0.3)' : autoStatus === 'running' ? 'rgba(255,68,68,0.3)' : 'rgba(255,255,255,0.1)') }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: autoStatus === 'active' ? '#4ade80' : autoStatus === 'running' ? '#ff4444' : '#666', animation: autoStatus === 'running' ? 'pulse 1.5s infinite' : 'none' }} />

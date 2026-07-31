@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS CRON — Analytics Snapshot (diario)
+//  Aura CRON — Analytics Snapshot (diario)
 //  Tira snapshot de seguidores/engagement para historico
 //  Protegido por CRON_SECRET
 // ============================================================

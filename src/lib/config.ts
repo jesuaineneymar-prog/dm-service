@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS CONFIG CENTRALIZADO
+//  Aura CONFIG CENTRALIZADO
 //  Todas as chaves e configuracoes em um so lugar
 //  Nenhuma chave hardcodada — so usa process.env
 // ============================================================

@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS COMPOSIO ENGINE — 1000+ Apps via SDK
+//  Aura COMPOSIO ENGINE — 1000+ Apps via SDK
 //  Usa @composio/client para criar sessoes, gerir OAuth,
 //  e executar ferramentas de redes sociais e marketing
 //
@@ -412,7 +412,7 @@ export async function getComposioStatus(): Promise<{
 }
 
 // === CONVENIENCE WRAPPERS ===
-// Funcoes de alto nivel para o JARVIS usar diretamente
+// Funcoes de alto nivel para a Aura usar diretamente
 
 // Pesquisar ferramentas sociais por caso de uso
 export async function findSocialTools(useCase: string) {

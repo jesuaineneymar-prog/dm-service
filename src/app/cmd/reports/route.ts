@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS CLIENT REPORTS API — auto-relatorios para clientes
+//  Aura CLIENT REPORTS API — auto-relatorios para clientes
 // ============================================================
 
 import { NextResponse } from 'next/server';
@@ -52,7 +52,7 @@ async function generateReport(clientName: string, periodStart: string, periodEnd
     'Responde APENAS com o texto do sumario, 2-3 frases profissionais.';
 
   var aiSummary = '';
-  try { aiSummary = await generateContent(aiPrompt); } catch (e) { aiSummary = 'Relatorio gerado automaticamente pelo JARVIS.'; }
+  try { aiSummary = await generateContent(aiPrompt); } catch (e) { aiSummary = 'Relatorio gerado automaticamente pela Aura.'; }
 
   // Guardar relatorio
   var report = await db.clientReport.create({

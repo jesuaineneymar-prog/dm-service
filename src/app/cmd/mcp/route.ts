@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS MCP API — Model Context Protocol Hub
+//  Aura MCP API — Model Context Protocol Hub
 //  Central de comando para todos os MCP servers
 //  Nada e removido — so adicionado
 // ============================================================

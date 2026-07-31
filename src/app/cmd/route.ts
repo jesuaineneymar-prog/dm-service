@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS COMMAND API — executes real platform actions
+//  Aura COMMAND API — executes real platform actions
 // ============================================================
 
 import { NextResponse } from 'next/server';
@@ -378,7 +378,7 @@ export async function POST(request: Request) {
   // ===== UPLOAD-POST: Publish Text =====
   if (action === 'up_publish_text') {
     var platforms = body.platforms || ['twitter'];
-    var title = message || body.title || 'Post do JARVIS';
+    var title = message || body.title || 'Post do Aura';
     var result = await upPublishText(title, platforms, body.options || {});
     return NextResponse.json(result);
   }
@@ -387,7 +387,7 @@ export async function POST(request: Request) {
   if (action === 'up_publish_photos') {
     if (!mediaData) return NextResponse.json({ success: false, error: 'Necessitas enviar uma foto' });
     var photoPlatforms = body.platforms || ['instagram'];
-    var photoTitle = message || body.title || 'Foto do JARVIS';
+    var photoTitle = message || body.title || 'Foto do Aura';
     var imageBuffer = Buffer.from(mediaData, 'base64');
     var result = await upPublishPhotos([imageBuffer], photoTitle, photoPlatforms, body.options || {});
     return NextResponse.json(result);
@@ -397,7 +397,7 @@ export async function POST(request: Request) {
   if (action === 'up_publish_video') {
     if (!mediaData) return NextResponse.json({ success: false, error: 'Necessitas enviar um video' });
     var videoPlatforms = body.platforms || ['tiktok'];
-    var videoTitle = message || body.title || 'Video do JARVIS';
+    var videoTitle = message || body.title || 'Video do Aura';
     var videoBuffer = Buffer.from(mediaData, 'base64');
     var result = await upPublishVideo(videoBuffer, videoTitle, videoPlatforms, body.options || {});
     return NextResponse.json(result);
@@ -461,7 +461,7 @@ export async function POST(request: Request) {
     var connectResult = await upGenerateConnectURL({
       platforms: body.platforms || ['instagram', 'facebook', 'tiktok'],
       redirect_url: body.redirect_url || 'https://jarvis-khaki-chi.vercel.app',
-      connect_title: body.connect_title || 'Mwango Brain — Conectar Redes Sociais ao JARVIS',
+      connect_title: body.connect_title || 'Mwango Brain — Conectar Redes Sociais ao Aura',
       language: body.language || 'pt',
     });
     return NextResponse.json({
@@ -471,7 +471,7 @@ export async function POST(request: Request) {
       duration: connectResult.duration,
       error: connectResult.error,
       instructions: connectResult.success
-        ? 'Abre o link no navegador e clica em cada plataforma (Instagram, Facebook, TikTok) para autorizar. Depois disso, o JARVIS consegue publicar em todas via API.'
+        ? 'Abre o link no navegador e clica em cada plataforma (Instagram, Facebook, TikTok) para autorizar. Depois disso, o Aura consegue publicar em todas via API.'
         : undefined,
     });
   }
@@ -617,7 +617,7 @@ export async function POST(request: Request) {
   // ===== UPLOAD-POST: Publish from URL =====
   if (action === 'up_publish_url') {
     var pubURL = body.url || body.target || '';
-    var pubTitle = message || body.title || 'Post do JARVIS';
+    var pubTitle = message || body.title || 'Post do Aura';
     var pubPlatforms = body.platforms || ['instagram', 'tiktok'];
     if (!pubURL) return NextResponse.json({ success: false, error: 'URL do video necessaria' });
     var urlResult = await upPublishFromURL(pubURL, pubTitle, pubPlatforms, body.options || {});

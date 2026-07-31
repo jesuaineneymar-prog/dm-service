@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS AUTH API — Login e validacao de sessao
+//  Aura AUTH API — Login e validacao de sessao
 // ============================================================
 
 import { NextResponse } from 'next/server';

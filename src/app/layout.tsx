@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "JARVIS // Mwango Brain",
+  title: "Aura // Mwango Brain",
   description: "Sistema de Automacao de Redes Sociais",
 };
 

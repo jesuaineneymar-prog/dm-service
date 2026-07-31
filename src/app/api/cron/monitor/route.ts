@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS CRON — Monitorização de DMs (a cada 5 minutos)
+//  Aura CRON — Monitorização de DMs (a cada 5 minutos)
 //  - Verifica mensagens por ler no Zernio (IG + FB)
 //  - Responde automaticamente com IA (Gemini)
 //  - Cria/actualiza prospects no CRM

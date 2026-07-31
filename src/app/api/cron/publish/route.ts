@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS CRON — Publicação de Posts Agendados (a cada 10 min)
+//  Aura CRON — Publicação de Posts Agendados (a cada 10 min)
 //  - Verifica ScheduledPosts cujo horário de publicação já chegou
 //  - Publica via Upload-Post API (Instagram, Facebook, TikTok)
 //  - Actualiza status para 'published'

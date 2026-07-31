@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS HEALTH CHECK — Testa todas as integracoes
+//  Aura HEALTH CHECK — Testa todas as integracoes
 // ============================================================
 
 import { NextResponse } from 'next/server';

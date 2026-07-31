@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS BROWSERLESS API — screenshots, scraping, extraccao
+//  Aura BROWSERLESS API — screenshots, scraping, extraccao
 // ============================================================
 
 import { NextResponse } from 'next/server';

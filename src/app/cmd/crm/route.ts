@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS CRM API — gestao de prospeccao e contactos
+//  Aura CRM API — gestao de prospeccao e contactos
 // ============================================================
 
 import { NextResponse } from 'next/server';

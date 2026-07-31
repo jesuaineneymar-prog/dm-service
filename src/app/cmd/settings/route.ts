@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS SETTINGS API — configuracoes do sistema
+//  Aura SETTINGS API — configuracoes do sistema
 // ============================================================
 
 import { NextResponse } from 'next/server';

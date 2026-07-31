@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS TIKTOK ENGINE v2
+//  Aura TIKTOK ENGINE v2
 //  Deep Search Jul 2026: 
 //    - ManyChat: parceiro OFICIAL TikTok para DMs (via Business Messaging API)
 //    - ManyChat TikTok API: /tk/v2/ (nao /fb/v2/)

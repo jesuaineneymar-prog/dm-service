@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS SOCIAVAULT ENGINE — Sociavault REST API v1/scrape/
+//  Aura SOCIAVAULT ENGINE — Sociavault REST API v1/scrape/
 //  Base URL: https://api.sociavault.com
 //  Auth: X-API-Key header (nao query param)
 //  Free plan: 50 credits (1 credit por request)

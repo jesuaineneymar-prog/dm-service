@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS AUTH — JWT-based auth para serverless (Vercel)
+//  Aura AUTH — JWT-based auth para serverless (Vercel)
 //  Sessions via JWT assinadas — sem estado, funciona em serverless
 //  Password hash via env var AUTH_PASSWORD_HASH
 // ============================================================

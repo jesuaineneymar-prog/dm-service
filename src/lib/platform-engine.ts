@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS PLATFORM ENGINE — REAL HTTP API FOR IG, FB, TT
+//  Aura PLATFORM ENGINE — REAL HTTP API FOR IG, FB, TT
 //  All actions are REAL, zero simulation
 //  Credentials loaded from config.ts (centralized)
 // ============================================================
@@ -471,7 +471,7 @@ export async function upGenerateConnectURL(opts: {
       username: opts.username || UP_PROFILE,
       redirect_url: opts.redirect_url || 'https://jarvis-khaki-chi.vercel.app',
       platforms: opts.platforms || ['instagram', 'facebook', 'tiktok'],
-      connect_title: opts.connect_title || 'Mwango Brain — Conectar Redes Sociais ao JARVIS',
+      connect_title: opts.connect_title || 'Mwango Brain — Conectar Redes Sociais ao Aura',
       logo_image: opts.logo_image || '',
       language: opts.language || 'pt',
     };
@@ -1072,14 +1072,14 @@ export async function generateAIReply(commentText: string, postCaption: string, 
 
     var res = await fetch(OR_URL, {
       method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + OR_KEY, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://jvfinal.vercel.app', 'X-Title': 'JARVIS' },
+      headers: { 'Authorization': 'Bearer ' + OR_KEY, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://jvfinal.vercel.app', 'X-Title': 'Aura' },
       body: JSON.stringify({ model: OR_MODEL, messages, max_tokens: 150, temperature: 0.7 }),
     });
 
     if (!res.ok) {
       var res2 = await fetch(OR_URL, {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + OR_KEY, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://jvfinal.vercel.app', 'X-Title': 'JARVIS' },
+        headers: { 'Authorization': 'Bearer ' + OR_KEY, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://jvfinal.vercel.app', 'X-Title': 'Aura' },
         body: JSON.stringify({ model: OR_FALLBACK, messages, max_tokens: 150, temperature: 0.7 }),
       });
       var d2 = await res2.json();
@@ -1106,7 +1106,7 @@ export async function generateDM(prospectName: string, platform: string, customM
 
     var res = await fetch(OR_URL, {
       method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + OR_KEY, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://jvfinal.vercel.app', 'X-Title': 'JARVIS' },
+      headers: { 'Authorization': 'Bearer ' + OR_KEY, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://jvfinal.vercel.app', 'X-Title': 'Aura' },
       body: JSON.stringify({ model: OR_MODEL, messages, max_tokens: 200, temperature: 0.8 }),
     });
 

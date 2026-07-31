@@ -1,6 +1,6 @@
 // ============================================================
-//  JARVIS MCP ENGINE — Model Context Protocol Bridge
-//  Conecta JARVIS a servidores MCP externos para expandir
+//  Aura MCP ENGINE — Model Context Protocol Bridge
+//  Conecta Aura a servidores MCP externos para expandir
 //  capacidades: scraping, ads, publishing, analytics
 //
 //  MCP Servers integrados:
@@ -146,7 +146,7 @@ export var MCP_SERVERS: MCPServer[] = [
   {
     id: 'playwright',
     name: 'Playwright MCP',
-    description: 'Automacao de browser — pesquisar web, preencher formularios, extrair dados de paginas, screenshots. Usa o browser existente (Browserless) do JARVIS.',
+    description: 'Automacao de browser — pesquisar web, preencher formularios, extrair dados de paginas, screenshots. Usa o browser existente (Browserless) do Aura.',
     url: 'https://api.browserless.io',
     authType: 'bearer',
     authHeader: 'Authorization',
@@ -359,7 +359,7 @@ export async function getAllMCPStatus(): Promise<Record<string, { connected: boo
 }
 
 // === CONVENIENCE WRAPPERS ===
-// Funcoes de alto nivel para uso direto no JARVIS
+// Funcoes de alto nivel para uso direto na Aura
 
 // --- SocialCrawl Wrappers ---
 

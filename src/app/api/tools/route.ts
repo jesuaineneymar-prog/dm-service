@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS EXTERNAL TOOLS API
+//  Aura EXTERNAL TOOLS API
 //  Integrates HikerAPI, Upload-Post, ManyChat, N8N
 //  All REAL actions, zero simulation
 // ============================================================

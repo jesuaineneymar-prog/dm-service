@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS A/B TESTING API — testar variantes de conteudo
+//  Aura A/B TESTING API — testar variantes de conteudo
 // ============================================================
 
 import { NextResponse } from 'next/server';

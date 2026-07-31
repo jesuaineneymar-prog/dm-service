@@ -1,5 +1,5 @@
 // ============================================================
-//  JARVIS ANALYTICS API — dados reais de engajamento
+//  Aura ANALYTICS API — dados reais de engajamento
 // ============================================================
 
 import { NextResponse } from 'next/server';
