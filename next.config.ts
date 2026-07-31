@@ -10,7 +10,10 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: false,
   typescript: { ignoreBuildErrors: true },
-  serverExternalPackages: ['@prisma/client', '@prisma/adapter-libsql', '@libsql/client'],
+  experimental: {
+    serverComponentsExternalPackages: ['@prisma/client', '@prisma/adapter-libsql', '@libsql/client', '@libsql/core'],
+  },
+ serverExternalPackages: ['@prisma/client', '@prisma/adapter-libsql', '@libsql/client', '@libsql/core'],
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }];
   },
