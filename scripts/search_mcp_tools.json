@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://brightdata.com/ai/mcp-server/social-media",
+    "name": "MCP Server for Social Media Data Extraction",
+    "snippet": "Use Bright Data's MCP Server to scrape social media data . Access posts, comments, and user metrics across platforms efficiently and in real-time.",
+    "host_name": "brightdata.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.skyvern.com/blog/top-mcp-servers-web-scraping",
+    "name": "6 Top MCP Servers for Web Scraping (May 2026)",
+    "snippet": "May 16, 2026 — MCP servers for web scraping are browser automation tools ・ for common targets like e-commerce and social media. MCP is best for data ...\nMay 16, 2026 — MCP servers for web scraping let AI assistants extract data through natural language commands instead of custom code; Skyvern uses computer ... Read more",
+    "host_name": "www.skyvern.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/mcp/comments/1nm8fz1/web_scraping_mcp_server_bring_live_web_data_into",
+    "name": "Web Scraping MCP Server – Bring Live Web Data Into",
+    "snippet": "Today I set up the Web Scraping MCP Server, which bridges MCP-compatible clients (Claude, Cursor, Windsurf, etc.) with live web data.",
+    "host_name": "www.reddit.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.nimbleway.com/blog/top-web-search-mcps",
+    "name": "Top 15 Web Search MCPs to Connect Your AI To - Nimble",
+    "snippet": "Jun 23, 2026 — Protocol (MCP) server is a standardized MCP connector that lets AI agents search, retrieve, crawl, extract, or interact with public web content.\nJun 23, 2026 — A Web Search MCP is an MCP server whose primary purpose is public web access , letting an AI agent search, retrieve, crawl, extract, or interact ... Read more",
+    "host_name": "www.nimbleway.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.firecrawl.dev/blog/best-web-search-mcp",
+    "name": "Top Web Search MCP Servers for Claude, Cursor, Codex",
+    "snippet": "3 days ago — MCP is the most capable web data server in this list , covering search, scraping, crawling, browser automation, and an autonomous research agent ...",
+    "host_name": "www.firecrawl.dev",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/firecrawl/firecrawl-mcp-server",
+    "name": "Official Firecrawl MCP Server - Adds powerful web",
+    "snippet": "A Model Context Protocol (MCP) server that brings Firecrawl to MCP-compatible AI agents — search, scrape, and interact with the live web for clean, agent-ready ...",
+    "host_name": "github.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://nayakpplaban.medium.com/building-an-ai-powered-deep-web-search-blog-generator-with-mcp-use-a-complete-guide-8b117b5017d7",
+    "name": "Building an AI-Powered Deep Web Search Blog Generator",
+    "snippet": "This article explores the development of an AI-powered blog generator that leverages MCP to perform deep web searches, generate content , and automatically save ...",
+    "host_name": "nayakpplaban.medium.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://you.com/resources/october-2025-api-roundup",
+    "name": "October 2025 API Update: MCP Launch & Enhanced",
+    "snippet": "Oct 15, 2025 — We're excited to introduce you.com's Model Context Protocol ( MCP ) server , bringing comprehensive web search capabilities to your agentic IDE.",
+    "host_name": "you.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/mcp/comments/1t0167q/i_built_an_mcp_server_that_scrapes_instagram",
+    "name": "I built an MCP server that scrapes Instagram, X/Twitter, and",
+    "snippet": "The MCP server exposes 11 tools including Instagram profile/post/hashtag extraction , X/Twitter search and post scraping, web crawl, map, extract ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/TensorBlock/awesome-mcp-servers/blob/main/docs/social-media--content-platforms.md",
+    "name": "awesome-mcp-servers/docs/social-media",
+    "snippet": "Facilitates the retrieval of articles and weekly news from GeekNews using BeautifulSoup for web scraping .",
+    "host_name": "github.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

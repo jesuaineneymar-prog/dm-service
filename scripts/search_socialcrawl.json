@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://www.socialcrawl.dev",
+    "name": "Social Media Scraper API: 46 Platforms | SocialCrawl",
+    "snippet": "The social media scraper API — one schema, 368 endpoints, 46 platforms . MCP-ready. No compute units. No subscriptions. Start with 100 free credits.\nMCP-native, skill-installable, and SDKs in six languages. Your agents can scrape, search, and stream on day one — with typed responses, retries, and rate limits handled.",
+    "host_name": "www.socialcrawl.dev",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://mcpmarket.com/server/socialcrawl",
+    "name": "SocialCrawl: Unified Social Media API for AI Agents",
+    "snippet": "SocialCrawl is an MCP (Model Context Protocol) server designed to empower AI agents with seamless access to the SocialCrawl API. This API unifies data from ... Read more\nConnects AI agents to a unified API for 21 social media platforms, providing access to profiles, posts, comments, and analytics. SocialCrawl is an MCP (Model Context Protocol) server designed to empower AI agents with seamless access to the SocialCrawl API.",
+    "host_name": "mcpmarket.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.socialcrawl.dev/blog/best-social-media-scraping-apis-2026",
+    "name": "10 Best Social Media Scraping APIs in 2026 (Ranked +",
+    "snippet": "Apr 17, 2026 — The best social media scraping API in 2026 is SocialCrawl for unified multi-platform data. 10 tools ranked on coverage, pricing, rate limits, ...",
+    "host_name": "www.socialcrawl.dev",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/SideProject/comments/1skmc7n/i_built_a_unified_social_media_api_to_let_ai",
+    "name": "I built a unified social media API to let AI agents get clean",
+    "snippet": "I built a unified social media API to let AI agents get clean access to all of X, Reddit, Threads and 21+ social media data. MCPs to make its ...",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://fridayaiclub.com/6-things-you-can-build-with-the-socialcrawl-api",
+    "name": "6 Things You Can Build with the SocialCrawl API",
+    "snippet": "The SocialCrawl API turns 27 social platforms into one schema. SocialCrawl ships an MCP server that plugs directly into Claude, Cursor, Windsurf, or any MCP- ...",
+    "host_name": "fridayaiclub.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=1B5Krk8SYcs",
+    "name": "YouTube",
+    "snippet": "Share your videos with friends, family, and the world.",
+    "host_name": "www.youtube.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://sociavault.com/blog/best-social-media-scraping-apis-2026",
+    "name": "The Best Social Media Scraping APIs in 2026",
+    "snippet": "Jan 11, 2026 — An honest, hands-on comparison of the best social media scraping APIs in 2026 . We break down pricing, platform coverage, response data, ...",
+    "host_name": "sociavault.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.firecrawl.dev",
+    "name": "Firecrawl - The context API to search, scrape, and interact with",
+    "snippet": "Firecrawl is not just a scraper or a search API — it's the infrastructure layer that helps AI systems find, read, and act on information across the live web. Read more",
+    "host_name": "www.firecrawl.dev",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/ridiodevelopment/socialcrawl-mcp",
+    "name": "RidioDevelopment/socialcrawl-mcp",
+    "snippet": "SocialCrawl MCP gives AI agents instant access to 21 social media platforms and 105 endpoints through a single, unified API. Retrieve profiles, posts ... Read more",
+    "host_name": "github.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://mcpservers.org/servers/socialcrawl/mcp",
+    "name": "Socialcrawl MCP Server | Awesome MCP Servers",
+    "snippet": "socialcrawl-mcp is an MCP (Model Context Protocol) server that connects AI agents to the SocialCrawl API — a unified data API covering 44 platforms and 357 endpoints.",
+    "host_name": "mcpservers.org",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

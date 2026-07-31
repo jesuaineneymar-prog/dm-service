@@ -18,6 +18,8 @@ import {
 
 import { requireAuth } from '@/lib/auth';
 import { generateDMReply, generateContent } from '@/lib/ai';
+import { getTikTokStatus } from '@/lib/tiktok-engine';
+import { monitorTikTokDMs } from '@/app/cmd/tiktok/route';
 
 export var maxDuration = 120;
 
@@ -374,12 +376,13 @@ export async function POST(request: Request) {
 
     if (action === 'full_cycle') {
       var monitorData = await monitorAndRespond();
+      var ttData = await monitorTikTokDMs();
       var followUpData = await processFollowUps();
       var autoCreated = await autoCreateFollowUps();
       var reportGenerated = await autoGenerateReport();
       return NextResponse.json({
         success: true, action: 'full_cycle',
-        data: { monitor: monitorData, followUps: followUpData, autoCreatedFollowUps: autoCreated, autoReportGenerated: reportGenerated, timestamp: new Date().toISOString() },
+        data: { monitor: monitorData, tiktok: ttData, followUps: followUpData, autoCreatedFollowUps: autoCreated, autoReportGenerated: reportGenerated, timestamp: new Date().toISOString() },
       });
     }
 

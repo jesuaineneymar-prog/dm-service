@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://www.socialync.io/blog/best-social-media-mcp-servers-2026",
+    "name": "Best Social Media MCP Servers in 2026 (The Honest List)",
+    "snippet": "Apr 29, 2026 — Socialync is the only social media scheduler with a native MCP server that posts to all 8 (TikTok, Instagram, YouTube, X, LinkedIn, Facebook, ...\nApr 29, 2026 — Socialync is the only social media scheduler with a native MCP server that posts to all 8 (TikTok, Instagram, YouTube, X, LinkedIn, Facebook, ... Read more",
+    "host_name": "www.socialync.io",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/TensorBlock/awesome-mcp-servers/blob/main/docs/social-media--content-platforms.md",
+    "name": "awesome-mcp-servers/docs/social-media",
+    "snippet": "Xpoz MCP : Remote-only social media MCP server for Twitter/X, Instagram, Reddit, and TikTok data & insights. Billions of posts indexed. No installation required ...\nA comprehensive collection of Model Context Protocol ( MCP ) servers . Servers interacting with social networks , content platforms, or feed aggregators.",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://postproxy.dev/how-to/mcp-social-media-publishing",
+    "name": "How to Let AI Agents Publish to Social Media via MCP",
+    "snippet": "Jul 21, 2026 — MCP gives Claude Code, Cursor, and other LLM agents the ability to publish posts. Here's how to wire the Postproxy MCP server .",
+    "host_name": "postproxy.dev",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://bundle.social/blog/social-media-mcp-server-ai-automation",
+    "name": "Social Media MCP Server: AI Automation That Acts",
+    "snippet": "3 days ago — This guide explains what a social media MCP server is, how it differs from a normal API integration, how bundle. social's MCP server works, and ...",
+    "host_name": "bundle.social",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://mcpservers.org/servers/socialcrawl/mcp",
+    "name": "Socialcrawl MCP Server",
+    "snippet": "What the MCP server does: Discovers available platforms and endpoints dynamically; Fetches live social media data on your behalf; Validates requests locally ...\nWhat the MCP server does: Discovers available platforms and endpoints dynamically; Fetches live social media data on your behalf ; Validates requests locally ... Read more",
+    "host_name": "mcpservers.org",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://social-api.ai/blog/social-media-api-ai-agents-2026",
+    "name": "Best social media API for AI agents in 2026",
+    "snippet": "Jul 14, 2026 — SocialAPI.ai is the only social media API with executable MCP server , OAuth 2.1, and full inbox access. The best social media API for AI agents ...",
+    "host_name": "social-api.ai",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://claudemarketplaces.com/mcp/io.github.socialapishub/social-media-api",
+    "name": "Social Media Api | MCP Servers - Claude Code Marketplaces",
+    "snippet": "A unified API wrapper that lets Claude pull data from Facebook pages, groups, and posts without dealing with OAuth complexity. Install dependencies npm install",
+    "host_name": "claudemarketplaces.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.socialcrawl.dev/mcp-server",
+    "name": "MCP Server for Social Media Data",
+    "snippet": "The SocialCrawl MCP server gives any AI agent 46 platforms and 368 endpoints of social media data. Run npx socialcrawl- mcp in Claude, Cursor, or Windsurf.",
+    "host_name": "www.socialcrawl.dev",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.blotato.com/blog/best-social-media-mcp-servers",
+    "name": "9 Best Social Media MCP Servers for Posting with Claude",
+    "snippet": "Jun 29, 2026 — Social media MCP servers compared by one honest test: can the server actually publish your post , or does it just hand your agent a draft and ...",
+    "host_name": "www.blotato.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://bundle.social/social-media-mcp-server",
+    "name": "Social media MCP server for AI clients, posting, and",
+    "snippet": "Install bundlesocial-mcp once , point it at an API key, and every connected social account becomes a tool your agent can call. The MCP server tracks platform ... Read more",
+    "host_name": "bundle.social",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

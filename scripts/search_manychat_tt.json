@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://manychat.com/blog/tiktok-automation-its-here-and-its-about-to-change-everything",
+    "name": "TikTok Automation: It's Here, and it's About to Change",
+    "snippet": "Link your TikTok business account: We'll walk you through the setup.",
+    "host_name": "manychat.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.unkoa.com/tiktok-dm-automation-how-solo-course-creators-use-manychat-to-turn-viewers-into-leads",
+    "name": "ManyChat TikTok DM Automation: Setup Guide (2026)",
+    "snippet": "Step-by-step setup for automating TikTok DMs with ManyChat . Pricing, current limitations, real case studies, and what works in 2026.\nIn ManyChat, go to Automations → New Automation. Select the User sends a message trigger . Set the channel to TikTok and the trigger condition to \"Message ...\nTikTok officially supports automation through its Business Messaging API, and ManyChat is an authorised partner. You can set up keyword triggers, welcome messages, and multi-step conversation flows.",
+    "host_name": "www.unkoa.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/automation/comments/1q67drz/need_help_with_tiktok_comments",
+    "name": "Need Help With TikTok Comments : r/automation",
+    "snippet": "Manychat does not support dm outreach via a comment unfortunately. It only supports that on Instagram 1 more reply\nYou need a business account to use the TikTok API, Manychat does not support dm outreach via a comment unfortunately. It only supports that on ...",
+    "host_name": "www.reddit.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://manychat.com",
+    "name": "Chat Marketing Made Easy with Manychat",
+    "snippet": "Automate two-way, interactive conversations in Instagram Direct Messages, Facebook Messenger, and SMS to grow your brand.",
+    "host_name": "manychat.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.manychat.com/hc/en-us/articles/17508399106844-Set-up-your-first-TikTok-automation-in-Manychat-User-sends-a-message",
+    "name": "Set up your first TikTok automation in Manychat",
+    "snippet": "Dec 3, 2025 — In this article, we'll walk you through how to set up a User sends a message trigger : a simple and effective way to start conversations and ...\nSwitch to the Automation tab and click the +New Automation button. · Open Settings in ...\nTo set it up: Open Settings in your Manychat account and switch to the TikTok tab. In the Welcome message section, enter the text of your message, and turn on the Send welcome message toggle. The welcome message will appear for new contacts when they open a chat with you on TikTok, before they send their first message.",
+    "host_name": "help.manychat.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://business-api.tiktok.com/portal/bm-api/education-hub",
+    "name": "Business Messaging API Education Hub",
+    "snippet": "TikTok's API for Business allows developers to connect to the TikTok for Business platforms and build innovative solutions for global advertisers.\nBusiness Messaging API is a suite of interfaces enabling authorized Business Accounts to exchange direct messages with TikTok users through API-integrated ...",
+    "host_name": "business-api.tiktok.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://manychat.com/blog/manychat-x-tiktok-the-future-of-creator-conversations",
+    "name": "Manychat x TikTok: The Future of Creator Conversations is",
+    "snippet": "Jan 21, 2026 — The Manychat x TikTok integration is now live in the U.S.; creators and brands can turn interactions into real, scalable conversations.",
+    "host_name": "manychat.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/themarketinggals/posts/1201004458533699",
+    "name": "ManyChat is now available for TikTok (US too)!",
+    "snippet": "You can connect your TikTok Business account to automate DMs and start simple chat flows. Some of the automations are still rolling out, ...",
+    "host_name": "www.facebook.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.manychat.com/general-q-a-43/index77.html",
+    "name": "General Q&A",
+    "snippet": "Hi everyone,I successfully connected my TikTok Business account to ManyChat . However, when I send a DM from another account, it never reaches the ManyChat ...",
+    "host_name": "community.manychat.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.manychat.com/hc/en-us/articles/17961702404892-Use-cases-and-strategies-for-TikTok-automations-on-Manychat",
+    "name": "Use cases and strategies for TikTok automations on Manychat",
+    "snippet": "Manychat is actively developing new tools in collaboration with TikTok to make TikTok automations even more powerful. Here's a sneak peek of what’s coming soon: Comment-to-Message Triggers: Move conversations from comments to Messages seamlessly. Clickable links and buttons in TikTok messages: Enhance user experience with interactive links.",
+    "host_name": "help.manychat.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -460,6 +460,48 @@ function ChatTab({ onLogout }: { onLogout: () => void }) {
         reply = autoRes?.success ? 'Automacao criada! Quem comentar nos teus posts vai receber automaticamente: "' + autoText + '"' : 'Falhou: ' + (autoRes?.error || '?');
       }
     }
+    // ===== TIKTOK DM COMMANDS =====
+    else if (cmd.includes('tiktok') && (cmd.includes('inbox') || cmd.includes('dm') || cmd.includes('conversas'))) {
+      reply = 'A buscar DMs do TikTok...';
+      setChatHistory(h => [...h, { role: 'assistant', content: reply, ts: new Date().toISOString() }]);
+      var ttConv = await apiCall('/cmd/tiktok', { action: 'get_conversations' });
+      if (!ttConv?.success) { reply = 'Erro ao buscar DMs TikTok: ' + (ttConv?.error || 'verifica se a MANYCHAT_API_KEY esta configurada'); }
+      else {
+        var ttConvs = ttConv.data?.conversations || ttConv.data || [];
+        if (!Array.isArray(ttConvs)) ttConvs = [];
+        if (ttConvs.length === 0) { reply = 'Sem conversas TikTok.'; }
+        else {
+          reply = ttConvs.length + ' conversas TikTok:\n';
+          for (var tti = 0; tti < Math.min(15, ttConvs.length); tti++) {
+            var tc = ttConvs[tti];
+            reply += '\n' + (tti+1) + '. ' + (tc.name || tc.participant?.username || tc.id?.slice(0, 12) || '?');
+            if (tc.lastMessage?.text) reply += ': "' + tc.lastMessage.text.slice(0, 60) + '"';
+          }
+        }
+      }
+    }
+    else if (cmd.includes('tiktok') && (cmd.includes('welcome') || cmd.includes('mensagem inicial'))) {
+      var ttMsg = msg.match(/["']([^"']+)["']/);
+      var ttWelcomeText = ttMsg ? ttMsg[1] : 'Ola! Bem-vindo a Mwango Brain. Como podemos ajudar?';
+      reply = 'A configurar mensagem de boas-vindas TikTok...';
+      setChatHistory(h => [...h, { role: 'assistant', content: reply, ts: new Date().toISOString() }]);
+      var ttWel = await apiCall('/cmd/tiktok', { action: 'set_welcome', message: ttWelcomeText });
+      reply = ttWel?.success ? 'Mensagem de boas-vindas TikTok configurada!' : 'Erro: ' + (ttWel?.error || '?');
+    }
+    else if (cmd.includes('tiktok') && cmd.includes('status')) {
+      reply = 'A verificar estado TikTok...';
+      setChatHistory(h => [...h, { role: 'assistant', content: reply, ts: new Date().toISOString() }]);
+      var ttStatus = await apiCall('/cmd/tiktok', { action: 'get_status' });
+      if (ttStatus?.success) {
+        var s = ttStatus.data;
+        reply = 'ESTADO TIKTOK\n';
+        reply += '  DMs: ' + s.dms + '\n';
+        reply += '  Auto-reply: ' + s.auto_reply + '\n';
+        reply += '  Welcome msg: ' + s.welcome_message + '\n';
+        reply += '  Comments: ' + s.comments + '\n';
+        reply += '  Posting: ' + s.posting + '\n';
+      } else { reply = 'Erro: ' + (ttStatus?.error || '?'); }
+    }
     // ===== AUTONOMOUS SYSTEM COMMANDS =====
     else if (cmd.includes('modo autonomo') || cmd.includes('ativar autonomia') || cmd.includes('sistema autonomo')) {
       reply = 'A activar sistema autonomo...';
@@ -473,6 +515,10 @@ function ChatTab({ onLogout }: { onLogout: () => void }) {
         autoLines += '  - Novas mensagens: ' + (d.monitor?.newMessages || 0) + '\n';
         autoLines += '  - Respostas automaticas: ' + (d.monitor?.autoReplied || 0) + '\n';
         autoLines += '  - Notificacoes criadas: ' + (d.monitor?.notifications || 0) + '\n';
+        autoLines += '\nTikTok DMs:\n';
+        autoLines += '  - Novas mensagens: ' + (d.tiktok?.newMessages || 0) + '\n';
+        autoLines += '  - Respostas automaticas: ' + (d.tiktok?.autoReplied || 0) + '\n';
+        if (d.tiktok?.errors?.length > 0) autoLines += '  - Erros: ' + d.tiktok.errors.join(', ') + '\n';
         autoLines += '\nFollow-ups:\n';
         autoLines += '  - Processados: ' + (d.followUps?.processed || 0) + '\n';
         autoLines += '  - Enviados: ' + (d.followUps?.sent || 0) + '\n';

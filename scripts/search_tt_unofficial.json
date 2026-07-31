@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://github.com/davidteather/tiktok-api",
+    "name": "The Unofficial TikTok API Wrapper In Python",
+    "snippet": "This is an unofficial api wrapper for TikTok.com in python . With this api you are able to call most trending and fetch specific user information as well as much ...\nThis is an unofficial api wrapper for TikTok.com in python. With this api you are able to call most trending and fetch specific user information as well as much ...",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=LjGv48OckaU",
+    "name": "No-Code TikTok API Comments Scraping with HAR Files (Still",
+    "snippet": "We'll discuss how to legally scrape comments from any public TikTok video without violating the TikTok Terms of Service using the HAR File Web ...\nScrape the TikTok Comments API: https://stevesie.com/apps/tiktok-api/scrape/comments If you're a TikTok creator, social media agency, ...",
+    "host_name": "www.youtube.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.tiktok.com/doc/research-api-specs-query-video-comments?enter_method=left_navigation",
+    "name": "TikTok Video Comments API Documentation",
+    "snippet": "This document provides comprehensive details about the TikTok Video Comments API , including request methods, headers, parameters, and response structures.\nThis document provides comprehensive details about the TikTok Video Comments API, including request methods, headers, parameters, and response structures.",
+    "host_name": "developers.tiktok.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/learnpython/comments/1p558um/how_do_i_connect_my_tiktok_comment_grabber",
+    "name": "How do I connect my TikTok comment grabber → priority",
+    "snippet": "TikTok comment grabber (Python ) Streams live comments. Basically: TikTok comments → priority filter/queue → ChatGPT → output. Tik Tok API allow ...",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://manychat.com/blog/how-to-use-tiktok-to-turn-messages-into-conversations",
+    "name": "How to Use TikTok to Turn Messages Into Conversations",
+    "snippet": "Mar 4, 2025 — Step 1: Set Up Your TikTok automation tool ; Manychat: The platform that can automate responses to TikTok messages. ; SocialBee: A social media ...\nStep 1: Set Up Your TikTok automation tool · Connect Your TikTok Account. Most tools require connecting your TikTok account via an API or login ...",
+    "host_name": "manychat.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.postman.com/tiktok/tiktok-api-for-business/request/14hkgzd/business-comment-reply-create",
+    "name": "Business comment reply create | TikTok Business API V1.3",
+    "snippet": "Start sending API requests with the Business comment reply create public request from TikTok API For Business on the Postman API Network.",
+    "host_name": "www.postman.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/webscraping/comments/n41md5/does_an_api_exist_to_scrape_tiktok_comment_text",
+    "name": "Does an API exist to scrape TikTok comment text on videos (not",
+    "snippet": "No. There does not exist any public and free API or service, official or not, to fully scrape all the comments from any TikTok video. How do I connect my TikTok comment grabber → priority filter ... I need to integrate auto comment reply to insta, YT and tiktok : r/n8n More results from www.reddit.com",
+    "host_name": "www.reddit.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=QsUmJLpOjHg",
+    "name": "Comment on Tiktok videos automatically - Coding Tutorial - YouTube",
+    "snippet": "29:45 · Go to channel Redian · [2020] How to build a YouTube Comment Bot with Python (API method). Redian•64K views · 18:11 · Go to channel ...",
+    "host_name": "www.youtube.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://parse.bot/marketplace/2e2bd45f-cc23-45f4-a5e7-42b98de5d21c/tiktok-com-api",
+    "name": "TikTok Video & Comments API - Parse.bot",
+    "snippet": "This API covers two endpoints — get_post_details and get_comments — giving you structured data from any public TikTok video. get_post_details ...",
+    "host_name": "parse.bot",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.postman.com/tiktok/tiktok-api-for-business/request/2t0gmfy/business-comment-reply",
+    "name": "Business comment reply | TikTok Business API V1.3 - Postman",
+    "snippet": "Start sending API requests with the Business comment reply public request from TikTok API For Business on the Postman API Network.",
+    "host_name": "www.postman.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]
