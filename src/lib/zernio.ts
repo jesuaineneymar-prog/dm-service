@@ -6,7 +6,7 @@
 
 import { ZERNIO_KEY } from './config';
 
-var ZERNIO_BASE = 'https://zernio.com/api/v1';
+var ZERNIO_BASE = 'https://api.zernio.com/v1';
 
 function zernioHeaders(): Record<string, string> {
   return {
