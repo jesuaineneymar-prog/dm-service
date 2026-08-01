@@ -132,7 +132,7 @@ export async function zernioCreateCommentAutomation(options: {
       method: 'POST',
       headers: zernioHeaders(),
       body: JSON.stringify({
-        accountId: options.accountId,
+        profileId: options.accountId,
         trigger: options.trigger || 'comment',
         keywords: options.keywords || ['*'],
         message: options.message,
