@@ -15,6 +15,8 @@ import {
   zernioListCommentAutomations,
   zernioCreateBroadcast,
   zernioGetConnectUrl,
+  zernioGetAudience,
+  zernioGetContacts,
 } from '@/lib/zernio';
 
 import { requireAuth } from '@/lib/auth';
@@ -159,6 +161,30 @@ export async function POST(request: Request) {
       authUrl: connResult.data,
       instructions: 'Abre o link no navegador e autoriza o ' + platform + '. Depois a conta fica disponivel via API.',
     });
+  }
+
+  // ===== GET AUDIENCE/FOLLOWERS =====
+  if (action === 'audience') {
+    var audAccId = body.accountId || '';
+    if (!audAccId) {
+      // Try to find IG account automatically
+      var accsResult = await zernioListAccounts();
+      if (accsResult.success && accsResult.data?.accounts) {
+        var igAcc = accsResult.data.accounts.find(function(a: any) { return a.platform === 'instagram'; });
+        if (igAcc) audAccId = igAcc._id;
+      }
+    }
+    if (!audAccId) return NextResponse.json({ success: false, error: 'accountId necessario' });
+    var audResult = await zernioGetAudience(audAccId, { type: body.type || 'followers', limit: body.limit || 50 });
+    if (!audResult.success) return NextResponse.json({ success: false, error: audResult.error });
+    return NextResponse.json({ success: true, type: 'zernio_audience', data: audResult.data });
+  }
+
+  // ===== GET CONTACTS =====
+  if (action === 'contacts') {
+    var contResult = await zernioGetContacts({ accountId: body.accountId, limit: body.limit || 50 });
+    if (!contResult.success) return NextResponse.json({ success: false, error: contResult.error });
+    return NextResponse.json({ success: true, type: 'zernio_contacts', data: contResult.data });
   }
 
   return NextResponse.json({ error: 'Accao desconhecida: ' + action });
