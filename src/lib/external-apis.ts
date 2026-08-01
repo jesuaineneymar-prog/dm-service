@@ -86,9 +86,9 @@ export async function hikerGetFollowers(apiKey: string, userId: string, count?: 
 }
 
 // HikerAPI: Search users by query
-export async function hikerSearchUsers(apiKey: string, query: string) {
+export async function hikerSearchUsers(apiKey: string, query: string, amount?: number) {
   try {
-    var url = HIKER_BASE + '/v1/user/search?query=' + encodeURIComponent(query);
+    var url = HIKER_BASE + '/v1/search/users?query=' + encodeURIComponent(query) + '&amount=' + (amount || 20);
     var res = await fetch(url, {
       headers: { 'x-access-key': apiKey, 'Accept': 'application/json' },
     });
@@ -100,30 +100,26 @@ export async function hikerSearchUsers(apiKey: string, query: string) {
   }
 }
 
-// HikerAPI: Send DM to any user (outbound - can start NEW conversations)
-// This uses Instagram's private API via HikerAPI
-export async function hikerSendDM(apiKey: string, options: {
-  recipientUserId: string;  // Instagram user ID (pk) of the recipient
-  text: string;            // Message text
-  mediaUrl?: string;       // Optional: media URL to send
+// --- Upload-Post: Send DM (outbound — Instagram) ---
+// Upload-Post suporta enviar DMs para qualquer user ID
+var UP_DM_BASE = 'https://api.upload-post.com';
+
+export async function upSendDMOutbound(apiKey: string, options: {
+  recipientId: string;
+  message: string;
 }) {
   try {
-    var body: any = {
-      recipient_users: [options.recipientUserId],
-      text: options.text,
-    };
-    if (options.mediaUrl) {
-      body.media_url = options.mediaUrl;
-    }
-
-    var res = await fetch(HIKER_BASE + '/v1/dm/send', {
+    var res = await fetch(UP_DM_BASE + '/api/uploadposts/dms/send', {
       method: 'POST',
       headers: {
-        'x-access-key': apiKey,
+        'Authorization': 'Apikey ' + apiKey,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        recipient_id: options.recipientId,
+        message: options.message,
+      }),
     });
     if (!res.ok) {
       var errText = await res.text().catch(function() { return ''; });
@@ -136,9 +132,53 @@ export async function hikerSendDM(apiKey: string, options: {
   }
 }
 
+// HikerAPI: Send DM to any user (outbound - can start NEW conversations)
+// Tenta HikerAPI primeiro, depois Upload-Post como fallback
+export async function hikerSendDM(apiKey: string, options: {
+  recipientUserId: string;
+  text: string;
+  mediaUrl?: string;
+  uploadPostKey?: string;  // Upload-Post key as fallback
+}) {
+  // Try HikerAPI first
+  try {
+    var body: any = {
+      recipient_users: [options.recipientUserId],
+      text: options.text,
+    };
+    if (options.mediaUrl) body.media_url = options.mediaUrl;
+
+    var res = await fetch(HIKER_BASE + '/v1/dm/send', {
+      method: 'POST',
+      headers: {
+        'x-access-key': apiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      var data = await res.json();
+      return { success: true, data: data, method: 'hikerapi' };
+    }
+    // HikerAPI failed, try Upload-Post fallback
+    if (options.uploadPostKey) {
+ var upRes = await upSendDMOutbound(options.uploadPostKey, {
+        recipientId: options.recipientUserId,
+        message: options.text,
+      });
+      if (upRes.success) return { ...upRes, method: 'uploadpost' };
+      return { success: false, error: 'HikerAPI e Upload-Post falharam. HikerAPI: HTTP ' + res.status + '. Upload-Post: ' + (upRes.error || '') };
+    }
+    var errText = await res.text().catch(function() { return ''; });
+    return { success: false, error: 'HTTP ' + res.status + ': ' + errText.slice(0, 300) };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
 // HikerAPI: Send DM by username (convenience wrapper - resolves username to ID first)
-export async function hikerSendDMByUsername(apiKey: string, username: string, text: string) {
-  // First get the user ID
+export async function hikerSendDMByUsername(apiKey: string, username: string, text: string, uploadPostKey?: string) {
   var userResult = await hikerGetUser(apiKey, username);
   if (!userResult.success || !userResult.data) {
     return { success: false, error: 'Nao consegui encontrar utilizador @' + username + ': ' + (userResult.error || 'desconhecido') };
@@ -147,8 +187,7 @@ export async function hikerSendDMByUsername(apiKey: string, username: string, te
   if (!userId) {
     return { success: false, error: 'Nao consegui extrair ID do utilizador @' + username };
   }
-  // Then send the DM
-  return hikerSendDM(apiKey, { recipientUserId: String(userId), text: text });
+  return hikerSendDM(apiKey, { recipientUserId: String(userId), text: text, uploadPostKey: uploadPostKey });
 }
 
 // HikerAPI: Get user's stories

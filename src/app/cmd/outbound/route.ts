@@ -14,7 +14,7 @@ import {
   hikerGetComments,
   mcSendDM,
 } from '@/lib/external-apis';
-import { HIKERAPI_KEY, MANYCHAT_KEY, IG_USERNAME, OR_KEY, OR_URL, OR_FALLBACK_MODEL } from '@/lib/config';
+import { HIKERAPI_KEY, MANYCHAT_KEY, IG_USERNAME, OR_KEY, OR_URL, OR_FALLBACK_MODEL, UPLOADPOST_KEY } from '@/lib/config';
 import { requireAuth } from '@/lib/auth';
 
 export var maxDuration = 60;
@@ -199,7 +199,7 @@ export async function POST(request: Request) {
       if (uname && !recipId) {
         dmResult = await hikerSendDMByUsername(HIKERAPI_KEY, uname, msgText);
       } else if (recipId) {
-        dmResult = await hikerSendDM(HIKERAPI_KEY, { recipientUserId: recipId, text: msgText });
+        dmResult = await hikerSendDM(HIKERAPI_KEY, { recipientUserId: recipId, text: msgText, uploadPostKey: UPLOADPOST_KEY });
       } else {
         return NextResponse.json({ success: false, error: 'userId ou username necessario' });
       }
@@ -246,7 +246,7 @@ export async function POST(request: Request) {
       var usr = searchRes.users[i];
       if (!usr.pk) { results.push({ username: usr.username, success: false, error: 'Sem ID' }); continue; }
       var text = sMsg || await generateOutboundMessage('saudacao para @' + usr.username + ' interessado em ' + sQuery);
-      var sendRes = await hikerSendDM(HIKERAPI_KEY, { recipientUserId: usr.pk, text: text });
+      var sendRes = await hikerSendDM(HIKERAPI_KEY, { recipientUserId: usr.pk, text: text, uploadPostKey: UPLOADPOST_KEY });
       results.push({ username: usr.username, full_name: usr.full_name, success: sendRes.success, message: text, error: sendRes.success ? undefined : sendRes.error });
       if (i < searchRes.users.length - 1) await new Promise(function(r) { setTimeout(r, 3000); });
     }
@@ -277,7 +277,7 @@ export async function POST(request: Request) {
       var fu = fRes.users[j];
       if (!fu.pk) { fRes2.push({ username: fu.username, success: false, error: 'Sem ID' }); continue; }
       var ftxt = fdMsg || await generateOutboundMessage('saudacao para @' + fu.username + ' seguidor de @' + tUname);
-      var fsr = await hikerSendDM(HIKERAPI_KEY, { recipientUserId: fu.pk, text: ftxt });
+      var fsr = await hikerSendDM(HIKERAPI_KEY, { recipientUserId: fu.pk, text: ftxt, uploadPostKey: UPLOADPOST_KEY });
       fRes2.push({ username: fu.username, full_name: fu.full_name, success: fsr.success, message: ftxt, error: fsr.success ? undefined : fsr.error });
       if (j < fRes.users.length - 1) await new Promise(function(r) { setTimeout(r, 3000); });
     }
@@ -318,7 +318,7 @@ export async function POST(request: Request) {
       var cUname = c.user?.username || c.username || 'unknown';
       if (!cUid) { cResults.push({ username: cUname, success: false, error: 'Sem ID' }); continue; }
       var ctxt = cMsg || await generateOutboundMessage('responder ao comentario de @' + cUname);
-      var csr = await hikerSendDM(HIKERAPI_KEY, { recipientUserId: cUid, text: ctxt });
+      var csr = await hikerSendDM(HIKERAPI_KEY, { recipientUserId: cUid, text: ctxt, uploadPostKey: UPLOADPOST_KEY });
       cResults.push({ username: cUname, success: csr.success, message: ctxt, error: csr.success ? undefined : csr.error });
       if (k < toDm.length - 1) await new Promise(function(r) { setTimeout(r, 3000); });
     }
