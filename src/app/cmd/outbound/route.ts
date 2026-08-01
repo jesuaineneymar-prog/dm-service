@@ -19,24 +19,29 @@ import { requireAuth } from '@/lib/auth';
 
 export var maxDuration = 60;
 
-// === Zernio Account IDs (cache) ===
-var _zernioAccounts: { ig: string; fb: string; loaded: boolean } = { ig: '', fb: '', loaded: false };
+// === Zernio Account IDs ===
+// Hardcoded to avoid extra API call (Vercel Hobby has 10s timeout)
+var IG_ACCOUNT_ID = '6a6a51f5df17280d93d8a106';
+var FB_ACCOUNT_ID = '6a6a51bcdf17280d93d89e06';
+var _zernioAccountsLoaded = false;
+var _zernioAccounts: { ig: string; fb: string } = { ig: IG_ACCOUNT_ID, fb: FB_ACCOUNT_ID };
 
 async function getZernioAccounts() {
-  if (_zernioAccounts.loaded) return _zernioAccounts;
+  if (_zernioAccountsLoaded) return _zernioAccounts;
+  // Try to get fresh IDs from API (background refresh)
   try {
     var result = await zernioListAccounts();
     if (result.success && result.data?.accounts) {
       for (var i = 0; i < result.data.accounts.length; i++) {
         var acc = result.data.accounts[i];
-        if (acc.platform === 'instagram') _zernioAccounts.ig = acc._id;
-        if (acc.platform === 'facebook') _zernioAccounts.fb = acc._id;
+        if (acc.platform === 'instagram') { _zernioAccounts.ig = acc._id; IG_ACCOUNT_ID = acc._id; }
+        if (acc.platform === 'facebook') { _zernioAccounts.fb = acc._id; FB_ACCOUNT_ID = acc._id; }
       }
     }
   } catch (e: any) {
-    console.error('Failed to load Zernio accounts:', e.message);
+    console.error('Failed to refresh Zernio accounts:', e.message);
   }
-  _zernioAccounts.loaded = true;
+  _zernioAccountsLoaded = true;
   return _zernioAccounts;
 }
 
@@ -148,19 +153,15 @@ async function findRandomFollowers(targetUsername: string, count: number) {
   };
 }
 
-// === HELPER: Enviar DM via Zernio (melhor metodo) ===
+// === HELPER: Enviar DM via Zernio (hardcoded IDs — no extra API call) ===
 async function sendViaZernio(platform: string, recipientId: string, message: string, recipientUsername?: string) {
-  var accounts = await getZernioAccounts();
-  var accountId = platform === 'facebook' ? accounts.fb : accounts.ig;
-  if (!accountId) {
-    return { success: false, error: 'Conta Zernio ' + platform + ' nao encontrada. Conecta em zernio.com' };
-  }
+  var accountId = platform === 'facebook' ? FB_ACCOUNT_ID : IG_ACCOUNT_ID;
   var result = await zernioSendOutboundDM({
     accountId: accountId,
     recipientId: recipientId,
     message: message,
     platform: platform,
-    recipientUsername: options.recipientUsername,
+    recipientUsername: recipientUsername,
   });
   return result;
 }
