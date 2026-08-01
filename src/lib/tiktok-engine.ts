@@ -284,9 +284,10 @@ export function getTikTokStatus() {
     hashtag_research: 'available_via_ai',
     competitor_monitoring: 'available_via_hikerapi',
     // Setup instructions
+    engine_version: 'v3_zernio_primary',
     setup_note: hasZernio
-      ? 'TikTok DMs: conecta a tua conta TikTok em zernio.com/dashboard para activar DMs grátis'
-      : 'Configura ZERNIO_KEY para DMs grátis de TikTok, IG e FB',
+      ? 'TikTok DMs: conecta a tua conta TikTok em zernio.com/dashboard para activar DMs gratis'
+      : 'Configura ZERNIO_KEY para DMs gratis de TikTok, IG e FB',
     manychat_note: hasManyChat ? 'ManyChat disponível como fallback para features avançadas (welcome message, flows)' : 'ManyChat é OPCIONAL. Zernio (grátis) cobre DMs.',
   };
 }
