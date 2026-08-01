@@ -76,12 +76,26 @@ export async function tiktokDMsViaZernio() {
       return {
         success: false,
         error: usingDedicated
-          ? 'Conta TikTok nao encontrada nesta Zernio. Verifica se o TikTok esta conectado no dashboard desta conta.'
-          : 'Nenhuma conta TikTok no Zernio. Usa a segunda conta Zernio com TikTok (ZERNIO_TT_KEY).',
+          ? 'Conta TikTok nao encontrada nesta Zernio.'
+          : 'Nenhuma conta TikTok no Zernio.',
         source: 'zernio_tt',
         hasZernioKey: true,
         tiktokConnected: false,
         accountsFound: accounts.map(function(a: any) { return a.platform || 'unknown'; }),
+      };
+    }
+
+    // Verificar se a conta tem capabilities de inbox (DMs)
+    var inboxCapable = ttAccount.xCapabilities?.inbox !== false;
+    if (!inboxCapable) {
+      return {
+        success: false,
+        error: 'Zernio TikTok nao tem permissao de inbox (DMs). A Zernio ainda nao suporta DMs do TikTok.',
+        source: 'zernio_tt',
+        hasZernioKey: true,
+        tiktokConnected: true,
+        inboxCapable: false,
+        username: ttAccount.username || ttAccount.displayName || 'unknown',
       };
     }
 
@@ -305,30 +319,34 @@ export async function tiktokAdsGetInsights(advertiserId: string, startDate?: str
 // === TIKTOK INTEGRATION STATUS ===
 export function getTikTokStatus() {
   var hasZernio = !!ZERNIO_KEY;
+  var hasZernioTT = !!ZERNIO_TT_KEY;
   var hasManyChat = !!MANYCHAT_KEY;
 
   return {
-    // DMs: Zernio (grátis) é o principal, ManyChat é fallback
-    dms: hasZernio ? 'available_via_zernio_free' : (hasManyChat ? 'available_via_manychat' : 'needs_zernio_or_manychat'),
-    dms_provider: hasZernio ? 'Zernio (grátis)' : (hasManyChat ? 'ManyChat (opcional)' : 'Nenhum'),
-    // Tudo o resto já funciona sem ManyChat
+    // DMs: Zernio TT nao suporta inbox do TikTok (limitacao da API)
+    // ManyChat e o unico parceiro oficial TikTok para DMs
+    dms: hasManyChat ? 'available_via_manychat' : 'needs_manychat_free_tier',
+    dms_provider: hasManyChat ? 'ManyChat (free: 1000/mes)' : 'Nenhum — ManyChat e a unica opcao para TikTok DMs',
+    dms_note: 'Zernio nao suporta DMs do TikTok (so posting). ManyChat free tier: 1000 conversas/mes.',
+    // Tudo o resto ja funciona sem ManyChat
     comments: 'available_via_socialcrawl_mcp',
     posting: 'available_via_uploadpost',
+    posting_via_zernio: hasZernioTT ? 'available' : 'not_connected',
     analytics: 'available_via_uploadpost',
-    auto_reply: hasZernio ? 'available_via_zernio_free' : (hasManyChat ? 'available_via_manychat' : 'needs_zernio'),
-    welcome_message: hasManyChat ? 'available_via_manychat' : 'only_via_zernio_inbox',
-    comment_to_dm: hasManyChat ? 'available_via_manychat' : 'not_available_without_manychat',
+    auto_reply: hasManyChat ? 'available_via_manychat' : 'needs_manychat_free_tier',
+    welcome_message: hasManyChat ? 'available_via_manychat' : 'needs_manychat',
+    comment_to_dm: hasManyChat ? 'available_via_manychat' : 'needs_manychat',
     ads_management: 'available_via_tiktok_ads_mcp',
     scraping: 'available_via_socialcrawl_mcp',
     content_generation: 'available_via_ai',
     trending: 'available_via_sociavault',
     hashtag_research: 'available_via_ai',
     competitor_monitoring: 'available_via_hikerapi',
-    // Setup instructions
-    engine_version: 'v3_zernio_primary',
-    setup_note: hasZernio
-      ? 'TikTok DMs: conecta a tua conta TikTok em zernio.com/dashboard para activar DMs gratis'
-      : 'Configura ZERNIO_KEY para DMs gratis de TikTok, IG e FB',
-    manychat_note: hasManyChat ? 'ManyChat disponível como fallback para features avançadas (welcome message, flows)' : 'ManyChat é OPCIONAL. Zernio (grátis) cobre DMs.',
+    zernio_tt_status: hasZernioTT ? 'connected_posting_only' : 'not_connected',
+    engine_version: 'v3.1_dual_zernio',
+    setup_note: hasManyChat
+      ? 'TikTok DMs activo via ManyChat. Posting via Zernio TT.'
+      : 'Para TikTok DMs: cria conta gratis em manychat.com, conecta o TikTok, e adiciona MANYCHAT_API_KEY.',
+    manychat_note: 'ManyChat e o UNICO parceiro oficial do TikTok para DMs. Free tier: 1000 conversas/mes.',
   };
 }
