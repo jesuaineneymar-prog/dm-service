@@ -255,8 +255,13 @@ export async function POST(request: Request) {
     if (plat === 'instagram') {
       // Try Zernio first (most reliable for Business accounts)
       if (method === 'zernio' || method === 'auto') {
-        if (uname && !recipId) {
-          // Need to resolve username to ID first
+        // When using Zernio with username, skip HikerAPI resolution
+        // Zernio's create_conversation accepts participantUsername directly
+        if (method === 'zernio' && uname && !recipId) {
+          // Pass empty string as ID, Zernio will use participantUsername instead
+          recipId = '';
+        } else if (uname && !recipId) {
+          // Auto mode: resolve via HikerAPI
           if (HIKERAPI_KEY) {
             var resolveRes = await hikerGetUser(HIKERAPI_KEY, uname);
             if (resolveRes.success && resolveRes.data) {
