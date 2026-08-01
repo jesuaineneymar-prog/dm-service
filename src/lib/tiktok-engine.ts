@@ -321,32 +321,36 @@ export function getTikTokStatus() {
   var hasZernio = !!ZERNIO_KEY;
   var hasZernioTT = !!ZERNIO_TT_KEY;
   var hasManyChat = !!MANYCHAT_KEY;
+  var hasTTKey = hasZernioTT || hasZernio;
 
   return {
-    // DMs: Zernio TT nao suporta inbox do TikTok (limitacao da API)
-    // ManyChat e o unico parceiro oficial TikTok para DMs
-    dms: hasManyChat ? 'available_via_manychat' : 'needs_manychat_free_tier',
-    dms_provider: hasManyChat ? 'ManyChat (free: 1000/mes)' : 'Nenhum — ManyChat e a unica opcao para TikTok DMs',
-    dms_note: 'Zernio nao suporta DMs do TikTok (so posting). ManyChat free tier: 1000 conversas/mes.',
-    // Tudo o resto ja funciona sem ManyChat
+    // DMs: Tentamos via Zernio TT primeiro (segunda conta dedicada)
+    // Se Zernio TT suportar inbox do TikTok, DMs sao gratis
+    dms: hasTTKey ? 'testing_via_zernio_tt' : (hasManyChat ? 'available_via_manychat' : 'needs_config'),
+    dms_provider: hasTTKey
+      ? 'Zernio TT (grátis — conta dedicada TikTok)'
+      : (hasManyChat ? 'ManyChat (free: 1000/mes)' : 'Nenhum configurado'),
+    dms_note: hasTTKey
+      ? 'A testar Zernio TT para DMs. Se nao suportar, ManyChat (grátis) e alternativa.'
+      : 'Configura ZERNIO_TT_KEY ou MANYCHAT_API_KEY para TikTok DMs.',
     comments: 'available_via_socialcrawl_mcp',
     posting: 'available_via_uploadpost',
-    posting_via_zernio: hasZernioTT ? 'available' : 'not_connected',
+    posting_via_zernio: hasZernioTT ? 'connected' : (hasZernio ? 'may_support' : 'not_connected'),
     analytics: 'available_via_uploadpost',
-    auto_reply: hasManyChat ? 'available_via_manychat' : 'needs_manychat_free_tier',
-    welcome_message: hasManyChat ? 'available_via_manychat' : 'needs_manychat',
-    comment_to_dm: hasManyChat ? 'available_via_manychat' : 'needs_manychat',
+    auto_reply: hasTTKey ? 'testing_via_zernio_tt' : (hasManyChat ? 'available_via_manychat' : 'needs_config'),
+    welcome_message: hasManyChat ? 'available_via_manychat' : 'not_configured',
+    comment_to_dm: 'available_via_zernio_ig_fb',
     ads_management: 'available_via_tiktok_ads_mcp',
     scraping: 'available_via_socialcrawl_mcp',
     content_generation: 'available_via_ai',
     trending: 'available_via_sociavault',
     hashtag_research: 'available_via_ai',
     competitor_monitoring: 'available_via_hikerapi',
-    zernio_tt_status: hasZernioTT ? 'connected_posting_only' : 'not_connected',
-    engine_version: 'v3.1_dual_zernio',
-    setup_note: hasManyChat
-      ? 'TikTok DMs activo via ManyChat. Posting via Zernio TT.'
-      : 'Para TikTok DMs: cria conta gratis em manychat.com, conecta o TikTok, e adiciona MANYCHAT_API_KEY.',
-    manychat_note: 'ManyChat e o UNICO parceiro oficial do TikTok para DMs. Free tier: 1000 conversas/mes.',
+    zernio_tt_status: hasZernioTT ? 'connected_testing' : 'not_connected',
+    zernio_igfb_status: hasZernio ? 'connected' : 'not_connected',
+    engine_version: 'v3.2_dual_zernio',
+    setup_note: hasZernioTT
+      ? 'Zernio TT conectada com TikTok. A testar capacidades de DM. Posting via Upload-Post.'
+      : 'Para TikTok completo: adiciona ZERNIO_TT_KEY (Zernio com TikTok) ou MANYCHAT_API_KEY.',
   };
 }

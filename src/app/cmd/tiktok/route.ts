@@ -17,7 +17,7 @@ import {
   tiktokDMsViaZernio,
   tiktokSendDMViaZernio,
 } from '@/lib/tiktok-engine';
-import { ZERNIO_KEY, MANYCHAT_KEY } from '@/lib/config';
+import { ZERNIO_KEY, ZERNIO_TT_KEY, MANYCHAT_KEY } from '@/lib/config';
 import {
   tikTokAutoCycle,
   getTikTokTrending,
@@ -33,8 +33,8 @@ export var maxDuration = 60;
 export async function monitorTikTokDMs() {
   var results = { newMessages: 0, autoReplied: 0, source: 'none' as string, errors: [] as string[] };
 
-  // PRIMEIRO: Tentar Zernio (grátis, já conectado)
-  if (ZERNIO_KEY) {
+  // PRIMEIRO: Tentar Zernio TT (grátis, conta dedicada TikTok)
+  if (ZERNIO_TT_KEY || ZERNIO_KEY) {
     try {
       var zernioRes = await tiktokDMsViaZernio();
 
@@ -194,8 +194,8 @@ export async function POST(request: Request) {
 
     if (action === 'send_dm') {
       if (!body.recipientId || !body.message) return NextResponse.json({ success: false, error: 'recipientId e message necessarios' });
-      // Tentar Zernio primeiro
-      if (ZERNIO_KEY && body.conversationId && body.accountId) {
+      // Tentar Zernio TT primeiro
+      if ((ZERNIO_TT_KEY || ZERNIO_KEY) && body.conversationId && body.accountId) {
         var zResult = await tiktokSendDMViaZernio(body.conversationId, body.accountId, body.message);
         if (zResult.success) return NextResponse.json({ ...zResult, via: 'zernio' });
       }
@@ -205,10 +205,10 @@ export async function POST(request: Request) {
     }
 
     if (action === 'get_conversations') {
-      // Tentar Zernio primeiro
-      if (ZERNIO_KEY) {
+      // Tentar Zernio TT primeiro
+      if (ZERNIO_TT_KEY || ZERNIO_KEY) {
         var zernioRes = await tiktokDMsViaZernio();
-        if (zernioRes.success) return NextResponse.json({ ...zernioRes, via: 'zernio' });
+        if (zernioRes.success) return NextResponse.json({ ...zernioRes, via: 'zernio_tt' });
       }
       // Fallback ManyChat
       var convs = await tiktokGetConversations(body.limit || 50);
