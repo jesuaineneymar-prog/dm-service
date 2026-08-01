@@ -29,8 +29,8 @@ function zernioTTListAccounts() {
 
 function zernioTTListConversations(options?: { platform?: string; limit?: number }) {
   var url = ZERNIO_BASE + '/inbox/conversations';
+  // Zernio TT so tem TikTok, nao enviar platform filter (causa 400)
   if (options?.limit) url += '?limit=' + options.limit;
-  if (options?.platform) url += (options?.limit ? '&' : '?') + 'platform=' + encodeURIComponent(options.platform);
   return fetch(url, { headers: ttHeaders() })
     .then(function(r) { return r.ok ? r.json().then(function(d: any) { return { success: true, data: d }; }) : r.text().then(function(t: string) { return { success: false, error: 'HTTP ' + r.status }; }); })
     .catch(function(e: any) { return { success: false, error: e.message }; });
@@ -85,14 +85,14 @@ export async function tiktokDMsViaZernio() {
       };
     }
 
-    // Buscar conversas TikTok
-    var convRes = await zernioTTListConversations({ platform: 'tiktok', limit: 30 });
+    // Buscar conversas (sem platform filter — conta TT so tem TikTok)
+    var convRes = await zernioTTListConversations({ limit: 30 });
     if (!convRes.success) return { success: false, error: 'Conversas TikTok: ' + (convRes.error || ''), source: 'zernio_tt' };
 
     var convData = convRes.data;
     var conversations: any[] = [];
-    if (Array.isArray(convData)) conversations = convData;
-    else if (convData?.data) conversations = Array.isArray(convData.data) ? convData.data : [];
+    if (convData?.data && Array.isArray(convData.data)) conversations = convData.data;
+    else if (Array.isArray(convData)) conversations = convData;
     else if (convData?.conversations) conversations = Array.isArray(convData.conversations) ? convData.conversations : [];
 
     return {
