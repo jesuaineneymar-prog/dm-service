@@ -195,8 +195,8 @@ export async function zernioCreateBroadcast(options: {
 // ============================================================
 
 // Send a DM to a NEW user (outbound — starts a new conversation)
-// recipientId should be Instagram IGSID or Facebook user ID
-// For Instagram, also accepts username (tries to resolve)
+// recipientId: Instagram IGSID, Facebook user ID, or any platform user ID
+// recipientUsername: Instagram username (Zernio resolves internally)
 export async function zernioSendOutboundDM(options: {
   accountId: string;
   recipientId: string;
@@ -204,108 +204,35 @@ export async function zernioSendOutboundDM(options: {
   platform?: string;
   recipientUsername?: string;
 }) {
-  var errors: string[] = [];
-  var rid = options.recipientId;
-  var plat = options.platform || '';
-
-  // Method 1: POST /inbox/messages (direct send to user by ID)
+  // Primary method: POST /inbox/conversations (confirmed working endpoint)
+  // Requires: participantId OR participantUsername
   try {
-    var body1: any = {
+    var body: any = {
       accountId: options.accountId,
-      recipientId: rid,
       message: options.message,
     };
-    if (plat) body1.platform = plat;
-    if (options.recipientUsername) body1.recipientUsername = options.recipientUsername;
-
-    var res1 = await fetch(ZERNIO_BASE + '/inbox/messages', {
-      method: 'POST',
-      headers: zernioHeaders(),
-      body: JSON.stringify(body1),
-    });
-    if (res1.ok) {
-      var data1 = await res1.json();
-      return { success: true, data: data1, method: 'direct_message' };
-    }
-    // 404 = endpoint doesn't exist, skip silently
-    if (res1.status === 404) {
-      errors.push('direct_message: HTTP 404 (endpoint nao existe)');
+    // Use participantUsername if available (Zernio resolves to IGSID internally)
+    if (options.recipientUsername) {
+      body.participantUsername = options.recipientUsername;
     } else {
-      try { var t1 = await res1.text(); errors.push('direct_message: HTTP ' + res1.status + ' - ' + t1.slice(0, 200)); } catch(e) { errors.push('direct_message: HTTP ' + res1.status); }
+      body.participantId = options.recipientId;
     }
-  } catch (e: any) {
-    errors.push('direct_message: ' + e.message);
-  }
 
-  // Method 2: POST /inbox/conversations (CORRECT FORMAT: participantId + participantUsername)
-  try {
-    var body2: any = {
-      accountId: options.accountId,
-      participantId: rid,
-      message: options.message,
-    };
-    if (options.recipientUsername) body2.participantUsername = options.recipientUsername;
-
-    var res2 = await fetch(ZERNIO_BASE + '/inbox/conversations', {
+    var res = await fetch(ZERNIO_BASE + '/inbox/conversations', {
       method: 'POST',
       headers: zernioHeaders(),
-      body: JSON.stringify(body2),
+      body: JSON.stringify(body),
     });
-    if (res2.ok) {
-      var data2 = await res2.json();
-      return { success: true, data: data2, method: 'create_conversation' };
+    if (res.ok) {
+      var data = await res.json();
+      return { success: true, data: data, method: 'create_conversation' };
     }
-    try { var t2 = await res2.text(); errors.push('create_conversation: HTTP ' + res2.status + ' - ' + t2.slice(0, 300)); } catch(e) { errors.push('create_conversation: HTTP ' + res2.status); }
+    var errText = '';
+    try { errText = await res.text(); } catch(e) { errText = 'HTTP ' + res.status; }
+    return { success: false, error: 'create_conversation: HTTP ' + res.status + ' - ' + errText.slice(0, 500) };
   } catch (e: any) {
-    errors.push('create_conversation: ' + e.message);
+    return { success: false, error: e.message };
   }
-
-  // Method 3: POST /accounts/{id}/messages
-  try {
-    var body3: any = {
-      recipientId: rid,
-      message: options.message,
-    };
-    var res3 = await fetch(ZERNIO_BASE + '/accounts/' + options.accountId + '/messages', {
-      method: 'POST',
-      headers: zernioHeaders(),
-      body: JSON.stringify(body3),
-    });
-    if (res3.ok) {
-      var data3 = await res3.json();
-      return { success: true, data: data3, method: 'account_messages' };
-    }
-    if (res3.status === 404) {
-      errors.push('account_messages: HTTP 404 (endpoint nao existe)');
-    } else {
-      try { var t3 = await res3.text(); errors.push('account_messages: HTTP ' + res3.status + ' - ' + t3.slice(0, 200)); } catch(e) { errors.push('account_messages: HTTP ' + res3.status); }
-    }
-  } catch (e: any) {
-    errors.push('account_messages: ' + e.message);
-  }
-
-  // Method 4: Broadcast with profileId
-  try {
-    var bcastBody: any = {
-      profileId: options.accountId,
-      message: options.message,
-      contactIds: [rid],
-    };
-    var res4 = await fetch(ZERNIO_BASE + '/broadcasts', {
-      method: 'POST',
-      headers: zernioHeaders(),
-      body: JSON.stringify(bcastBody),
-    });
-    if (res4.ok) {
-      var data4 = await res4.json();
-      return { success: true, data: data4, method: 'broadcast' };
-    }
-    try { var t4 = await res4.text(); errors.push('broadcast: HTTP ' + res4.status + ' - ' + t4.slice(0, 300)); } catch(e) { errors.push('broadcast: HTTP ' + res4.status); }
-  } catch (e: any) {
-    errors.push('broadcast: ' + e.message);
-  }
-
-  return { success: false, error: 'Zernio falhou (' + errors.length + ' metodos): ' + errors.join(' | ') };
 }
 
 // Get connect URL for a platform
