@@ -1752,9 +1752,7 @@ function McpTab() {
   const [syncLoading, setSyncLoading] = useState(false);
   const [toolResult, setToolResult] = useState<any>(null);
   const [toolLoading, setToolLoading] = useState(false);
-  const [compStatus, setCompStatus] = useState<any>(null);
-  const [compToolkits, setCompToolkits] = useState<any[]>([]);
-  const [compResult, setCompResult] = useState<any>(null);
+
 
   const fetchServers = async () => {
     setLoading(true);
@@ -1821,53 +1819,7 @@ function McpTab() {
     setSyncLoading(false);
   };
 
-  // === Composio Handlers ===
-  const handleComposioStatus = async () => {
-    setCompResult(null);
-    try {
-      var res = await apiCall('/cmd/mcp', { action: 'composio_status' });
-      if (res.success) setCompStatus(res.data);
-      setCompResult(res);
-    } catch(e) { setCompResult({ success: false, error: e.message }); }
-  };
 
-  const handleComposioSession = async () => {
-    setCompResult(null);
-    try {
-      var res = await apiCall('/cmd/mcp', { action: 'composio_create_session' });
-      setCompResult(res);
-      if (res.success) handleComposioStatus();
-    } catch(e) { setCompResult({ success: false, error: e.message }); }
-  };
-
-  const handleComposioToolkits = async () => {
-    setCompResult(null);
-    try {
-      var tkRes = await apiCall('/cmd/mcp', { action: 'composio_mwango_toolkits' });
-      if (tkRes.success) setCompToolkits(tkRes.data);
-      var sessRes = await apiCall('/cmd/mcp', { action: 'composio_toolkits' });
-      setCompResult(sessRes);
-    } catch(e) { setCompResult({ success: false, error: e.message }); }
-  };
-
-  const handleComposioAccounts = async () => {
-    setCompResult(null);
-    try {
-      var res = await apiCall('/cmd/mcp', { action: 'composio_accounts' });
-      setCompResult(res);
-    } catch(e) { setCompResult({ success: false, error: e.message }); }
-  };
-
-  const handleComposioConnect = async (toolkit: string) => {
-    setCompResult(null);
-    try {
-      var res = await apiCall('/cmd/mcp', { action: 'composio_connect', toolkit });
-      setCompResult(res);
-      if (res.success && res.link) {
-        window.open(res.link, '_blank');
-      }
-    } catch(e) { setCompResult({ success: false, error: e.message }); }
-  };
 
   const handleCallTool = async (serverId: string, toolName: string) => {
     setToolLoading(true); setToolResult(null);
@@ -2030,49 +1982,7 @@ function McpTab() {
           </div>
         </div>
 
-        {/* COMPOSIO HUB */}
-        <div style={S.card}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>🔗 Composio Hub — 1000+ Apps</div>
-            <span style={{ ...S.badge(compStatus?.configured ? (compStatus?.sessionActive ? '#4ade80' : '#f59e0b') : '#666') }}>{compStatus?.configured ? (compStatus?.sessionActive ? 'Sessao activa' : 'Configurada') : 'Nao configurada'}</span>
-          </div>
-          <div style={{ fontSize: 10, color: '#888', lineHeight: 1.5, marginBottom: 12 }}>
-            OAuth para Instagram, TikTok, Facebook, LinkedIn, X, YouTube, Google Analytics, Google Ads, Gmail, Google Sheets, Canva e mais. Conecta uma vez, Aura usa em todas as automacoes.
-          </div>
 
-          <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-            <button onClick={handleComposioStatus} style={{ ...S.btn, height: 32, fontSize: 10 }}>Status</button>
-            <button onClick={handleComposioSession} style={{ ...S.btn, height: 32, fontSize: 10 }}>Criar Sessao</button>
-            <button onClick={handleComposioToolkits} style={{ ...S.btnOutline, height: 32, fontSize: 10, color: '#ff4444', borderColor: 'rgba(255,68,68,0.3)' }}>Ver Toolkits</button>
-            <button onClick={handleComposioAccounts} style={{ ...S.btnOutline, height: 32, fontSize: 10, color: '#ff4444', borderColor: 'rgba(255,68,68,0.3)' }}>Contas</button>
-          </div>
-
-          {/* Toolkits Grid */}
-          {compToolkits && compToolkits.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 6, marginBottom: 12 }}>
-              {compToolkits.map((tk: any) => (
-                <div key={tk.slug} onClick={() => handleComposioConnect(tk.slug)} style={{ padding: '8px 10px', borderRadius: 8, background: tk.connected ? 'rgba(74,222,128,0.05)' : 'rgba(255,255,255,0.03)', border: '1px solid ' + (tk.connected ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.06)'), cursor: 'pointer' }}>
-                  <div style={{ fontSize: 14, marginBottom: 2 }}>{tk.icon}</div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#fff' }}>{tk.name}</div>
-                  <div style={{ fontSize: 9, color: tk.connected ? '#4ade80' : '#666' }}>{tk.connected ? 'Conectado' : 'Clicar p/ ligar'}</div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Composio Result */}
-          {compResult && (
-            <div style={{ padding: 10, borderRadius: 8, background: compResult.success ? 'rgba(74,222,128,0.05)' : 'rgba(255,68,68,0.05)', border: '1px solid ' + (compResult.success ? 'rgba(74,222,128,0.15)' : 'rgba(255,68,68,0.15)'), maxHeight: 200, overflowY: 'auto' }}>
-              <pre style={{ fontSize: 10, color: compResult.success ? '#4ade80' : '#ff4444', whiteSpace: 'pre-wrap', fontFamily: "'SF Mono',Menlo,monospace", margin: 0 }}>{JSON.stringify(compResult.data || compResult.error || compResult.link, null, 2)}</pre>
-            </div>
-          )}
-
-          {compStatus?.error && !compStatus?.configured && (
-            <div style={{ padding: '10px 12px', borderRadius: 8, background: 'rgba(255,140,0,0.05)', border: '1px solid rgba(255,140,0,0.15)' }}>
-              <div style={{ fontSize: 10, color: '#ff8c00', lineHeight: 1.5 }}>Adicione <span style={{ fontFamily: "'SF Mono',Menlo,monospace", fontSize: 9 }}>COMPOSIO_API_KEY</span> como Environment Variable no Vercel. Obtenha em <a href="https://dashboard.composio.dev/settings" target="_blank" rel="noreferrer" style={{ color: '#ff4444' }}>dashboard.composio.dev/settings</a></div>
-            </div>
-          )}
-        </div>
 
         {/* TOOL RESULT (from individual tool test) */}
         {toolResult && (
