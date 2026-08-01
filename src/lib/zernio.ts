@@ -79,7 +79,7 @@ export async function zernioSendDM(conversationId: string, accountId: string, me
       headers: zernioHeaders(),
       body: JSON.stringify({
         accountId: accountId,
-        text: message,
+        message: { text: message },
       }),
     });
     if (!res.ok) {
