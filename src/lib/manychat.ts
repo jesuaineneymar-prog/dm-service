@@ -189,24 +189,26 @@ export async function mcSendByUserRef(options: {
 
 // === SUBSCRIBERS ===
 
-// Buscar subscribers
+// Buscar subscribers por nome
+// GET /fb/subscriber/findByName
 export async function mcGetSubscribers(options?: {
+  name?: string;
   limit?: number;
   page?: number;
   status?: string;
 }) {
   try {
-    var url = MC_BASE + '/fb/subscriber/find';
+    var url = MC_BASE + '/fb/subscriber/findByName';
     var params: string[] = [];
+    if (options?.name) params.push('name=' + encodeURIComponent(options.name));
     if (options?.limit) params.push('limit=' + String(options.limit));
     if (options?.page) params.push('page=' + String(options.page));
     if (options?.status) params.push('status=' + options.status);
     if (params.length > 0) url += '?' + params.join('&');
 
     var res = await fetch(url, {
-      method: 'POST',
+      method: 'GET',
       headers: mcHeaders(),
-      body: JSON.stringify({}),
     });
     if (!res.ok) {
       var errText = await res.text().catch(function() { return ''; });
@@ -220,12 +222,12 @@ export async function mcGetSubscribers(options?: {
 }
 
 // Buscar info de um subscriber especifico
+// GET /fb/subscriber/getInfo?subscriber_id=xxx
 export async function mcGetSubscriber(subscriberId: string) {
   try {
-    var res = await fetch(MC_BASE + '/fb/subscriber/getInfo', {
-      method: 'POST',
+    var res = await fetch(MC_BASE + '/fb/subscriber/getInfo?subscriber_id=' + encodeURIComponent(subscriberId), {
+      method: 'GET',
       headers: mcHeaders(),
-      body: JSON.stringify({ subscriber_id: subscriberId }),
     });
     if (!res.ok) {
       var errText = await res.text().catch(function() { return ''; });
@@ -360,13 +362,13 @@ export async function mcTriggerFlow(options: { subscriberId: string; flowId: str
   return await mcSendFacebookFlow(options);
 }
 
-// Find subscriber by custom ID
+// Find subscriber by custom field
+// GET /fb/subscriber/findByCustomField?field_id=xxx&field_value=yyy
 export async function mcFindSubscriberByCustomId(customId: string) {
   try {
-    var res = await fetch(MC_BASE + '/fb/subscriber/getInfo', {
-      method: 'POST',
+    var res = await fetch(MC_BASE + '/fb/subscriber/findBySystemField?field_name=custom_id&field_value=' + encodeURIComponent(customId), {
+      method: 'GET',
       headers: mcHeaders(),
-      body: JSON.stringify({ custom_id: customId }),
     });
     if (!res.ok) {
       var errText = await res.text().catch(function() { return ''; });
@@ -379,15 +381,20 @@ export async function mcFindSubscriberByCustomId(customId: string) {
   }
 }
 
-// List flows - ManyChat doesn't have a public API for this
+// Listar fluxos disponiveis
+// GET /fb/page/getFlows
 export async function mcListFlows() {
   try {
-    var res = await fetch(MC_BASE + '/fb/page/getInfo', { headers: mcHeaders() });
+    var res = await fetch(MC_BASE + '/fb/page/getFlows', {
+      method: 'GET',
+      headers: mcHeaders(),
+    });
     if (!res.ok) {
-      return { success: false, error: 'HTTP ' + res.status };
+      var errText = await res.text().catch(function() { return ''; });
+      return { success: false, error: 'HTTP ' + res.status + ': ' + errText.slice(0, 300) };
     }
     var data = await res.json();
-    return { success: true, data: { note: 'ManyChat API does not expose a flows list endpoint. Manage flows in ManyChat dashboard.', page: data } };
+    return { success: true, data: data };
   } catch (e: any) {
     return { success: false, error: e.message };
   }
