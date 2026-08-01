@@ -197,7 +197,7 @@ export async function POST(request: Request) {
       if (!HIKERAPI_KEY) return NextResponse.json({ success: false, error: 'HIKERAPI_KEY nao configurada no Vercel' });
       var dmResult;
       if (uname && !recipId) {
-        dmResult = await hikerSendDMByUsername(HIKERAPI_KEY, uname, msgText);
+        dmResult = await hikerSendDMByUsername(HIKERAPI_KEY, uname, msgText, UPLOADPOST_KEY);
       } else if (recipId) {
         dmResult = await hikerSendDM(HIKERAPI_KEY, { recipientUserId: recipId, text: msgText, uploadPostKey: UPLOADPOST_KEY });
       } else {
