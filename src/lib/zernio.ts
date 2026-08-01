@@ -134,6 +134,7 @@ export async function zernioCreateCommentAutomation(options: {
       body: JSON.stringify({
         profileId: options.accountId,
         accountId: options.accountId,
+        name: options.name || 'Aura Auto-DM ' + (options.trigger || 'comment'),
         trigger: options.trigger || 'comment',
         keywords: options.keywords || ['*'],
         message: options.message,
