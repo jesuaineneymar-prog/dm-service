@@ -115,3 +115,39 @@ Stage Summary:
 - Zernio contacts: FUNCIONANDO (2 contactos com IGSIDs)
 - Para ManyChat: user precisa fornecer API key para TikTok DMs
 
+---
+Task ID: 6
+Agent: Main
+Task: ManyChat API Integration + Comment-to-DM System + TikTok MCP Research
+
+Work Log:
+- Recebida ManyChat API key do usuario: 11902014:58e64c20421549118f2a1014db51a7d7
+- Key deployed ao Vercel como MANYCHAT_API_KEY (production)
+- Criado /src/lib/manychat.ts com ManyChat API v1 client (endpoints corrigidos)
+  - /fb/sending/sendContent, /fb/page/getInfo, /ig/sending/sendContent, /tt/sending/sendContent
+  - /fb/subscriber/find, /fb/subscriber/getInfo, /fb/subscriber/setCustomField
+  - /fb/page/createTag, /fb/subscriber/addTag, /fb/subscriber/removeTag
+- Criado /cmd/manychat/route.ts — rota completa de controle ManyChat
+- Criado /api/cron/comment-dm/route.ts — cron de Comment-to-DM automatico
+  - Monitoriza comentarios em posts recentes do Instagram
+  - Para cada comentador novo (24h), envia DM personalizado via IA
+  - Registra no CRM como prospect e guarda mensagens
+  - Evita DMs duplicados via automation_log
+- Adicionado /api/cron/comment-dm ao vercel.json (14h diarias)
+- Adicionado acoes auto_comment_dm e manychat_send ao /cmd/outbound
+- Corrigido ManyChat endpoints: v2 (404) -> v1 (/fb/sending/sendContent)
+- MuitChat API responde "Wrong token" — formato correcto mas token invalido
+- Pesquisa GitHub para TikTok DM via Playwright MCP:
+  - Nenhum repo faz os 3 (TikTok DM + Playwright + MCP)
+  - Mais proximo: AliMantach/tiktok-streak-bot (DM + Playwright, sem MCP)
+  - Melhor opcao: microsoft/playwright-mcp (35K stars) + sessao TikTok logada
+  - Recomendacao: usar Playwright MCP genérico para navegar tiktok.com/messages
+
+Stage Summary:
+- ManyChat integracao CODADA e DEPLOYADA, mas token do usuario esta invalido ("Wrong token")
+- User precisa gerar nova API key no ManyChat: Settings > API > Generate API Key
+- Comment-to-DM cron: PRONTO, roda as 14h via Vercel Cron
+- TikTok DM: recomendacao e usar microsoft/playwright-mcp com sessao logada
+- Novos endpoints: /cmd/manychat, /api/cron/comment-dm
+- Novas acoes outbound: auto_comment_dm, manychat_send
+

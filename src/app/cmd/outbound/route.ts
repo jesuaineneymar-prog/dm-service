@@ -212,9 +212,22 @@ export async function POST(request: Request) {
         'search_and_dm - Pesquisar + enviar DM automaticamente',
         'followers_and_dm - Seguidores de alvo + enviar DM',
         'commenters_to_dm - Comentadores de post -> enviar DM',
+        'auto_comment_dm - COMENTAR-TO-DM: Aura comeca conversa com quem comentou',
+        'manychat_send - Enviar DM via ManyChat (IG, FB, TikTok)',
         'fb_send_dm - Enviar DM outbound no Facebook via Zernio',
         'status - Verificar capacidades',
       ],
+      manychat: {
+        configured: !!MANYCHAT_KEY,
+        key_prefix: MANYCHAT_KEY ? MANYCHAT_KEY.slice(0, 8) + '...' : 'not_set',
+        capabilities: [
+          'send_ig_dm - Instagram DM',
+          'send_fb_dm - Facebook DM',
+          'send_tt_dm - TikTok DM',
+          'trigger_flow - Ativar fluxo de automacao',
+          'list_flows - Listar fluxos',
+        ],
+      },
     });
   }
 
@@ -493,6 +506,107 @@ export async function POST(request: Request) {
       total_sent: cResults.filter(function(r) { return r.success; }).length,
       results: cResults,
     });
+  }
+
+  // ===== COMMENT-TO-DM AUTOMATICO (Aura comeca conversa) =====
+  if (action === 'auto_comment_dm') {
+    var aMediaId = body.mediaId || '';
+    var aMessage = body.message || '';
+    var aCount = body.count || 10;
+
+    if (!aMediaId && HIKERAPI_KEY) {
+      // Se nao passou mediaId, buscar o post mais recente
+      var selfU = IG_USERNAME || '';
+      if (selfU) {
+        var selfRes = await hikerGetUser(HIKERAPI_KEY, selfU);
+        if (selfRes.success && selfRes.data) {
+          var selfMedias = selfRes.data?.medias || selfRes.data?.media?.data || [];
+          if (Array.isArray(selfMedias) && selfMedias.length > 0) {
+            aMediaId = String(selfMedias[0].id || selfMedias[0].pk || '');
+          }
+        }
+      }
+    }
+
+    if (!aMediaId) {
+      return NextResponse.json({
+        success: false,
+        error: 'Nenhum mediaId fornecido e nao consegui encontrar posts recentes. Passa mediaId manualmente.',
+      });
+    }
+
+    // Buscar comentarios
+    var aCommRes = await hikerGetComments(HIKERAPI_KEY, aMediaId, aCount * 2);
+    if (!aCommRes.success) {
+      return NextResponse.json({ success: false, error: 'Erro ao buscar comentarios: ' + (aCommRes.error || '') });
+    }
+    var aComms = aCommRes.data?.comments || aCommRes.data;
+    if (!Array.isArray(aComms) || aComms.length === 0) {
+      return NextResponse.json({ success: false, error: 'Nenhum comentario encontrado neste post' });
+    }
+
+    var aResults: any[] = [];
+    for (var ai = 0; ai < aComms.length && aResults.length < aCount; ai++) {
+      var ac = aComms[ai];
+      var acUid = String(ac.user?.pk || ac.user?.id || '');
+      var acUname = ac.user?.username || '';
+      var acText = ac.text || ac.content || '';
+      if (!acUid || !acUname) continue;
+
+      var acMsg = aMessage || await generateOutboundMessage('responder ao comentario de @' + acUname + ': ' + acText);
+      var acResult = await sendViaZernio('instagram', acUid, acMsg, acUname);
+
+      aResults.push({
+        username: acUname,
+        comment: acText.slice(0, 80),
+        dmSent: acMsg.slice(0, 80),
+        success: acResult.success,
+        method: acResult.method || 'zernio',
+        error: acResult.success ? undefined : acResult.error,
+      });
+
+      if (ai < aComms.length - 1) await new Promise(function(r) { setTimeout(r, 3000); });
+    }
+
+    return NextResponse.json({
+      success: true,
+      type: 'auto_comment_to_dm',
+      description: 'Aura iniciou conversas com comentadores automaticamente!',
+      mediaId: aMediaId,
+      total_commenters: aResults.length,
+      dms_sent: aResults.filter(function(r) { return r.success; }).length,
+      results: aResults,
+    });
+  }
+
+  // ===== MANYCHAT SEND (via ManyChat API) =====
+  if (action === 'manychat_send') {
+    var mcPlatform = body.platform || 'instagram';
+    var mcSubId = body.subscriberId || '';
+    var mcMsg = body.message || '';
+
+    if (!MANYCHAT_KEY) return NextResponse.json({ success: false, error: 'ManyChat nao configurado' });
+    if (!mcSubId) return NextResponse.json({ success: false, error: 'subscriberId necessario para ManyChat' });
+    if (!mcMsg) mcMsg = await generateOutboundMessage('saudacao via ManyChat');
+
+    var { mcSendInstagramDM, mcSendFacebookDM, mcSendTikTokDM } = await import('@/lib/manychat');
+    var mcResult: any;
+    if (mcPlatform === 'facebook') {
+      mcResult = await mcSendFacebookDM({ subscriberId: mcSubId, message: mcMsg });
+    } else if (mcPlatform === 'tiktok') {
+      mcResult = await mcSendTikTokDM({ subscriberId: mcSubId, message: mcMsg });
+    } else {
+      mcResult = await mcSendInstagramDM({ subscriberId: mcSubId, message: mcMsg });
+    }
+
+    if (mcResult.success) {
+      return NextResponse.json({
+        success: true, type: 'manychat_dm_sent',
+        platform: mcPlatform, subscriberId: mcSubId, message: mcMsg,
+        data: mcResult.data,
+      });
+    }
+    return NextResponse.json({ success: false, error: 'ManyChat falhou: ' + (mcResult.error || '') });
   }
 
   return NextResponse.json({ error: 'Accao desconhecida: ' + action });
