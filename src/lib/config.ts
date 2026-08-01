@@ -19,7 +19,7 @@ export var BROWSERLESS_KEY = env('BROWSERLESS_KEY', '');
 export var CRON_SECRET = env('CRON_SECRET', '');
 export var OR_KEY = env('OR_KEY', '');
 
-// --- Zernio (DMs) ---
+// --- Zernio (DMs — IG + FB + TikTok) ---
 export var ZERNIO_KEY = env('ZERNIO_KEY', '');
 
 // --- Contas ---
