@@ -321,23 +321,19 @@ export function getTikTokStatus() {
   var hasZernio = !!ZERNIO_KEY;
   var hasZernioTT = !!ZERNIO_TT_KEY;
   var hasManyChat = !!MANYCHAT_KEY;
-  var hasTTKey = hasZernioTT || hasZernio;
 
   return {
-    // DMs: Tentamos via Zernio TT primeiro (segunda conta dedicada)
-    // Se Zernio TT suportar inbox do TikTok, DMs sao gratis
-    dms: hasTTKey ? 'testing_via_zernio_tt' : (hasManyChat ? 'available_via_manychat' : 'needs_config'),
-    dms_provider: hasTTKey
-      ? 'Zernio TT (grátis — conta dedicada TikTok)'
-      : (hasManyChat ? 'ManyChat (free: 1000/mes)' : 'Nenhum configurado'),
-    dms_note: hasTTKey
-      ? 'A testar Zernio TT para DMs. Se nao suportar, ManyChat (grátis) e alternativa.'
-      : 'Configura ZERNIO_TT_KEY ou MANYCHAT_API_KEY para TikTok DMs.',
+    // DMs: Zernio TT NAO suporta inbox do TikTok (confirmado por teste)
+    // A unica opcao gratuita para TikTok DMs: ManyChat (exige conta Business/Creator no TikTok)
+    dms: hasManyChat ? 'available_via_manychat' : 'blocked_needs_business_account',
+    dms_provider: hasManyChat ? 'ManyChat (free: 1000/mes)' : 'Nenhum — TikTok requer conta Business para DMs via API',
+    dms_note: 'Zernio conectou TikTok mas NAO suporta DMs (soh posting). ManyChat (grátis) requer conta Business/Creator no TikTok — activa nas Definicoes do TikTok > Gestor de Conta > Conta Business.',
+    dms_solution: 'Vai ao TikTok > Definicoes > Conta > Mudar para Conta Business (gratis). Depois cria conta em manychat.com e liga o TikTok.',
     comments: 'available_via_socialcrawl_mcp',
     posting: 'available_via_uploadpost',
-    posting_via_zernio: hasZernioTT ? 'connected' : (hasZernio ? 'may_support' : 'not_connected'),
+    posting_via_zernio: hasZernioTT ? 'connected' : 'not_connected',
     analytics: 'available_via_uploadpost',
-    auto_reply: hasTTKey ? 'testing_via_zernio_tt' : (hasManyChat ? 'available_via_manychat' : 'needs_config'),
+    auto_reply: hasManyChat ? 'available_via_manychat' : 'blocked_needs_business_account',
     welcome_message: hasManyChat ? 'available_via_manychat' : 'not_configured',
     comment_to_dm: 'available_via_zernio_ig_fb',
     ads_management: 'available_via_tiktok_ads_mcp',
@@ -346,11 +342,11 @@ export function getTikTokStatus() {
     trending: 'available_via_sociavault',
     hashtag_research: 'available_via_ai',
     competitor_monitoring: 'available_via_hikerapi',
-    zernio_tt_status: hasZernioTT ? 'connected_testing' : 'not_connected',
-    zernio_igfb_status: hasZernio ? 'connected' : 'not_connected',
+    zernio_tt_status: hasZernioTT ? 'connected_posting_only' : 'not_connected',
+    zernio_igfb_status: hasZernio ? 'connected_dms_working' : 'not_connected',
     engine_version: 'v3.2_dual_zernio',
-    setup_note: hasZernioTT
-      ? 'Zernio TT conectada com TikTok. A testar capacidades de DM. Posting via Upload-Post.'
-      : 'Para TikTok completo: adiciona ZERNIO_TT_KEY (Zernio com TikTok) ou MANYCHAT_API_KEY.',
+    setup_note: hasManyChat
+      ? 'TikTok DMs activo via ManyChat. Posting via Upload-Post. IG/FB DMs via Zernio.'
+      : 'Para TikTok DMs: 1) Vai as Definicoes do TikTok > Conta > Mudar para Business (grátis). 2) Cria conta em manychat.com. 3) Liga o TikTok. 4) Adiciona MANYCHAT_API_KEY.',
   };
 }
