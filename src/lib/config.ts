@@ -56,4 +56,4 @@ export function getMissingKeys(): string[] {
   if (!TURSO_AUTH_TOKEN) missing.push('TURSO_AUTH_TOKEN');
   if (!CRON_SECRET) missing.push('CRON_SECRET');
   return missing;
-}// trigger
+}
