@@ -91,3 +91,27 @@ Work Log:
 
 Stage Summary:
 - Composio removido - key invalida, substituido por Arcade
+---
+Task ID: 1
+Agent: Super Z (main)
+Task: Implementar sistema de outbound DMs e automações comment-to-DM
+
+Work Log:
+- Analisou código existente (outbound/route.ts, zernio.ts, external-apis.ts)
+- Descobriu que o código já tinha sistema de outbound via HikerAPI mas não estava deployado
+- Fez push do código e testou — HikerAPI pesquisa funciona (encontrou 5 utilizadores de marketing Angola)
+- HikerAPI DM send falhou: Instagram não reconhece PKs internos via Graph API
+- Testou Zernio outbound DM — descobriu que Instagram E Facebook NÃO permitem iniciar conversas via API (PLATFORM_NOT_SUPPORTED)
+- Descobriu que Zernio tem endpoint de comment-automations que funciona
+- Corrigiu múltiplos parâmetros (profileId, accountId, name, dmMessage)
+- Criou automação comment-to-DM no Instagram (ativa)
+- Criou automação comment-to-DM no Facebook (ativa)
+- Otimizou para Vercel Hobby 10s timeout (hardcoded IDs, single API call)
+
+Stage Summary:
+- OUTBOUND DMs (iniciar conversa com estranhos): NÃO suportado por Instagram nem Facebook via API
+- COMMENT-TO-DM AUTOMATION: FUNCIONANDO em IG e FB — quando alguém comenta, Aura envia DM automaticamente
+- HikerAPI pesquisa de utilizadores: FUNCIONANDO (mas sem saldo — 8 requests restantes)
+- Zernio contacts: FUNCIONANDO (2 contactos com IGSIDs)
+- Para ManyChat: user precisa fornecer API key para TikTok DMs
+
