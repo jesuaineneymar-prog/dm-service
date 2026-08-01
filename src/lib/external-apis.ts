@@ -142,7 +142,8 @@ export async function hikerSendDM(apiKey: string, options: {
   recipientUserId: string;
   text: string;
   mediaUrl?: string;
-  uploadPostKey?: string;  // Upload-Post key as fallback
+  uploadPostKey?: string;
+  uploadPostUsername?: string;  // username for Upload-Post fallback
 }) {
   // Try HikerAPI first
   try {
@@ -168,7 +169,7 @@ export async function hikerSendDM(apiKey: string, options: {
     // HikerAPI failed, try Upload-Post fallback
     if (options.uploadPostKey) {
  var upRes = await upSendDMOutbound(options.uploadPostKey, {
-        recipientId: options.recipientUserId,
+        recipientId: options.uploadPostUsername || options.recipientUserId,
         message: options.text,
       });
       if (upRes.success) return { ...upRes, method: 'uploadpost' };
@@ -191,7 +192,7 @@ export async function hikerSendDMByUsername(apiKey: string, username: string, te
   if (!userId) {
     return { success: false, error: 'Nao consegui extrair ID do utilizador @' + username };
   }
-  return hikerSendDM(apiKey, { recipientUserId: String(userId), text: text, uploadPostKey: uploadPostKey });
+  return hikerSendDM(apiKey, { recipientUserId: String(userId), text: text, uploadPostKey: uploadPostKey, uploadPostUsername: username });
 }
 
 // HikerAPI: Get user's stories
