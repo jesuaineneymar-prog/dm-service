@@ -33,6 +33,16 @@ export var OR_URL = 'https://openrouter.ai/api/v1/chat/completions';
 export var OR_MODEL = 'openrouter/free';
 export var OR_FALLBACK_MODEL = 'inclusionai/ling-3.0-flash:free';
 
+// --- Browserless.io (Playwright remoto) ---
+export var BROWSERLESS_TOKEN = env('BROWSERLESS_TOKEN', '');
+export var BROWSERLESS_ENDPOINT = BROWSERLESS_TOKEN
+  ? 'wss://chrome.browserless.io?token=' + BROWSERLESS_TOKEN
+  : '';
+
+// --- TikTok DM (Playwright) ---
+export var TIKTOK_USERNAME = env('TIKTOK_USERNAME', '');
+export var TIKTOK_PASSWORD = env('TIKTOK_PASSWORD', '');
+
 // --- ManyChat / N8N (opcional) ---
 export var MANYCHAT_KEY = env('MANYCHAT_API_KEY', '');
 export var N8N_WEBHOOK_URL = env('N8N_WEBHOOK_URL', '');

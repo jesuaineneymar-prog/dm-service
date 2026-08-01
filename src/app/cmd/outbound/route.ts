@@ -14,7 +14,7 @@ import {
   hikerGetComments,
 } from '@/lib/external-apis';
 import { zernioListAccounts, zernioSendOutboundDM } from '@/lib/zernio';
-import { HIKERAPI_KEY, MANYCHAT_KEY, IG_USERNAME, OR_KEY, OR_URL, OR_FALLBACK_MODEL, UPLOADPOST_KEY } from '@/lib/config';
+import { HIKERAPI_KEY, MANYCHAT_KEY, IG_USERNAME, OR_KEY, OR_URL, OR_FALLBACK_MODEL, UPLOADPOST_KEY, BROWSERLESS_ENDPOINT } from '@/lib/config';
 import { requireAuth } from '@/lib/auth';
 
 export var maxDuration = 60;
@@ -205,6 +205,16 @@ export async function POST(request: Request) {
         manychat: !!MANYCHAT_KEY ? 'configured' : 'missing',
         capabilities: accounts.fb ? ['send_dm_outbound (zernio)'] : [],
       },
+      tiktok: {
+        method: 'playwright_browserless',
+        browserless: !!BROWSERLESS_ENDPOINT ? 'configured' : 'missing',
+        manychat: 'blocked_tiktok_business_unavailable_in_angola',
+        capabilities: [
+          'send_dm (playwright + browserless)',
+          'bulk_send (batch DMs)',
+          'screenshot (debug)',
+        ],
+      },
       available_actions: [
         'search_users - Pesquisar utilizadores no Instagram',
         'find_followers - Buscar seguidores de uma conta',
@@ -214,6 +224,7 @@ export async function POST(request: Request) {
         'commenters_to_dm - Comentadores de post -> enviar DM',
         'auto_comment_dm - COMENTAR-TO-DM: Aura comeca conversa com quem comentou',
         'manychat_send - Enviar DM via ManyChat (IG, FB, TikTok)',
+        'tiktok_dm - Enviar TikTok DM via Playwright + Browserless',
         'fb_send_dm - Enviar DM outbound no Facebook via Zernio',
         'status - Verificar capacidades',
       ],
@@ -607,6 +618,32 @@ export async function POST(request: Request) {
       });
     }
     return NextResponse.json({ success: false, error: 'ManyChat falhou: ' + (mcResult.error || '') });
+  }
+
+  // ===== TIKTOK DM (Playwright + Browserless) =====
+  if (action === 'tiktok_dm') {
+    var ttUsername = body.username || '';
+    var ttMessage = body.message || '';
+    if (!ttUsername) return NextResponse.json({ success: false, error: 'username necessario para TikTok DM' });
+    if (!ttMessage) ttMessage = await generateOutboundMessage('saudacao amigavel para TikTok em Angola');
+    ttUsername = ttUsername.replace(/^@/, '');
+
+    var { tiktokSendDM } = await import('@/lib/tiktok-dm');
+    var ttResult = await tiktokSendDM({ username: ttUsername, message: ttMessage });
+
+    if (ttResult.success) {
+      return NextResponse.json({
+        success: true, type: 'tiktok_dm_sent',
+        username: ttUsername, message: ttMessage,
+        method: 'playwright_browserless',
+        ...ttResult,
+      });
+    }
+    return NextResponse.json({
+      success: false,
+      error: 'TikTok DM falhou: ' + (ttResult.error || 'desconhecido'),
+      hint: 'Precisas configurar BROWSERLESS_TOKEN e TIKTOK_USERNAME/TIKTOK_PASSWORD no Vercel. Usa /cmd/tiktok-dm com action=login para guardar sessao.',
+    });
   }
 
   return NextResponse.json({ error: 'Accao desconhecida: ' + action });

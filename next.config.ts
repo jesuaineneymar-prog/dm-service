@@ -11,9 +11,9 @@ const nextConfig: NextConfig = {
   reactStrictMode: false,
   typescript: { ignoreBuildErrors: true },
   experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', '@prisma/adapter-libsql', '@libsql/client', '@libsql/core'],
+    serverComponentsExternalPackages: ['@prisma/client', '@prisma/adapter-libsql', '@libsql/client', '@libsql/core', 'playwright-core'],
   },
- serverExternalPackages: ['@prisma/client', '@prisma/adapter-libsql', '@libsql/client', '@libsql/core'],
+ serverExternalPackages: ['@prisma/client', '@prisma/adapter-libsql', '@libsql/client', '@libsql/core', 'playwright-core'],
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }];
   },

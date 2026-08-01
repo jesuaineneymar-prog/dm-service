@@ -1,60 +1,20 @@
 // ============================================================
-//  Aura TIKTOK DM — Playwright Browser Automation
-//  Entra no TikTok web via Playwright e envia DMs
-//  NOTA: Requer sessao TikTok activa (login manual primeiro)
+//  AURA TIKTOK DM — Controlo de DMs via Playwright + Browserless
+//  Alternativa ao ManyChat TikTok (nao disponivel em Angola)
 // ============================================================
 
 import { NextResponse } from 'next/server';
+import {
+  tiktokSendDM,
+  tiktokBulkDM,
+  tiktokDMStatus,
+  tiktokLoginAndSave,
+  tiktokClearSession,
+  tiktokScreenshot,
+} from '@/lib/tiktok-dm';
 import { requireAuth } from '@/lib/auth';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
-import path from 'path';
 
-var execFileAsync = promisify(execFile);
-
-var SCRIPT_PATH = path.join(process.cwd(), 'scripts', 'tiktok_dm.py');
-
-export var maxDuration = 120;
-
-async function runTikTokDmScript(args: string[]): Promise<{ success: boolean; data?: any; error?: string }> {
-  try {
-    var result = await execFileAsync('python3', [SCRIPT_PATH, ...args], {
-      timeout: 110000, // 110s timeout
-      maxBuffer: 2 * 1024 * 1024,
-      env: {
-        ...process.env,
-        HOME: process.env.HOME || '/root',
-        PLAYWRIGHT_BROWSERS_PATH: '/root/.cache/ms-playwright',
-      },
-    });
-    var stdout = result.stdout.trim();
-    var stderr = result.stderr.trim();
-
-    // Parse JSON output
-    try {
-      // Find JSON in output (might have print statements before)
-      var jsonMatch = stdout.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return { success: true, data: JSON.parse(jsonMatch[0]) };
-      }
-      // Try array
-      var arrMatch = stdout.match(/\[[\s\S]*\]/);
-      if (arrMatch) {
-        return { success: true, data: JSON.parse(arrMatch[0]) };
-      }
-    } catch (e) {
-      // JSON parse failed, return raw output
-    }
-
-    if (stderr && !stdout) {
-      return { success: false, error: stderr.slice(0, 500) };
-    }
-
-    return { success: true, data: { raw_output: stdout.slice(0, 500) } };
-  } catch (e: any) {
-    return { success: false, error: e.message.slice(0, 500) };
-  }
-}
+export var maxDuration = 120; // TikTok DM precisa de tempo extra
 
 export async function POST(request: Request) {
   var authError = requireAuth(request);
@@ -64,75 +24,103 @@ export async function POST(request: Request) {
 
   // ===== STATUS =====
   if (action === 'status') {
+    var status = await tiktokDMStatus();
     return NextResponse.json({
       success: true,
       type: 'tiktok_dm_status',
-      engine: 'playwright',
-      capabilities: [
-        'login - Login manual no TikTok (guarda sessao)',
-        'send - Enviar DM para um utilizador',
-        'send_bulk - Enviar DMs para multiplos utilizadores',
-        'check_inbox - Verificar mensagens recebidas',
-        'check_login - Verificar se sessao esta activa',
-        'get_log - Ver historico de DMs enviados',
-      ],
-      note: 'Requer sessao TikTok logada. Primeiro uso: action=login (abre browser para login manual)',
-      limitations: [
-        'Funciona em Vercel? NAO - Playwright so roda em servidor com browser.',
-        'Para Vercel: usar Browserless.io ou rodar localmente.',
-        'TikTok pode detectar automacao e bloquear conta.',
-        'Rate limit: esperar 5-11s entre DMs.',
-      ],
-      available_actions: ['login', 'send', 'send_bulk', 'check_inbox', 'check_login', 'get_log', 'status'],
+      platform: 'tiktok',
+      method: 'playwright_browserless',
+      adaptedFrom: 'AliMantach/tiktok-streak-bot',
+      ...status,
     });
   }
 
-  // ===== CHECK LOGIN =====
-  if (action === 'check_login') {
-    var loginResult = await runTikTokDmScript(['--action', 'check_login', '--no-headless']);
-    return NextResponse.json(loginResult);
+  // ===== LOGIN E GUARDAR SESSAO =====
+  if (action === 'login') {
+    var loginResult = await tiktokLoginAndSave();
+    if (loginResult.success) {
+      return NextResponse.json({
+        success: true,
+        type: 'tiktok_login_success',
+        message: 'Sessao TikTok guardada com sucesso',
+        data: loginResult.data,
+      });
+    }
+    return NextResponse.json({
+      success: false,
+      error: 'Login TikTok falhou: ' + (loginResult.error || 'erro desconhecido'),
+      hint: 'Configure TIKTOK_USERNAME e TIKTOK_PASSWORD no Vercel, ou use o action "screenshot" para ver o estado do browser.',
+    });
   }
 
-  // ===== SEND DM =====
+  // ===== ENVIAR DM A UM USUARIO =====
   if (action === 'send') {
     var username = body.username || '';
     var message = body.message || '';
-    if (!username) return NextResponse.json({ success: false, error: 'username necessario' });
+    if (!username) return NextResponse.json({ success: false, error: 'username necessario (sem @)' });
     if (!message) return NextResponse.json({ success: false, error: 'message necessario' });
 
-    var sendResult = await runTikTokDmScript([
-      '--action', 'send',
-      '--username', username,
-      '--message', message,
-    ]);
-    return NextResponse.json(sendResult);
+    // Remover @ se o usuario incluir
+    username = username.replace(/^@/, '');
+
+    var sendResult = await tiktokSendDM({ username: username, message: message });
+    if (sendResult.success) {
+      return NextResponse.json({
+        success: true,
+        type: 'tiktok_dm_sent',
+        username: username,
+        message: message,
+        ...sendResult,
+      });
+    }
+    return NextResponse.json({ success: false, error: 'Erro ao enviar TikTok DM: ' + (sendResult.error || 'desconhecido') });
   }
 
-  // ===== SEND BULK =====
-  if (action === 'send_bulk') {
-    var users = body.users || body.usernames || '';
-    var bulkMsg = body.message || '';
-    if (!users) return NextResponse.json({ success: false, error: 'users (lista separada por virgula) necessario' });
-    if (!bulkMsg) return NextResponse.json({ success: false, error: 'message necessario' });
+  // ===== ENVIAR DMs EM MASSA =====
+  if (action === 'bulk_send') {
+    var users = body.users || [];
+    var defaultMessage = body.defaultMessage || '';
+    if (!Array.isArray(users) || users.length === 0) {
+      return NextResponse.json({ success: false, error: 'users necessario (array de {username, message?})' });
+    }
+    if (users.length > 50) {
+      return NextResponse.json({ success: false, error: 'Maximo 50 usuarios por batch' });
+    }
 
-    var bulkResult = await runTikTokDmScript([
-      '--action', 'send_bulk',
-      '--users', users,
-      '--message', bulkMsg,
-    ]);
-    return NextResponse.json(bulkResult);
+    var bulkResult = await tiktokBulkDM({
+      users: users,
+      defaultMessage: defaultMessage,
+      delayBetweenUsers: body.delay || 3000,
+    });
+
+    return NextResponse.json({
+      success: bulkResult.success,
+      type: 'tiktok_bulk_dm_result',
+      sent: bulkResult.sent,
+      failed: bulkResult.failed,
+      total: users.length,
+      details: bulkResult.details,
+    });
   }
 
-  // ===== CHECK INBOX =====
-  if (action === 'check_inbox') {
-    var inboxResult = await runTikTokDmScript(['--action', 'check_inbox']);
-    return NextResponse.json(inboxResult);
+  // ===== LIMPAR SESSAO =====
+  if (action === 'clear_session') {
+    await tiktokClearSession();
+    return NextResponse.json({ success: true, type: 'tiktok_session_cleared', message: 'Sessao TikTok removida' });
   }
 
-  // ===== GET LOG =====
-  if (action === 'get_log') {
-    var logResult = await runTikTokDmScript(['--action', 'get_log']);
-    return NextResponse.json(logResult);
+  // ===== SCREENSHOT (DEBUG) =====
+  if (action === 'screenshot') {
+    var ssResult = await tiktokScreenshot();
+    if (ssResult.success) {
+      return NextResponse.json({
+        success: true,
+        type: 'tiktok_screenshot',
+        screenshot: ssResult.screenshot,
+        format: 'base64_png',
+      });
+    }
+    return NextResponse.json({ success: false, error: 'Screenshot falhou: ' + (ssResult.error || 'desconhecido') });
   }
 
   return NextResponse.json({ error: 'Accao desconhecida: ' + action });
