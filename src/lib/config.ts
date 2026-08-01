@@ -34,10 +34,12 @@ export var OR_MODEL = 'openrouter/free';
 export var OR_FALLBACK_MODEL = 'inclusionai/ling-3.0-flash:free';
 
 // --- Browserless.io (Playwright remoto) ---
+// Free tier: wss://chrome.browserless.io (sem token, 1 sessao)
+// Paid: wss://chrome.browserless.io?token=XXX
 export var BROWSERLESS_TOKEN = env('BROWSERLESS_TOKEN', '');
 export var BROWSERLESS_ENDPOINT = BROWSERLESS_TOKEN
   ? 'wss://chrome.browserless.io?token=' + BROWSERLESS_TOKEN
-  : '';
+  : 'wss://chrome.browserless.io';
 
 // --- TikTok DM (Playwright) ---
 export var TIKTOK_USERNAME = env('TIKTOK_USERNAME', '');
