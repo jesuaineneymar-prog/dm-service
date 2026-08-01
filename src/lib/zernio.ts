@@ -137,7 +137,7 @@ export async function zernioCreateCommentAutomation(options: {
         name: options.name || 'Aura Auto-DM ' + (options.trigger || 'comment'),
         trigger: options.trigger || 'comment',
         keywords: options.keywords || ['*'],
-        message: options.message,
+        dmMessage: options.message,
         mediaUrl: options.mediaUrl,
       }),
     });
