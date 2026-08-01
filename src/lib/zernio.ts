@@ -189,6 +189,85 @@ export async function zernioCreateBroadcast(options: {
   }
 }
 
+// ============================================================
+//  OUTBOUND DM — Initiate new conversations (not replies)
+//  Uses Zernio's direct message endpoint to start new threads
+// ============================================================
+
+// Send a DM to a NEW user (outbound — starts a new conversation)
+// recipientId can be Instagram user ID or Facebook user ID
+export async function zernioSendOutboundDM(options: {
+  accountId: string;
+  recipientId: string;
+  message: string;
+  platform?: string;
+}) {
+  // Method 1: Try /inbox/messages (direct send to user)
+  try {
+    var body1: any = {
+      accountId: options.accountId,
+      recipientId: options.recipientId,
+      message: options.message,
+    };
+    if (options.platform) body1.platform = options.platform;
+
+    var res1 = await fetch(ZERNIO_BASE + '/inbox/messages', {
+      method: 'POST',
+      headers: zernioHeaders(),
+      body: JSON.stringify(body1),
+    });
+    if (res1.ok) {
+      var data1 = await res1.json();
+      return { success: true, data: data1, method: 'direct_message' };
+    }
+    // If 404, try method 2
+    if (res1.status !== 404) {
+      var errText1 = await res1.text().catch(function() { return ''; });
+      // Don't fail yet, try next method
+    }
+  } catch (e: any) {
+    // continue to next method
+  }
+
+  // Method 2: Try /accounts/{id}/conversations (create conversation + send)
+  try {
+    var body2: any = {
+      message: options.message,
+    };
+    var res2 = await fetch(
+      ZERNIO_BASE + '/accounts/' + options.accountId + '/conversations',
+      {
+        method: 'POST',
+        headers: zernioHeaders(),
+        body: JSON.stringify(body2),
+      }
+    );
+    if (res2.ok) {
+      var data2 = await res2.json();
+      return { success: true, data: data2, method: 'create_conversation' };
+    }
+    var errText2 = await res2.text().catch(function() { return ''; });
+  } catch (e: any) {
+    // continue to next method
+  }
+
+  // Method 3: Try broadcast with single contact (can sometimes init new convos)
+  try {
+    var bcastResult = await zernioCreateBroadcast({
+      accountId: options.accountId,
+      message: options.message,
+      contactIds: [options.recipientId],
+    });
+    if (bcastResult.success) {
+      return { success: true, data: bcastResult.data, method: 'broadcast' };
+    }
+  } catch (e: any) {
+    // all methods failed
+  }
+
+  return { success: false, error: 'Todos os metodos Zernio falharam para iniciar conversa com ' + options.recipientId };
+}
+
 // Get connect URL for a platform
 export async function zernioGetConnectUrl(platform: string, profileId?: string) {
   try {
