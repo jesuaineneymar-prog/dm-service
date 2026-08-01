@@ -20,6 +20,7 @@ import { requireAuth } from '@/lib/auth';
 import { generateDMReply, generateContent } from '@/lib/ai';
 import { getTikTokStatus } from '@/lib/tiktok-engine';
 import { monitorTikTokDMs } from '@/app/cmd/tiktok/route';
+import { tikTokAutoCycle } from '@/lib/tiktok-automation';
 
 export var maxDuration = 120;
 
@@ -377,13 +378,25 @@ export async function POST(request: Request) {
     if (action === 'full_cycle') {
       var monitorData = await monitorAndRespond();
       var ttData = await monitorTikTokDMs();
+      var ttAutoData = await tikTokAutoCycle();
       var followUpData = await processFollowUps();
       var autoCreated = await autoCreateFollowUps();
       var reportGenerated = await autoGenerateReport();
       return NextResponse.json({
         success: true, action: 'full_cycle',
-        data: { monitor: monitorData, tiktok: ttData, followUps: followUpData, autoCreatedFollowUps: autoCreated, autoReportGenerated: reportGenerated, timestamp: new Date().toISOString() },
+        data: { monitor: monitorData, tiktok: ttData, tiktokAuto: ttAutoData, followUps: followUpData, autoCreatedFollowUps: autoCreated, autoReportGenerated: reportGenerated, timestamp: new Date().toISOString() },
       });
+    }
+
+    if (action === 'tiktok_auto') {
+      var ttAutoResult = await tikTokAutoCycle();
+      return NextResponse.json({ success: true, action: 'tiktok_auto', data: ttAutoResult });
+    }
+
+    if (action === 'tiktok_trending') {
+      var { getTikTokTrending } = await import('@/lib/tiktok-automation');
+      var trending = await getTikTokTrending();
+      return NextResponse.json(trending);
     }
 
     if (action === 'get_stats') {

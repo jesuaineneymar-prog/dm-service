@@ -16,6 +16,13 @@ import {
   getTikTokStatus,
 } from '@/lib/tiktok-engine';
 import { MANYCHAT_KEY } from '@/lib/config';
+import {
+  tikTokAutoCycle,
+  getTikTokTrending,
+  researchTikTokHashtags,
+  scrapeTikTokProfile,
+  monitorTikTokCompetitors,
+} from '@/lib/tiktok-automation';
 
 export var maxDuration = 60;
 
@@ -154,6 +161,38 @@ export async function POST(request: Request) {
     if (action === 'monitor') {
       var monitorData = await monitorTikTokDMs();
       return NextResponse.json({ success: true, data: monitorData });
+    }
+
+    // === NOVAS ACCOES TIKTOK AUTOMACAO ===
+
+    if (action === 'auto_cycle') {
+      var cycleResult = await tikTokAutoCycle();
+      return NextResponse.json({ success: true, data: cycleResult });
+    }
+
+    if (action === 'trending') {
+      var trending = await getTikTokTrending();
+      return NextResponse.json(trending);
+    }
+
+    if (action === 'research_hashtags') {
+      if (!body.topic) return NextResponse.json({ success: false, error: 'Topico necessario' });
+      var tags = await researchTikTokHashtags(body.topic);
+      return NextResponse.json(tags);
+    }
+
+    if (action === 'scrape_profile') {
+      if (!body.username) return NextResponse.json({ success: false, error: 'Username necessario' });
+      var profile = await scrapeTikTokProfile(body.username);
+      return NextResponse.json(profile);
+    }
+
+    if (action === 'monitor_competitors') {
+      if (!body.competitors || !Array.isArray(body.competitors)) {
+        return NextResponse.json({ success: false, error: 'Array de usernames necessario' });
+      }
+      var compData = await monitorTikTokCompetitors(body.competitors);
+      return NextResponse.json(compData);
     }
 
     return NextResponse.json({ success: false, error: 'Accao desconhecida: ' + action });
