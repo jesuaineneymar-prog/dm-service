@@ -1,32 +1,70 @@
 // ============================================================
-//  Aura TIKTOK ENGINE v3
-//  PRIMARY: Zernio (grátis, já conectado para IG + FB)
+//  Aura TIKTOK ENGINE v3.1
+//  PRIMARY: Zernio TT (segunda conta, só TikTok, key: ZERNIO_TT_KEY)
+//  SECONDARY: Zernio (primeira conta, IG+FB, key: ZERNIO_KEY)
 //  FALLBACK: ManyChat (opcional, só se MANYCHAT_API_KEY configurada)
-//  POSTING: Upload-Post (já funciona)
-//  TRENDS: Sociavault + HikerAPI (já funciona)
-//  COMMENTS: SocialCrawl MCP (opcional)
+//  POSTING: Upload-Post | TRENDS: Sociavault | COMMENTS: SocialCrawl MCP
 // ============================================================
 
-import { ZERNIO_KEY, MANYCHAT_KEY } from './config';
-import {
-  zernioListConversations,
-  zernioGetConversationMessages,
-  zernioSendDM as zernioSend,
-  zernioListAccounts,
-} from './zernio';
+import { ZERNIO_KEY, ZERNIO_TT_KEY, MANYCHAT_KEY } from './config';
 import { callMCPTool } from './mcp-engine';
 
-// === TIKTOK DMs VIA ZERNIO (PRIMARY — GRATIS) ===
-// Se o utilizador conectou a conta TikTok no Zernio, tudo funciona automaticamente.
-// Mesmo código que IG + FB, só muda o platform='tiktok'.
+var ZERNIO_BASE = 'https://api.zernio.com/v1';
+
+// === ZERNIO TT HELPERS (usam ZERNIO_TT_KEY — conta dedicada TikTok) ===
+
+function ttHeaders(): Record<string, string> {
+  return {
+    'Authorization': 'Bearer ' + (ZERNIO_TT_KEY || ZERNIO_KEY),
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
+}
+
+function zernioTTListAccounts() {
+  return fetch(ZERNIO_BASE + '/accounts', { headers: ttHeaders() })
+    .then(function(r) { return r.ok ? r.json().then(function(d: any) { return { success: true, data: d }; }) : r.text().then(function(t: string) { return { success: false, error: 'HTTP ' + r.status + ': ' + t.slice(0, 200) }; }); })
+    .catch(function(e: any) { return { success: false, error: e.message }; });
+}
+
+function zernioTTListConversations(options?: { platform?: string; limit?: number }) {
+  var url = ZERNIO_BASE + '/inbox/conversations';
+  if (options?.limit) url += '?limit=' + options.limit;
+  if (options?.platform) url += (options?.limit ? '&' : '?') + 'platform=' + encodeURIComponent(options.platform);
+  return fetch(url, { headers: ttHeaders() })
+    .then(function(r) { return r.ok ? r.json().then(function(d: any) { return { success: true, data: d }; }) : r.text().then(function(t: string) { return { success: false, error: 'HTTP ' + r.status }; }); })
+    .catch(function(e: any) { return { success: false, error: e.message }; });
+}
+
+export async function zernioTTGetMessages(conversationId: string, limit?: number) {
+  var url = ZERNIO_BASE + '/inbox/conversations/' + conversationId + '/messages';
+  if (limit) url += '?limit=' + limit;
+  return fetch(url, { headers: ttHeaders() })
+    .then(function(r) { return r.ok ? r.json().then(function(d: any) { return { success: true, data: d }; }) : r.text().then(function(t: string) { return { success: false, error: 'HTTP ' + r.status }; }); })
+    .catch(function(e: any) { return { success: false, error: e.message }; });
+}
+
+function zernioTTSendDM(conversationId: string, accountId: string, message: string) {
+  return fetch(ZERNIO_BASE + '/inbox/conversations/' + conversationId + '/messages', {
+    method: 'POST',
+    headers: ttHeaders(),
+    body: JSON.stringify({ accountId: accountId, text: message }),
+  }).then(function(r) { return r.ok ? r.json().then(function(d: any) { return { success: true, data: d }; }) : r.text().then(function(t: string) { return { success: false, error: 'HTTP ' + r.status + ': ' + t.slice(0, 200) }; }); })
+    .catch(function(e: any) { return { success: false, error: e.message }; });
+}
+
+// === TIKTOK DMs VIA ZERNIO TT (PRIMARY — GRATIS) ===
+// Usa a segunda conta Zernio (ZERNIO_TT_KEY) que tem o TikTok conectado.
 
 export async function tiktokDMsViaZernio() {
-  if (!ZERNIO_KEY) return { success: false, error: 'ZERNIO_KEY nao configurada', source: 'none' };
+  var ttKey = ZERNIO_TT_KEY || ZERNIO_KEY;
+  if (!ttKey) return { success: false, error: 'Nenhuma ZERNIO_KEY configurada', source: 'none' };
+
+  var usingDedicated = !!ZERNIO_TT_KEY;
 
   try {
-    // Listar contas para encontrar a conta TikTok
-    var accountsRes = await zernioListAccounts();
-    if (!accountsRes.success) return { success: false, error: 'Zernio accounts: ' + (accountsRes.error || ''), source: 'zernio' };
+    var accountsRes = await zernioTTListAccounts();
+    if (!accountsRes.success) return { success: false, error: 'Zernio TT accounts: ' + (accountsRes.error || ''), source: 'zernio_tt' };
 
     var accountsData = accountsRes.data;
     var accounts: any[] = [];
@@ -37,16 +75,19 @@ export async function tiktokDMsViaZernio() {
     if (!ttAccount) {
       return {
         success: false,
-        error: 'Nenhuma conta TikTok conectada no Zernio. Vai em zernio.com e conecta a tua conta TikTok.',
-        source: 'zernio',
+        error: usingDedicated
+          ? 'Conta TikTok nao encontrada nesta Zernio. Verifica se o TikTok esta conectado no dashboard desta conta.'
+          : 'Nenhuma conta TikTok no Zernio. Usa a segunda conta Zernio com TikTok (ZERNIO_TT_KEY).',
+        source: 'zernio_tt',
         hasZernioKey: true,
         tiktokConnected: false,
+        accountsFound: accounts.map(function(a: any) { return a.platform || 'unknown'; }),
       };
     }
 
     // Buscar conversas TikTok
-    var convRes = await zernioListConversations({ platform: 'tiktok', limit: 30 });
-    if (!convRes.success) return { success: false, error: 'Conversas TikTok: ' + (convRes.error || ''), source: 'zernio' };
+    var convRes = await zernioTTListConversations({ platform: 'tiktok', limit: 30 });
+    if (!convRes.success) return { success: false, error: 'Conversas TikTok: ' + (convRes.error || ''), source: 'zernio_tt' };
 
     var convData = convRes.data;
     var conversations: any[] = [];
@@ -56,21 +97,21 @@ export async function tiktokDMsViaZernio() {
 
     return {
       success: true,
-      source: 'zernio',
+      source: usingDedicated ? 'zernio_tt_dedicated' : 'zernio',
       accountId: ttAccount.id,
       conversations: conversations,
       totalConversations: conversations.length,
       unreadCount: conversations.reduce(function(sum: number, c: any) { return sum + (c.unreadCount || 0); }, 0),
+      usingDedicated: usingDedicated,
     };
   } catch (e: any) {
-    return { success: false, error: e.message, source: 'zernio' };
+    return { success: false, error: e.message, source: 'zernio_tt' };
   }
 }
 
-// Send TikTok DM via Zernio
+// Send TikTok DM via Zernio TT
 export async function tiktokSendDMViaZernio(conversationId: string, accountId: string, message: string) {
-  if (!ZERNIO_KEY) return { success: false, error: 'ZERNIO_KEY nao configurada' };
-  return await zernioSend(conversationId, accountId, message);
+  return await zernioTTSendDM(conversationId, accountId, message);
 }
 
 // === TIKTOK DMs VIA MANYCHAT (FALLBACK — OPCIONAL) ===

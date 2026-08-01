@@ -40,7 +40,9 @@ async function monitorAndRespond(): Promise<any> {
     if (Array.isArray(accountsData)) accounts = accountsData;
     else if (accountsData?.accounts) accounts = Array.isArray(accountsData.accounts) ? accountsData.accounts : [];
 
-    var platforms = ['instagram', 'facebook', 'tiktok'];
+    // Instagram e Facebook via Zernio principal (ZERNIO_KEY)
+    // TikTok via Zernio dedicado (ZERNIO_TT_KEY) — chamado em monitorTikTokDMs()
+    var platforms = ['instagram', 'facebook'];
     for (var pi = 0; pi < platforms.length; pi++) {
       var platform = platforms[pi];
 

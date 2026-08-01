@@ -19,8 +19,11 @@ export var BROWSERLESS_KEY = env('BROWSERLESS_KEY', '');
 export var CRON_SECRET = env('CRON_SECRET', '');
 export var OR_KEY = env('OR_KEY', '');
 
-// --- Zernio (DMs — IG + FB + TikTok) ---
+// --- Zernio (DMs — IG + FB) ---
 export var ZERNIO_KEY = env('ZERNIO_KEY', '');
+
+// --- Zernio TikTok (segunda conta com TikTok conectado) ---
+export var ZERNIO_TT_KEY = env('ZERNIO_TT_KEY', '');
 
 // --- Contas ---
 export var IG_USERNAME = env('IG_USERNAME', '');

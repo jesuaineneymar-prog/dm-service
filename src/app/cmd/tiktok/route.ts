@@ -50,9 +50,9 @@ export async function monitorTikTokDMs() {
           var convId = conv.id;
           var senderName = conv.participant?.username || conv.participant?.name || conv.name || 'unknown';
 
-          // Buscar mensagens desta conversa
-          var { zernioGetConversationMessages } = await import('@/lib/zernio');
-          var msgRes = await zernioGetConversationMessages(convId, { limit: 5 });
+          // Buscar mensagens desta conversa (via Zernio TT)
+          var { zernioTTGetMessages } = await import('@/lib/tiktok-engine');
+          var msgRes = await zernioTTGetMessages(convId, 5);
           if (!msgRes.success) continue;
 
           var msgData = msgRes.data;

@@ -39,10 +39,9 @@ async function monitorAndRespond(): Promise<any> {
     if (Array.isArray(accountsData)) accounts = accountsData;
     else if (accountsData?.accounts) accounts = Array.isArray(accountsData.accounts) ? accountsData.accounts : [];
 
-    // Monitorizar Instagram, Facebook e TikTok em paralelo (via Zernio)
-    // Se Zernio tiver conta TikTok conectada, DMs do TikTok sao monitorados automaticamente
-    // Sem custo adicional — usa o mesmo Zernio ja conectado para IG + FB
-    var platforms = ['instagram', 'facebook', 'tiktok'];
+    // Monitorizar Instagram e Facebook via Zernio principal (ZERNIO_KEY)
+    // TikTok usa Zernio dedicado (ZERNIO_TT_KEY) via /api/cron/tiktok
+    var platforms = ['instagram', 'facebook'];
 
     for (var pi = 0; pi < platforms.length; pi++) {
       var platform = platforms[pi];

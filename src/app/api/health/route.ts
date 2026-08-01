@@ -4,7 +4,7 @@
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { SOCIAVAULT_KEY, ARCADE_KEY, UPLOADPOST_KEY, HIKERAPI_KEY, CRON_SECRET, TURSO_URL, BROWSERLESS_KEY, IG_USERNAME, ZERNIO_KEY } from '@/lib/config';
+import { SOCIAVAULT_KEY, ARCADE_KEY, UPLOADPOST_KEY, HIKERAPI_KEY, CRON_SECRET, TURSO_URL, BROWSERLESS_KEY, IG_USERNAME, ZERNIO_KEY, ZERNIO_TT_KEY } from '@/lib/config';
 
 async function testSociaVault() {
   if (!SOCIAVAULT_KEY) return { configured: false, status: 'no_key' };
@@ -49,8 +49,23 @@ async function testZernio() {
       headers: { 'Authorization': 'Bearer ' + ZERNIO_KEY },
     });
     var data = await res.json();
-    var count = data.accounts ? data.accounts.length : 0;
-    return { configured: true, status: res.ok ? 'ok' : 'fail ' + res.status, accounts: count };
+    var accs = data.accounts || (Array.isArray(data) ? data : []);
+    var platforms = accs.map(function(a: any) { return a.platform; });
+    return { configured: true, status: res.ok ? 'ok' : 'fail ' + res.status, accounts: accs.length, platforms: platforms };
+  } catch (e: any) { return { configured: true, status: 'error', msg: e.message }; }
+}
+
+async function testZernioTT() {
+  if (!ZERNIO_TT_KEY) return { configured: false, status: 'no_key' };
+  try {
+    var res = await fetch('https://api.zernio.com/v1/accounts', {
+      headers: { 'Authorization': 'Bearer ' + ZERNIO_TT_KEY },
+    });
+    var data = await res.json();
+    var accs = data.accounts || (Array.isArray(data) ? data : []);
+    var platforms = accs.map(function(a: any) { return a.platform; });
+    var hasTikTok = platforms.includes('tiktok');
+    return { configured: true, status: res.ok ? 'ok' : 'fail ' + res.status, accounts: accs.length, platforms: platforms, tiktok_connected: hasTikTok };
   } catch (e: any) { return { configured: true, status: 'error', msg: e.message }; }
 }
 
@@ -60,12 +75,13 @@ export async function GET() {
   try { await db.prospect.count(); dbOk = true; } catch (e: any) { dbError = e.message; }
 
   // Test all integrations in parallel
-  var [sociavault, uploadpost, arcade, hikerapi, zernio] = await Promise.all([
+  var [sociavault, uploadpost, arcade, hikerapi, zernio, zernio_tt] = await Promise.all([
     testSociaVault(),
     testUploadPost(),
     testArcade(),
     testHikerAPI(),
     testZernio(),
+    testZernioTT(),
   ]);
 
   return NextResponse.json({
@@ -83,6 +99,7 @@ export async function GET() {
       arcade,
       hikerapi,
       zernio,
+      zernio_tt,
     },
   });
 }
