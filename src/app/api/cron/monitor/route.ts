@@ -39,8 +39,10 @@ async function monitorAndRespond(): Promise<any> {
     if (Array.isArray(accountsData)) accounts = accountsData;
     else if (accountsData?.accounts) accounts = Array.isArray(accountsData.accounts) ? accountsData.accounts : [];
 
-    // Monitorizar Instagram e Facebook em paralelo
-    var platforms = ['instagram', 'facebook'];
+    // Monitorizar Instagram, Facebook e TikTok em paralelo (via Zernio)
+    // Se Zernio tiver conta TikTok conectada, DMs do TikTok sao monitorados automaticamente
+    // Sem custo adicional — usa o mesmo Zernio ja conectado para IG + FB
+    var platforms = ['instagram', 'facebook', 'tiktok'];
 
     for (var pi = 0; pi < platforms.length; pi++) {
       var platform = platforms[pi];

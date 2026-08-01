@@ -1,9 +1,9 @@
-import { HIKERAPI_KEY, UPLOADPOST_KEY, MANYCHAT_KEY, N8N_WEBHOOK_URL } from './config';
+import { HIKERAPI_KEY, UPLOADPOST_KEY, N8N_WEBHOOK_URL } from './config';
 
 // ============================================================
 //  Aura EXTERNAL API INTEGRATIONS
-//  HikerAPI (Instagram), Upload-Post (Publishing), ManyChat (DMs)
-//  All REAL — zero simulation
+//  HikerAPI (Instagram/TikTok), Upload-Post (Publishing), N8N (Webhooks)
+//  DMs: Zernio (grátis — IG + FB + TikTok), ManyChat (opcional, em tiktok-engine.ts)
 // ============================================================
 
 // --- HikerAPI (Instagram Private API — 147 endpoints) ---
@@ -366,7 +366,6 @@ export async function n8nTrigger(webhookUrl: string, payload: any) {
 export interface ExternalConfig {
   hikerApiKey: string;
   uploadPostApiKey: string;
-  manychatApiKey: string;
   n8nWebhookUrl: string;
 }
 
@@ -375,7 +374,6 @@ export function getExternalConfig(): ExternalConfig {
   return {
     hikerApiKey: HIKERAPI_KEY,
     uploadPostApiKey: UPLOADPOST_KEY,
-    manychatApiKey: MANYCHAT_KEY,
     n8nWebhookUrl: N8N_WEBHOOK_URL,
   };
 }

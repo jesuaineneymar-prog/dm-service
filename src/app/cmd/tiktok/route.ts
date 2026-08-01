@@ -1,6 +1,6 @@
 // ============================================================
-//  Aura TIKTOK API — DMs via ManyChat + analytics + posting
-//  Deep search Jul 2026: ManyChat é parceiro oficial TikTok
+//  Aura TIKTOK API — DMs via Zernio (grátis) + ManyChat (opcional)
+//  Posting via Upload-Post, Trending via Sociavault, Comments via MCP
 // ============================================================
 
 import { NextResponse } from 'next/server';
@@ -14,8 +14,10 @@ import {
   tiktokGetProfileInfo,
   tiktokTriggerFlow,
   getTikTokStatus,
+  tiktokDMsViaZernio,
+  tiktokSendDMViaZernio,
 } from '@/lib/tiktok-engine';
-import { MANYCHAT_KEY } from '@/lib/config';
+import { ZERNIO_KEY, MANYCHAT_KEY } from '@/lib/config';
 import {
   tikTokAutoCycle,
   getTikTokTrending,
@@ -26,93 +28,153 @@ import {
 
 export var maxDuration = 60;
 
-// Send a DM to TikTok user
-async function sendTTDM(recipientId: string, message: string, buttonText?: string, buttonUrl?: string) {
-  if (!MANYCHAT_KEY) throw new Error('MANYCHAT_API_KEY nao configurada');
-  return await tiktokSendDM({ recipientId, message, buttonText, buttonUrl });
-}
-
-// Get TikTok inbox conversations
-async function getTTConversations(limit?: number) {
-  if (!MANYCHAT_KEY) throw new Error('MANYCHAT_API_KEY nao configurada');
-  return await tiktokGetConversations(limit);
-}
-
-// Set TikTok welcome message
-async function setTTWelcome(message: string) {
-  if (!MANYCHAT_KEY) throw new Error('MANYCHAT_API_KEY nao configurada');
-  return await tiktokSetWelcomeMessage(message);
-}
-
-// Get TikTok profile info
-async function getTTProfile() {
-  if (!MANYCHAT_KEY) throw new Error('MANYCHAT_API_KEY nao configurada');
-  return await tiktokGetProfileInfo();
-}
-
-// Trigger a ManyChat flow
-async function triggerTTFlow(recipientId: string, flowId: string) {
-  if (!MANYCHAT_KEY) throw new Error('MANYCHAT_API_KEY nao configurada');
-  return await tiktokTriggerFlow({ recipientId, flowId });
-}
-
-// Auto-reply to new TikTok DMs (called from autonomous cycle)
+// === MONITOR TIKTOK DMs — ZERNIO (PRIMARY) + MANYCHAT (FALLBACK) ===
+// Chamado pelo autonomous cycle e pelo cron tiktok
 export async function monitorTikTokDMs() {
-  if (!MANYCHAT_KEY) return { newMessages: 0, autoReplied: 0, errors: ['MANYCHAT_API_KEY nao configurada'] };
+  var results = { newMessages: 0, autoReplied: 0, source: 'none' as string, errors: [] as string[] };
 
-  var results = { newMessages: 0, autoReplied: 0, errors: [] as string[] };
+  // PRIMEIRO: Tentar Zernio (grátis, já conectado)
+  if (ZERNIO_KEY) {
+    try {
+      var zernioRes = await tiktokDMsViaZernio();
 
-  try {
-    var convRes = await getTTConversations(20);
-    if (!convRes.success || !convRes.data) {
-      results.errors.push('Erro ao buscar conversas TikTok: ' + (convRes.error || '?'));
-      return results;
-    }
+      if (zernioRes.success && zernioRes.conversations && zernioRes.conversations.length > 0) {
+        results.source = 'zernio';
+        var accountId = zernioRes.accountId;
 
-    var conversations: any[] = [];
-    if (Array.isArray(convRes.data)) conversations = convRes.data;
-    else if (convRes.data?.conversations) conversations = convRes.data.conversations;
-    else if (convRes.data?.data) conversations = Array.isArray(convRes.data.data) ? convRes.data.data : [];
+        for (var i = 0; i < zernioRes.conversations.length; i++) {
+          var conv = zernioRes.conversations[i];
+          var unreadCount = conv.unreadCount || 0;
+          if (unreadCount === 0) continue;
 
-    for (var i = 0; i < conversations.length; i++) {
-      var conv = conversations[i];
-      var unreadCount = conv.unreadCount || conv.unread || 0;
-      if (unreadCount === 0) continue;
+          var convId = conv.id;
+          var senderName = conv.participant?.username || conv.participant?.name || conv.name || 'unknown';
 
-      var senderName = conv.participant?.username || conv.participant?.name || conv.name || 'unknown';
-      var lastMessage = conv.lastMessage?.text || conv.lastMessage || '';
-      if (!lastMessage) continue;
+          // Buscar mensagens desta conversa
+          var { zernioGetConversationMessages } = await import('@/lib/zernio');
+          var msgRes = await zernioGetConversationMessages(convId, { limit: 5 });
+          if (!msgRes.success) continue;
 
-      results.newMessages++;
+          var msgData = msgRes.data;
+          var messages: any[] = [];
+          if (Array.isArray(msgData)) messages = msgData;
+          else if (msgData?.data) messages = Array.isArray(msgData.data) ? msgData.data : [];
+          else if (msgData?.messages) messages = Array.isArray(msgData.messages) ? msgData.messages : [];
 
-      // Save to DB
-      var prospect = await db.prospect.findFirst({ where: { platform: 'tiktok', username: senderName } });
-      if (!prospect && senderName !== 'unknown') {
-        prospect = await db.prospect.create({
-          data: { platform: 'tiktok', username: senderName, displayName: conv.participant?.name || null, status: 'new', externalId: conv.id },
-        });
-      }
+          // Processar última mensagem não lida
+          for (var mi = messages.length - 1; mi >= 0; mi--) {
+            var msg = messages[mi];
+            var isFromMe = msg.sender?.platformAccountId === accountId || msg.direction === 'outgoing';
+            if (isFromMe) continue;
 
-      if (prospect) {
-        await db.message.create({ data: { prospectId: prospect.id, direction: 'inbound', content: lastMessage, platform: 'tiktok' } });
-      }
+            results.newMessages++;
+            var messageText = msg.text || '';
 
-      // AI auto-reply
-      var aiReply = await generateDMReply(senderName, 'tiktok', lastMessage, prospect);
-      var dmResult = await sendTTDM(conv.participant?.id || conv.id, aiReply);
-      if (dmResult.success) {
-        results.autoReplied++;
-        if (prospect) {
-          await db.message.create({ data: { prospectId: prospect.id, direction: 'outbound', content: aiReply, platform: 'tiktok' } });
-          await db.prospect.update({ where: { id: prospect.id }, data: { lastContactedAt: new Date(), status: 'responded' } });
+            // Salvar no CRM
+            var prospect = await db.prospect.findFirst({ where: { platform: 'tiktok', username: senderName } });
+            if (!prospect && senderName !== 'unknown') {
+              prospect = await db.prospect.create({
+                data: { platform: 'tiktok', username: senderName, displayName: conv.participant?.name || null, status: 'new', externalId: convId },
+              });
+            }
+
+            if (prospect) {
+              await db.message.create({ data: { prospectId: prospect.id, direction: 'inbound', content: messageText || '(midia)', platform: 'tiktok' } });
+              await db.prospect.update({ where: { id: prospect.id }, data: { lastRepliedAt: new Date(), lastContactedAt: new Date(), status: prospect.status === 'new' ? 'contacted' : 'responded' } });
+            }
+
+            // AI auto-reply via Zernio
+            if (prospect && messageText.length > 0) {
+              var aiReply = await generateDMReply(senderName, 'tiktok', messageText, prospect);
+              var sendRes = await tiktokSendDMViaZernio(convId, accountId, aiReply);
+
+              if (sendRes.success) {
+                results.autoReplied++;
+                await db.message.create({ data: { prospectId: prospect.id, direction: 'outbound', content: aiReply, platform: 'tiktok' } });
+                await db.automationLog.create({
+                  data: { type: 'auto_reply', action: 'tiktok_dm_response', platform: 'tiktok', targetId: prospect.id, targetName: senderName, status: 'success', result: aiReply.slice(0, 200), completedAt: new Date() },
+                });
+              } else {
+                await db.automationLog.create({
+                  data: { type: 'auto_reply', action: 'tiktok_dm_response', platform: 'tiktok', targetId: prospect.id, targetName: senderName, status: 'failed', result: sendRes.error || 'falhou' },
+                });
+              }
+            }
+            break; // Só processar a última mensagem por conversa
+          }
         }
-        await db.automationLog.create({
-          data: { type: 'auto_reply', action: 'tiktok_dm_response', platform: 'tiktok', targetId: prospect?.id, targetName: senderName, status: 'success', result: aiReply.slice(0, 200), completedAt: new Date() },
-        });
+
+        return results;
+      } else if (zernioRes.success && (!zernioRes.conversations || zernioRes.conversations.length === 0)) {
+        // Zernio não tem conta TikTok conectada — sem erro, só sem dados
+        results.source = 'zernio_no_tiktok_account';
+        results.errors.push('Zernio activo mas sem conta TikTok conectada. Conecta em zernio.com/dashboard');
+      } else {
+        results.errors.push('Zernio: ' + (zernioRes.error || 'falhou'));
       }
+    } catch (e: any) {
+      results.errors.push('Zernio TikTok: ' + e.message);
     }
-  } catch (e: any) {
-    results.errors.push(e.message);
+  }
+
+  // FALLBACK: ManyChat (se disponível)
+  if (results.newMessages === 0 && MANYCHAT_KEY) {
+    try {
+      results.source = 'manychat';
+      var convRes = await tiktokGetConversations(20);
+      if (!convRes.success || !convRes.data) {
+        results.errors.push('ManyChat: ' + (convRes.error || '?'));
+        return results;
+      }
+
+      var conversations: any[] = [];
+      if (Array.isArray(convRes.data)) conversations = convRes.data;
+      else if (convRes.data?.conversations) conversations = convRes.data.conversations;
+      else if (convRes.data?.data) conversations = Array.isArray(convRes.data.data) ? convRes.data.data : [];
+
+      for (var i = 0; i < conversations.length; i++) {
+        var conv = conversations[i];
+        var unreadCount = conv.unreadCount || conv.unread || 0;
+        if (unreadCount === 0) continue;
+
+        var senderName = conv.participant?.username || conv.participant?.name || conv.name || 'unknown';
+        var lastMessage = conv.lastMessage?.text || conv.lastMessage || '';
+        if (!lastMessage) continue;
+
+        results.newMessages++;
+
+        var prospect = await db.prospect.findFirst({ where: { platform: 'tiktok', username: senderName } });
+        if (!prospect && senderName !== 'unknown') {
+          prospect = await db.prospect.create({
+            data: { platform: 'tiktok', username: senderName, displayName: conv.participant?.name || null, status: 'new', externalId: conv.id },
+          });
+        }
+
+        if (prospect) {
+          await db.message.create({ data: { prospectId: prospect.id, direction: 'inbound', content: lastMessage, platform: 'tiktok' } });
+        }
+
+        var aiReply = await generateDMReply(senderName, 'tiktok', lastMessage, prospect);
+        var dmResult = await tiktokSendDM({ recipientId: conv.participant?.id || conv.id, message: aiReply });
+        if (dmResult.success) {
+          results.autoReplied++;
+          if (prospect) {
+            await db.message.create({ data: { prospectId: prospect.id, direction: 'outbound', content: aiReply, platform: 'tiktok' } });
+            await db.prospect.update({ where: { id: prospect.id }, data: { lastContactedAt: new Date(), status: 'responded' } });
+          }
+          await db.automationLog.create({
+            data: { type: 'auto_reply', action: 'tiktok_dm_response', platform: 'tiktok', targetId: prospect?.id, targetName: senderName, status: 'success', result: aiReply.slice(0, 200), completedAt: new Date() },
+          });
+        }
+      }
+    } catch (e: any) {
+      results.errors.push('ManyChat TikTok: ' + e.message);
+    }
+  }
+
+  // Se nenhum dos dois está disponível
+  if (results.source === 'none') {
+    results.errors.push('Sem Zernio nem ManyChat configurados para TikTok DMs');
   }
 
   return results;
@@ -132,29 +194,41 @@ export async function POST(request: Request) {
 
     if (action === 'send_dm') {
       if (!body.recipientId || !body.message) return NextResponse.json({ success: false, error: 'recipientId e message necessarios' });
-      var result = await sendTTDM(body.recipientId, body.message, body.buttonText, body.buttonUrl);
+      // Tentar Zernio primeiro
+      if (ZERNIO_KEY && body.conversationId && body.accountId) {
+        var zResult = await tiktokSendDMViaZernio(body.conversationId, body.accountId, body.message);
+        if (zResult.success) return NextResponse.json({ ...zResult, via: 'zernio' });
+      }
+      // Fallback ManyChat
+      var result = await tiktokSendDM({ recipientId: body.recipientId, message: body.message, buttonText: body.buttonText, buttonUrl: body.buttonUrl });
       return NextResponse.json(result);
     }
 
     if (action === 'get_conversations') {
-      var convs = await getTTConversations(body.limit || 50);
+      // Tentar Zernio primeiro
+      if (ZERNIO_KEY) {
+        var zernioRes = await tiktokDMsViaZernio();
+        if (zernioRes.success) return NextResponse.json({ ...zernioRes, via: 'zernio' });
+      }
+      // Fallback ManyChat
+      var convs = await tiktokGetConversations(body.limit || 50);
       return NextResponse.json(convs);
     }
 
     if (action === 'set_welcome') {
       if (!body.message) return NextResponse.json({ success: false, error: 'Mensagem necessaria' });
-      var welcome = await setTTWelcome(body.message);
+      var welcome = await tiktokSetWelcomeMessage(body.message);
       return NextResponse.json(welcome);
     }
 
     if (action === 'get_profile') {
-      var profile = await getTTProfile();
+      var profile = await tiktokGetProfileInfo();
       return NextResponse.json(profile);
     }
 
     if (action === 'trigger_flow') {
       if (!body.recipientId || !body.flowId) return NextResponse.json({ success: false, error: 'recipientId e flowId necessarios' });
-      var flow = await triggerTTFlow(body.recipientId, body.flowId);
+      var flow = await tiktokTriggerFlow({ recipientId: body.recipientId, flowId: body.flowId });
       return NextResponse.json(flow);
     }
 
@@ -162,8 +236,6 @@ export async function POST(request: Request) {
       var monitorData = await monitorTikTokDMs();
       return NextResponse.json({ success: true, data: monitorData });
     }
-
-    // === NOVAS ACCOES TIKTOK AUTOMACAO ===
 
     if (action === 'auto_cycle') {
       var cycleResult = await tikTokAutoCycle();
@@ -183,8 +255,8 @@ export async function POST(request: Request) {
 
     if (action === 'scrape_profile') {
       if (!body.username) return NextResponse.json({ success: false, error: 'Username necessario' });
-      var profile = await scrapeTikTokProfile(body.username);
-      return NextResponse.json(profile);
+      var scrapeProfile = await scrapeTikTokProfile(body.username);
+      return NextResponse.json(scrapeProfile);
     }
 
     if (action === 'monitor_competitors') {

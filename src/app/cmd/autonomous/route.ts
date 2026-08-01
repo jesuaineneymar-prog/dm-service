@@ -40,7 +40,7 @@ async function monitorAndRespond(): Promise<any> {
     if (Array.isArray(accountsData)) accounts = accountsData;
     else if (accountsData?.accounts) accounts = Array.isArray(accountsData.accounts) ? accountsData.accounts : [];
 
-    var platforms = ['instagram', 'facebook'];
+    var platforms = ['instagram', 'facebook', 'tiktok'];
     for (var pi = 0; pi < platforms.length; pi++) {
       var platform = platforms[pi];
 
