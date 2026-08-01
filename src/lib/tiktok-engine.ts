@@ -48,7 +48,7 @@ function zernioTTSendDM(conversationId: string, accountId: string, message: stri
   return fetch(ZERNIO_BASE + '/inbox/conversations/' + conversationId + '/messages', {
     method: 'POST',
     headers: ttHeaders(),
-    body: JSON.stringify({ accountId: accountId, message: { text: message } }),
+    body: JSON.stringify({ accountId: accountId, message: message }),
   }).then(function(r) { return r.ok ? r.json().then(function(d: any) { return { success: true, data: d }; }) : r.text().then(function(t: string) { return { success: false, error: 'HTTP ' + r.status + ': ' + t.slice(0, 200) }; }); })
     .catch(function(e: any) { return { success: false, error: e.message }; });
 }
