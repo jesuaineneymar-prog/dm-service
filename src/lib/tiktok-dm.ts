@@ -1,16 +1,14 @@
 // ============================================================
-//  AURA TIKTOK DM ENGINE — Playwright + Browserless.io
-//  Envia DMs no TikTok via automacao de browser remoto.
+//  AURA TIKTOK DM ENGINE — Steel.dev + CDP puro
+//  Usa chrome-remote-interface (CDP) em vez de playwright-core
+//  Steel.dev: proxy residencial, CAPTCHA solving, fingerprinting
+//  Browserless.io: fallback
 //  Adaptado de: AliMantach/tiktok-streak-bot
-//  Nao usa ManyChat (TikTok Business nao existe em Angola)
 // ============================================================
 
-import { BROWSERLESS_ENDPOINT, TIKTOK_USERNAME, TIKTOK_PASSWORD } from './config';
+import { STEEL_API_KEY, BROWSERLESS_ENDPOINT, TIKTOK_USERNAME, TIKTOK_PASSWORD } from './config';
 
 // === TIPOS ===
-
-type Page = any;
-type BrowserContext = any;
 
 export interface TikTokDMResult {
   success: boolean;
@@ -21,538 +19,385 @@ export interface TikTokDMResult {
   details?: any[];
 }
 
+const TIKTOK_STEEL_PROFILE_KEY = 'tiktok_steel_profile_id';
 const TIKTOK_SESSION_KEY = 'tiktok_dm_session';
-
-interface StoredCookies {
-  cookies: any[];
-  localStorage: Record<string, string>;
-  updatedAt: string;
-}
+const STEEL_API = 'https://api.steel.dev/v1';
 
 // === DYNAMIC IMPORTS ===
-// Playwright-core e db sao importados dinamicamente para evitar
-// problemas de bundling no Vercel serverless
-
-async function getChromium() {
-  var pw = await import('playwright-core');
-  return pw.chromium;
-}
 
 async function getDb() {
   var dbModule = await import('./db');
   return dbModule.db;
 }
 
-// === SESSAO ===
-
-async function saveSession(context: BrowserContext, page: Page): Promise<void> {
-  try {
-    var db = await getDb();
-    var cookies = await context.cookies();
-    var localStorage = await page.evaluate(function() {
-      var data: Record<string, string> = {};
-      for (var i = 0; i < window.localStorage.length; i++) {
-        var key = window.localStorage.key(i);
-        if (key) data[key] = window.localStorage.getItem(key) || '';
-      }
-      return data;
-    });
-    var sessionJson = JSON.stringify({
-      cookies: cookies,
-      localStorage: localStorage,
-      updatedAt: new Date().toISOString(),
-    } as StoredCookies);
-    await db.systemSetting.upsert({
-      where: { key: TIKTOK_SESSION_KEY },
-      update: { value: sessionJson },
-      create: { key: TIKTOK_SESSION_KEY, value: sessionJson },
-    });
-  } catch (e: any) {
-    console.error('[TikTok DM] Erro ao guardar sessao:', e.message);
-  }
+// CDP client — chrome-remote-interface (sem binarios, sem browsers.json)
+interface CDPClient {
+  Page: { navigate: (opts: { url: string }) => Promise<any>; reload: () => Promise<any>; screenshot: (opts: { format?: string }) => Promise<any> };
+  Runtime: { evaluate: (expr: string) => Promise<any> };
+  Input: { dispatchMouseEvent: (opts: any) => Promise<any>; dispatchKeyEvent: (opts: any) => Promise<any>; insertText: (opts: { text: string }) => Promise<any> };
+  DOM: { getDocument: () => Promise<any>; querySelectorAll: (opts: { nodeId: number; selector: string }) => Promise<any> };
+  on: (event: string, cb: any) => void;
+  close: () => Promise<void>;
 }
 
-async function loadSession(): Promise<StoredCookies | null> {
-  try {
-    var db = await getDb();
-    var row = await db.systemSetting.findUnique({ where: { key: TIKTOK_SESSION_KEY } });
-    if (!row || !row.value) return null;
-    var parsed = JSON.parse(row.value) as StoredCookies;
-    var age = Date.now() - new Date(parsed.updatedAt).getTime();
-    if (age > 7 * 24 * 60 * 60 * 1000) return null;
-    return parsed;
-  } catch (e: any) {
-    console.error('[TikTok DM] Erro ao carregar sessao:', e.message);
-    return null;
-  }
+async function connectCDP(wsEndpoint: string): Promise<CDPClient> {
+  var CRI = await import('chrome-remote-interface');
+  return await CRI({ target: wsEndpoint });
 }
 
-// === CONEXAO BROWSERLESS ===
+// === STEEL.DEV REST API ===
 
-async function connectBrowser(): Promise<{ browser: any; context: BrowserContext; page: Page }> {
-  if (!BROWSERLESS_ENDPOINT) {
-    throw new Error('BROWSERLESS_TOKEN nao configurado');
-  }
-
-  var chromium = await getChromium();
-  var browser = await chromium.connectOverCDP(BROWSERLESS_ENDPOINT, {
-    timeout: 30000,
-  });
-
-  var context = await browser.newContext({
-    viewport: { width: 1280, height: 720 },
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-    locale: 'pt-BR',
-    timezoneId: 'Africa/Luanda',
-  });
-
-  var session = await loadSession();
-  if (session && session.cookies.length > 0) {
-    await context.addCookies(session.cookies);
-  }
-
-  var page = await context.newPage();
-
-  if (session && session.localStorage && Object.keys(session.localStorage).length > 0) {
-    await page.goto('https://www.tiktok.com', { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(function() {});
-    await page.evaluate(function(ls: Record<string, string>) {
-      for (var k in ls) {
-        try { window.localStorage.setItem(k, ls[k]); } catch(e) {}
-      }
-    }, session.localStorage);
-  }
-
-  return { browser, context, page };
+function steelHeaders(): Record<string, string> {
+  return { 'steel-api-key': STEEL_API_KEY, 'Content-Type': 'application/json' };
 }
 
-// === HELPERS ===
+async function steelCreateSession(): Promise<{ id: string; websocketUrl: string; profileId?: string; sessionViewerUrl?: string }> {
+  var savedProfileId = await loadSetting(TIKTOK_STEEL_PROFILE_KEY);
+  var body: any = { timeout: 600000, persistProfile: true };
+  // Launch plan: sem proxy/CAPTCHA (requer deposito)
+  // useProxy e solveCaptcha so habilitados se tiver saldo
+  if (process.env.STEEL_USE_PROXY === 'true') body.useProxy = true;
+  if (process.env.STEEL_SOLVE_CAPTCHA === 'true') body.solveCaptcha = true;
+  if (savedProfileId) body.profileId = savedProfileId;
 
-async function tryClick(page: Page, selectors: string, timeoutMs: number = 3000): Promise<boolean> {
-  var parts = selectors.split(',').map(function(s) { return s.trim(); });
-  for (var sel of parts) {
+  var res = await fetch(STEEL_API + '/sessions', { method: 'POST', headers: steelHeaders(), body: JSON.stringify(body) });
+  if (!res.ok) { var t = await res.text().catch(() => ''); throw new Error('Steel API ' + res.status + ': ' + t.slice(0, 300)); }
+  var data = await res.json();
+  var sessionId = data.id || '';
+  var profileId = data.profileId || '';
+  if (profileId && profileId !== savedProfileId) await saveSetting(TIKTOK_STEEL_PROFILE_KEY, profileId);
+  console.log('[TikTok DM] Steel sessao:', sessionId, 'profile:', profileId);
+  return { id: sessionId, websocketUrl: data.websocketUrl || '', profileId: profileId || undefined, sessionViewerUrl: data.sessionViewerUrl };
+}
+
+async function steelReleaseSession(sessionId: string): Promise<void> {
+  try { await fetch(STEEL_API + '/sessions/' + sessionId + '/release', { method: 'POST', headers: steelHeaders() }); } catch(e) {}
+}
+
+// === DB ===
+
+async function saveSetting(key: string, value: string): Promise<void> {
+  try { var db = await getDb(); await db.systemSetting.upsert({ where: { key }, update: { value }, create: { key, value } }); } catch(e) {}
+}
+
+async function loadSetting(key: string): Promise<string | null> {
+  try { var db = await getDb(); var r = await db.systemSetting.findUnique({ where: { key } }); return r?.value || null; } catch(e) { return null; }
+}
+
+interface StoredCookies { cookies: any[]; localStorage: Record<string, string>; updatedAt: string; }
+
+async function saveCookiesJSON(cookies: any[]): Promise<void> {
+  await saveSetting(TIKTOK_SESSION_KEY, JSON.stringify({ cookies, localStorage: {}, updatedAt: new Date().toISOString() } as StoredCookies));
+}
+
+async function loadCookies(): Promise<any[] | null> {
+  try { var raw = await loadSetting(TIKTOK_SESSION_KEY); if (!raw) return null; return JSON.parse(raw).cookies; } catch(e) { return null; }
+}
+
+// === CONEXAO ===
+
+interface BrowserSession {
+  cdp: CDPClient;
+  steelSessionId?: string;
+  viewerUrl?: string;
+  cleanup: () => Promise<void>;
+}
+
+async function connectViaSteel(): Promise<BrowserSession> {
+  if (!STEEL_API_KEY) throw new Error('STEEL_API_KEY nao configurado');
+  var session = await steelCreateSession();
+  var wsUrl = session.websocketUrl + '&apiKey=' + STEEL_API_KEY;
+  var cdp = await connectCDP(wsUrl);
+  return {
+    cdp,
+    steelSessionId: session.id,
+    viewerUrl: session.sessionViewerUrl,
+    cleanup: async function() {
+      try { await cdp.close(); } catch(e) {}
+      try { await steelReleaseSession(session.id); } catch(e) {}
+    },
+  };
+}
+
+async function connectViaBrowserless(): Promise<BrowserSession> {
+  if (!BROWSERLESS_ENDPOINT) throw new Error('Browserless nao configurado');
+  var cdp = await connectCDP(BROWSERLESS_ENDPOINT);
+  return {
+    cdp,
+    cleanup: async function() { try { await cdp.close(); } catch(e) {} },
+  };
+}
+
+async function connectBrowser(): Promise<BrowserSession> {
+  if (STEEL_API_KEY) {
+    try { return await connectViaSteel(); }
+    catch (e: any) { console.error('[TikTok DM] Steel falhou, tentando Browserless:', e.message); }
+  }
+  return await connectViaBrowserless();
+}
+
+// === CDP HELPERS ===
+
+// Esperar por um seletor CSS aparecer na pagina (polling)
+async function waitForSelector(cdp: CDPClient, selector: string, timeoutMs: number = 5000): Promise<number | null> {
+  var start = Date.now();
+  while (Date.now() - start < timeoutMs) {
     try {
-      var el = page.locator(sel).first();
-      if (await el.isVisible({ timeout: timeoutMs })) {
-        await el.click({ timeout: 2000 });
-        return true;
-      }
-    } catch (e) {}
+      var doc = await cdp.DOM.getDocument();
+      var result = await cdp.DOM.querySelectorAll({ nodeId: doc.root.nodeId, selector: selector });
+      if (result.nodeIds && result.nodeIds.length > 0) return result.nodeIds[0];
+    } catch(e) {}
+    await new Promise(function(r) { setTimeout(r, 500); });
   }
-  return false;
+  return null;
 }
 
-async function dismissPopups(page: Page): Promise<void> {
-  var dismissSelectors = [
-    '[data-e2e="modal-close-inner-button"]',
-    '[class*="close"]',
-    'button:has-text("Accept all")',
-    'button:has-text("Accept")',
-    'button:has-text("Got it")',
-    'button:has-text("Not now")',
-    'button:has-text("Skip")',
-    'button:has-text("Fechar")',
-    'button:has-text("Entendi")',
-    'button:has-text("Recusar")',
+// Clicar num elemento
+async function clickElement(cdp: CDPClient, selector: string, timeoutMs: number = 3000): Promise<boolean> {
+  var nodeId = await waitForSelector(cdp, selector, timeoutMs);
+  if (!nodeId) return false;
+  try {
+    // Obter caixa do elemento para clicar no centro
+    var box = await cdp.DOM.getBoxModel({ nodeId: nodeId });
+    var x = Math.round((box.model.content[0] + box.model.content[2]) / 2);
+    var y = Math.round((box.model.content[1] + box.model.content[5]) / 2);
+    await cdp.Input.dispatchMouseEvent({ type: 'mousePressed', x: x, y: y, button: 'left', clickCount: 1 });
+    await new Promise(function(r) { setTimeout(r, 50); });
+    await cdp.Input.dispatchMouseEvent({ type: 'mouseReleased', x: x, y: y, button: 'left', clickCount: 1 });
+    return true;
+  } catch(e) { return false; }
+}
+
+// Preencher input
+async function fillInput(cdp: CDPClient, selector: string, text: string, delayMs: number = 40): Promise<boolean> {
+  var nodeId = await waitForSelector(cdp, selector, 3000);
+  if (!nodeId) return false;
+  try {
+    var box = await cdp.DOM.getBoxModel({ nodeId: nodeId });
+    var x = Math.round((box.model.content[0] + box.model.content[2]) / 2);
+    var y = Math.round((box.model.content[1] + box.model.content[5]) / 2);
+    await cdp.Input.dispatchMouseEvent({ type: 'mousePressed', x: x, y: y, button: 'left', clickCount: 1 });
+    await cdp.Input.dispatchMouseEvent({ type: 'mouseReleased', x: x, y: y, button: 'left', clickCount: 1 });
+    await new Promise(function(r) { setTimeout(r, 200); });
+    await cdp.Input.insertText({ text: text });
+    return true;
+  } catch(e) { return false; }
+}
+
+// Avaliar JavaScript na pagina
+async function evalJS(cdp: CDPClient, expr: string): Promise<any> {
+  var result = await cdp.Runtime.evaluate({ expression: expr, awaitPromise: true, returnByValue: true });
+  return result.result?.value;
+}
+
+// Verificar se elemento existe
+async function elementExists(cdp: CDPClient, selector: string, timeoutMs: number = 2000): Promise<boolean> {
+  var nodeId = await waitForSelector(cdp, selector, timeoutMs);
+  return nodeId !== null;
+}
+
+// Dismiss popups
+async function dismissPopups(cdp: CDPClient): Promise<void> {
+  var selectors = [
+    '[data-e2e="modal-close-inner-button"]', '[class*="close"]',
+    'button:has-text("Accept all")', 'button:has-text("Got it")',
+    'button:has-text("Not now")', 'button:has-text("Skip")',
     '[aria-label="Close"]',
   ];
-  for (var sel of dismissSelectors) {
-    try { await tryClick(page, sel, 1000); } catch(e) {}
-  }
+  for (var sel of selectors) { try { await clickElement(cdp, sel, 800); } catch(e) {} }
 }
 
-async function isLoggedIn(page: Page): Promise<boolean> {
-  try {
-    var selectors = [
-      '[data-e2e="message-icon"]',
-      'a[href*="/messages"]',
-      '[data-e2e="topbar-avatar"]',
-      'img[src*="avatar"]',
-    ];
-    for (var sel of selectors) {
-      var el = page.locator(sel).first();
-      if (await el.isVisible({ timeout: 2000 })) return true;
-    }
-    return false;
-  } catch (e) {
-    return false;
-  }
+// Verificar se esta logado no TikTok
+async function isLoggedIn(cdp: CDPClient): Promise<boolean> {
+  return await elementExists(cdp, '[data-e2e="message-icon"]', 2000) ||
+         await elementExists(cdp, 'a[href*="/messages"]', 2000) ||
+         await elementExists(cdp, '[data-e2e="topbar-avatar"]', 2000);
 }
 
 // === LOGIN ===
 
-async function loginToTikTok(page: Page): Promise<boolean> {
+async function loginToTikTok(cdp: CDPClient): Promise<boolean> {
   try {
-    console.log('[TikTok DM] A tentar login...');
+    console.log('[TikTok DM] Login para:', TIKTOK_USERNAME);
+    await cdp.Page.navigate({ url: 'https://www.tiktok.com/login?lang=en' });
+    await new Promise(function(r) { setTimeout(r, 3000); });
+    await dismissPopups(cdp);
 
-    await page.goto('https://www.tiktok.com/login?lang=en', {
-      waitUntil: 'domcontentloaded',
-      timeout: 25000,
-    });
-    await dismissPopups(page);
-    await page.waitForTimeout(2000);
+    if (await isLoggedIn(cdp)) { console.log('[TikTok DM] Ja logado!'); return true; }
 
-    if (await isLoggedIn(page)) {
-      console.log('[TikTok DM] Ja esta logado');
-      return true;
-    }
+    if (!TIKTOK_USERNAME || !TIKTOK_PASSWORD) return false;
 
-    if (TIKTOK_USERNAME && TIKTOK_PASSWORD) {
-      console.log('[TikTok DM] A tentar login com email/password...');
+    // Clicar em Use phone/email/username
+    await clickElement(cdp, '[data-e2e="login-tab-item"]', 2000);
+    await new Promise(function(r) { setTimeout(r, 1000); });
 
-      var emailTabClicked = await tryClick(page, '[data-e2e="login-tab-item"]:has-text("Phone"), :text-is("Use phone/email/username")', 3000);
-      if (!emailTabClicked) {
-        emailTabClicked = await tryClick(page, 'a:has-text("email"), a:has-text("Email"), a:has-text("phone")', 2000);
-      }
+    // Preencher username
+    await fillInput(cdp, 'input[type="text"], input[name="email"], input[name="username"]', TIKTOK_USERNAME, 50);
+    await new Promise(function(r) { setTimeout(r, 500); });
 
-      if (emailTabClicked) {
-        await page.waitForTimeout(1500);
-        var emailInput = page.locator('input[type="text"], input[name="email"], input[name="username"]').first();
-        await emailInput.fill(TIKTOK_USERNAME);
-        await page.waitForTimeout(500);
+    // Preencher senha
+    await fillInput(cdp, 'input[type="password"]', TIKTOK_PASSWORD, 40);
+    await new Promise(function(r) { setTimeout(r, 500); });
 
-        var passInput = page.locator('input[type="password"]').first();
-        await passInput.fill(TIKTOK_PASSWORD);
-        await page.waitForTimeout(500);
+    // Clicar Log in
+    await clickElement(cdp, '[data-e2e="login-button"], button', 3000);
+    console.log('[TikTok DM] Botao login clicado, a aguardar...');
+    await new Promise(function(r) { setTimeout(r, 8000); });
 
-        var loginClicked = await tryClick(page, '[data-e2e="login-button"], button:has-text("Log in"), button:has-text("Login")', 3000);
-        if (loginClicked) {
-          await page.waitForTimeout(4000);
-          await dismissPopups(page);
+    await dismissPopups(cdp);
 
-          if (await isLoggedIn(page)) {
-            console.log('[TikTok DM] Login com email/password bem-sucedido');
-            return true;
-          }
+    if (await isLoggedIn(cdp)) { console.log('[TikTok DM] LOGIN BEM-SUCEDIDO!'); return true; }
 
-          var pageContent = await page.content();
-          if (pageContent.includes('verification') || pageContent.includes('captcha') || pageContent.includes('verify')) {
-            console.log('[TikTok DM] Verificacao/CAPTCHA detectada - login manual necessario');
-            return false;
-          }
-        }
-      }
-    }
+    // Verificar CAPTCHA — Steel resolve automaticamente
+    await new Promise(function(r) { setTimeout(r, 10000); });
+    if (await isLoggedIn(cdp)) { console.log('[TikTok DM] CAPTCHA resolvido!'); return true; }
 
-    console.log('[TikTok DM] Falha no login - verifique credenciais');
+    // Verificar erro
+    var hasError = await evalJS(cdp, '!!(document.body.innerText.match(/invalid|incorrect|wrong password|doesn\'t match/i))');
+    if (hasError) { console.error('[TikTok DM] Credenciais incorretas!'); return false; }
+
+    console.log('[TikTok DM] Login inconclusivo');
     return false;
-  } catch (e: any) {
-    console.error('[TikTok DM] Erro no login:', e.message);
-    return false;
-  }
+  } catch (e: any) { console.error('[TikTok DM] Erro login:', e.message); return false; }
 }
 
 // === ENVIAR DM ===
 
-async function sendDMToUser(
-  page: Page,
-  username: string,
-  message: string,
-  options?: { isNewConversation?: boolean; delay?: number }
-): Promise<{ success: boolean; error?: string }> {
+async function sendDMToUser(cdp: CDPClient, username: string, message: string): Promise<{ success: boolean; error?: string }> {
   try {
-    var delay = options?.delay || 30;
-    console.log('[TikTok DM] A enviar DM para @' + username);
+    console.log('[TikTok DM] DM para @' + username);
+    await cdp.Page.navigate({ url: 'https://www.tiktok.com/messages' });
+    await new Promise(function(r) { setTimeout(r, 3000); });
+    await dismissPopups(cdp);
 
-    await page.goto('https://www.tiktok.com/messages', {
-      waitUntil: 'domcontentloaded',
-      timeout: 25000,
-    });
-    await dismissPopups(page);
-    await page.waitForTimeout(2000);
-
-    var existingChat = page.locator('[data-e2e="chat-list-item"]:has-text("' + username + '")').first();
-    var chatExists = false;
-    try {
-      chatExists = await existingChat.isVisible({ timeout: 3000 });
-    } catch(e) {}
-
-    if (chatExists && !options?.isNewConversation) {
-      await existingChat.click({ timeout: 5000 });
-      await page.waitForTimeout(2000);
+    // Verificar se conversa existe
+    var chatSelector = '[data-e2e="chat-list-item"]';
+    var chatExists = await evalJS(cdp, '!!document.querySelector(\'[data-e2e="chat-list-item"]\')?.textContent?.includes("' + username + '")');
+    if (chatExists) {
+      await evalJS(cdp, 'var el = document.querySelector(\'[data-e2e="chat-list-item"]\'); if(el && el.textContent.includes("' + username + '")) el.click();');
+      await new Promise(function(r) { setTimeout(r, 2000); });
     } else {
-      var newMsgClicked = await tryClick(page, '[data-e2e="new-message-btn"], button:has-text("New message"), button:has-text("Send a message"), [data-e2e="search-message"]', 3000);
-
+      // Tentar nova mensagem
+      var newMsgClicked = await clickElement(cdp, '[data-e2e="new-message-btn"], button', 2000);
       if (newMsgClicked) {
-        await page.waitForTimeout(1000);
-        var searchInput = page.locator('input[data-e2e="search-message-input"], input[placeholder*="Search"], input[placeholder*="search"], input[type="text"]').first();
-        await searchInput.fill('@' + username);
-        await page.waitForTimeout(2000);
+        await new Promise(function(r) { setTimeout(r, 1500); });
+        await fillInput(cdp, 'input[placeholder*="Search"], input[placeholder*="search"], input[type="text"]', '@' + username, 50);
+        await new Promise(function(r) { setTimeout(r, 3000); });
 
-        var searchResult = page.locator('[data-e2e="search-result-item"]:has-text("' + username + '"), div[class*="search"]:has-text("' + username + '")').first();
-        try {
-          if (await searchResult.isVisible({ timeout: 3000 })) {
-            await searchResult.click({ timeout: 3000 });
-            await page.waitForTimeout(2000);
-          } else {
-            return { success: false, error: 'Usuario @' + username + ' nao encontrado na pesquisa' };
-          }
-        } catch(e) {
-          return { success: false, error: 'Nao foi possivel encontrar @' + username };
+        var found = await evalJS(cdp, '!!document.querySelector(\'[data-e2e="search-result-item"]\')?.textContent?.includes("' + username + '")');
+        if (found) {
+          await evalJS(cdp, 'var r = document.querySelector(\'[data-e2e="search-result-item"]\'); if(r && r.textContent.includes("' + username + '")) r.click();');
+          await new Promise(function(r) { setTimeout(r, 2000); });
+        } else {
+          return { success: false, error: '@' + username + ' nao encontrado' };
         }
       } else {
-        await page.goto('https://www.tiktok.com/@' + username, {
-          waitUntil: 'domcontentloaded',
-          timeout: 20000,
-        });
-        await dismissPopups(page);
-        await page.waitForTimeout(1500);
-
-        var msgBtnClicked = await tryClick(page, '[data-e2e="profile-message-button"], button:has-text("Message"), a:has-text("Message")', 3000);
-        if (!msgBtnClicked) {
-          return { success: false, error: 'Botao de mensagem nao encontrado no perfil de @' + username };
-        }
-        await page.waitForTimeout(2000);
+        // Fallback: ir ao perfil
+        await cdp.Page.navigate({ url: 'https://www.tiktok.com/@' + username });
+        await new Promise(function(r) { setTimeout(r, 3000); });
+        await dismissPopups(cdp);
+        var msgClicked = await clickElement(cdp, '[data-e2e="profile-message-button"], a:has-text("Message"), button:has-text("Message")', 3000);
+        if (!msgClicked) return { success: false, error: 'Botao mensagem nao encontrado no perfil de @' + username };
+        await new Promise(function(r) { setTimeout(r, 2000); });
       }
     }
 
-    var inputSelectors = [
-      '[data-e2e="message-input"]',
-      'div[contenteditable="true"]',
-      'div[class*="message"] div[contenteditable]',
-      'textarea',
-    ];
+    // Escrever mensagem no input
+    var inputFilled = await fillInput(cdp, '[data-e2e="message-input"], div[contenteditable="true"], textarea', message, 30);
+    if (!inputFilled) return { success: false, error: 'Campo de mensagem nao encontrado' };
 
-    var inputFound = false;
-    for (var sel of inputSelectors) {
-      var input = page.locator(sel).first();
-      try {
-        if (await input.isVisible({ timeout: 2000 })) {
-          await input.click({ timeout: 2000 });
-          await page.waitForTimeout(300);
-          await page.keyboard.type(message, { delay: delay });
-          await page.waitForTimeout(300);
-          inputFound = true;
-          break;
-        }
-      } catch(e) {
-        continue;
-      }
-    }
-
-    if (!inputFound) {
-      return { success: false, error: 'Campo de input de mensagem nao encontrado' };
-    }
-
-    await page.keyboard.press('Enter');
-    await page.waitForTimeout(1000);
+    // Pressionar Enter via teclado
+    await cdp.Input.dispatchKeyEvent({ type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+    await new Promise(function(r) { setTimeout(r, 50); });
+    await cdp.Input.dispatchKeyEvent({ type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+    await new Promise(function(r) { setTimeout(r, 1500); });
 
     console.log('[TikTok DM] DM enviado para @' + username);
     return { success: true };
-  } catch (e: any) {
-    console.error('[TikTok DM] Erro ao enviar DM para @' + username + ':', e.message);
-    return { success: false, error: e.message };
-  }
+  } catch (e: any) { return { success: false, error: e.message }; }
 }
 
-// === FUNCOES PUBLICAS ===
+// === PUBLIC API ===
 
-export async function tiktokSendDM(options: {
-  username: string;
-  message: string;
-  saveSession?: boolean;
-}): Promise<TikTokDMResult> {
-  var browser: any = null;
-  var context: BrowserContext | null = null;
-
+export async function tiktokSendDM(options: { username: string; message: string; saveSession?: boolean }): Promise<TikTokDMResult> {
+  var session: BrowserSession | null = null;
   try {
-    var conn = await connectBrowser();
-    browser = conn.browser;
-    context = conn.context;
-    var page = conn.page;
-
-    var loggedIn = await isLoggedIn(page);
-    if (!loggedIn) {
-      loggedIn = await loginToTikTok(page);
-      if (!loggedIn) {
-        await browser.close().catch(function() {});
-        return { success: false, error: 'Nao foi possivel fazer login no TikTok. Configure TIKTOK_USERNAME e TIKTOK_PASSWORD ou faca login manual.' };
+    session = await connectBrowser();
+    if (!await isLoggedIn(session.cdp)) {
+      if (!await loginToTikTok(session.cdp)) {
+        await session.cleanup();
+        return { success: false, error: 'Login TikTok falhou. Verifique credenciais.' };
       }
     }
-
-    if (context && options.saveSession !== false) {
-      await saveSession(context, page);
-    }
-
-    var result = await sendDMToUser(page, options.username, options.message);
-
-    if (context) {
-      await saveSession(context, page);
-    }
-
-    await browser.close().catch(function() {});
-
-    if (result.success) {
-      return { success: true, sent: 1, failed: 0, data: { username: options.username, message: options.message } };
-    }
-    return { success: false, error: result.error, sent: 0, failed: 1 };
-  } catch (e: any) {
-    if (browser) await browser.close().catch(function() {});
-    return { success: false, error: e.message, sent: 0, failed: 1 };
-  }
+    var result = await sendDMToUser(session.cdp, options.username, options.message);
+    await session.cleanup();
+    return result.success
+      ? { success: true, sent: 1, failed: 0, data: { username: options.username, message: options.message } }
+      : { success: false, error: result.error, sent: 0, failed: 1 };
+  } catch (e: any) { if (session) await session.cleanup(); return { success: false, error: e.message, sent: 0, failed: 1 }; }
 }
 
-export async function tiktokBulkDM(options: {
-  users: Array<{ username: string; message?: string }>;
-  defaultMessage?: string;
-  delayBetweenUsers?: number;
-}): Promise<TikTokDMResult> {
-  var browser: any = null;
-  var context: BrowserContext | null = null;
-  var sent = 0;
-  var failed = 0;
-  var details: any[] = [];
-
+export async function tiktokBulkDM(options: { users: Array<{ username: string; message?: string }>; defaultMessage?: string; delayBetweenUsers?: number }): Promise<TikTokDMResult> {
+  var session: BrowserSession | null = null;
+  var sent = 0, failed = 0, details: any[] = [];
   try {
-    var conn = await connectBrowser();
-    browser = conn.browser;
-    context = conn.context;
-    var page = conn.page;
-
-    var loggedIn = await isLoggedIn(page);
-    if (!loggedIn) {
-      loggedIn = await loginToTikTok(page);
-      if (!loggedIn) {
-        await browser.close().catch(function() {});
-        return { success: false, error: 'Nao foi possivel fazer login no TikTok' };
-      }
+    session = await connectBrowser();
+    if (!await isLoggedIn(session.cdp)) {
+      if (!await loginToTikTok(session.cdp)) { await session.cleanup(); return { success: false, error: 'Login falhou' }; }
     }
-
-    if (context) await saveSession(context, page);
-
     var delay = options.delayBetweenUsers || 3000;
-
     for (var i = 0; i < options.users.length; i++) {
-      var user = options.users[i];
-      var msg = user.message || options.defaultMessage || '';
-
-      if (!msg) {
-        details.push({ username: user.username, success: false, error: 'Mensagem vazia' });
-        failed++;
-        continue;
-      }
-
-      var result = await sendDMToUser(page, user.username, msg, { delay: 30 });
-      details.push({ username: user.username, ...result });
-
-      if (result.success) {
-        sent++;
-      } else {
-        failed++;
-      }
-
-      if (i < options.users.length - 1) {
-        await page.waitForTimeout(delay);
-      }
+      var u = options.users[i]; var msg = u.message || options.defaultMessage || '';
+      if (!msg) { details.push({ username: u.username, success: false, error: 'Mensagem vazia' }); failed++; continue; }
+      var r = await sendDMToUser(session.cdp, u.username, msg);
+      details.push({ username: u.username, ...r });
+      if (r.success) sent++; else failed++;
+      if (i < options.users.length - 1) await new Promise(function(res) { setTimeout(res, delay); });
     }
-
-    if (context) await saveSession(context, page);
-
-    await browser.close().catch(function() {});
-
-    return {
-      success: sent > 0,
-      sent: sent,
-      failed: failed,
-      details: details,
-    };
-  } catch (e: any) {
-    if (browser) await browser.close().catch(function() {});
-    return { success: false, error: e.message, sent: sent, failed: failed + (options.users.length - sent - failed), details: details };
-  }
+    await session.cleanup();
+    return { success: sent > 0, sent, failed, details };
+  } catch (e: any) { if (session) await session.cleanup(); return { success: false, error: e.message, sent, failed, details }; }
 }
 
-export async function tiktokDMStatus(): Promise<{
-  browserlessConfigured: boolean;
-  credentialsConfigured: boolean;
-  hasSession: boolean;
-  sessionAge?: string;
-}> {
-  var session = null;
-  try {
-    session = await loadSession();
-  } catch(e) {
-    // db might not be reachable
-  }
-  var sessionAge: string | undefined;
-  if (session) {
-    var age = Date.now() - new Date(session.updatedAt).getTime();
-    var hours = Math.floor(age / 3600000);
-    sessionAge = hours + 'h';
-  }
+export async function tiktokDMStatus(): Promise<any> {
   return {
+    steelConfigured: !!STEEL_API_KEY,
     browserlessConfigured: !!BROWSERLESS_ENDPOINT,
     credentialsConfigured: !!(TIKTOK_USERNAME && TIKTOK_PASSWORD),
-    hasSession: !!session,
-    sessionAge: sessionAge,
+    steelProfileId: await loadSetting(TIKTOK_STEEL_PROFILE_KEY) || undefined,
   };
 }
 
 export async function tiktokLoginAndSave(): Promise<TikTokDMResult> {
-  var browser: any = null;
-  var context: BrowserContext | null = null;
-
+  var session: BrowserSession | null = null;
   try {
-    var conn = await connectBrowser();
-    browser = conn.browser;
-    context = conn.context;
-    var page = conn.page;
-
-    await page.goto('https://www.tiktok.com', {
-      waitUntil: 'domcontentloaded',
-      timeout: 25000,
-    });
-    await dismissPopups(page);
-
-    if (await isLoggedIn(page)) {
-      await saveSession(context, page);
-      await browser.close().catch(function() {});
-      return { success: true, data: { message: 'Sessao TikTok valida - cookies atualizados' } };
+    session = await connectBrowser();
+    await session.cdp.Page.navigate({ url: 'https://www.tiktok.com' });
+    await new Promise(function(r) { setTimeout(r, 3000); });
+    await dismissPopups(session.cdp);
+    if (await isLoggedIn(session.cdp)) {
+      var v = session.viewerUrl; await session.cleanup();
+      return { success: true, data: { message: 'Sessao TikTok valida', provider: session.steelSessionId ? 'steel' : 'browserless', viewerUrl: v } };
     }
-
-    var loggedIn = await loginToTikTok(page);
-    if (!loggedIn) {
-      await browser.close().catch(function() {});
-      return { success: false, error: 'Login falhou. Configure TIKTOK_USERNAME/EMAIL e TIKTOK_PASSWORD, ou o login via Google OAuth requer credenciais Google adicionais.' };
-    }
-
-    await saveSession(context, page);
-    await browser.close().catch(function() {});
-
-    return { success: true, data: { message: 'Login TikTok bem-sucedido e sessao guardada' } };
-  } catch (e: any) {
-    if (browser) await browser.close().catch(function() {});
-    return { success: false, error: e.message };
-  }
+    var loggedIn = await loginToTikTok(session.cdp);
+    if (!loggedIn) { await session.cleanup(); return { success: false, error: 'Login falhou' }; }
+    var v2 = session.viewerUrl; await session.cleanup();
+    return { success: true, data: { message: 'Login TikTok bem-sucedido', provider: session.steelSessionId ? 'steel' : 'browserless', viewerUrl: v2 } };
+  } catch (e: any) { if (session) await session.cleanup(); return { success: false, error: e.message }; }
 }
 
 export async function tiktokClearSession(): Promise<void> {
-  try {
-    var db = await getDb();
-    await db.systemSetting.deleteMany({ where: { key: TIKTOK_SESSION_KEY } });
-  } catch(e) {}
+  try { var db = await getDb(); await db.systemSetting.deleteMany({ where: { key: { in: [TIKTOK_SESSION_KEY, TIKTOK_STEEL_PROFILE_KEY] } } }); } catch(e) {}
 }
 
 export async function tiktokScreenshot(): Promise<{ success: boolean; screenshot?: string; error?: string }> {
-  var browser: any = null;
-
+  var session: BrowserSession | null = null;
   try {
-    var conn = await connectBrowser();
-    browser = conn.browser;
-    var page = conn.page;
-
-    await page.goto('https://www.tiktok.com/messages', {
-      waitUntil: 'domcontentloaded',
-      timeout: 25000,
-    });
-    await dismissPopups(page);
-    await page.waitForTimeout(2000);
-
-    var screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });
-    await browser.close().catch(function() {});
-
-    return { success: true, screenshot: screenshot };
-  } catch (e: any) {
-    if (browser) await browser.close().catch(function() {});
-    return { success: false, error: e.message };
-  }
+    session = await connectBrowser();
+    await session.cdp.Page.navigate({ url: 'https://www.tiktok.com/messages' });
+    await new Promise(function(r) { setTimeout(r, 3000); });
+    var ss = await session.cdp.Page.screenshot({ format: 'png' });
+    await session.cleanup();
+    return { success: true, screenshot: Buffer.from(ss.data, 'base64').toString('base64') };
+  } catch (e: any) { if (session) await session.cleanup(); return { success: false, error: e.message }; }
 }

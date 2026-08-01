@@ -1,6 +1,8 @@
 // ============================================================
-//  AURA TIKTOK DM — Controlo de DMs via Playwright + Browserless
-//  Alternativa ao ManyChat TikTok (nao disponivel em Angola)
+//  AURA TIKTOK DM — Controlo de DMs via Steel.dev + Browserless
+//  Steel.dev: proxy residencial, CAPTCHA solving, fingerprinting
+//  Browserless.io: fallback (sem anti-detection)
+//  Adaptado de: AliMantach/tiktok-streak-bot
 // ============================================================
 
 import { NextResponse } from 'next/server';
@@ -29,7 +31,7 @@ export async function POST(request: Request) {
       success: true,
       type: 'tiktok_dm_status',
       platform: 'tiktok',
-      method: 'playwright_browserless',
+      method: 'steel_dev_primary',
       adaptedFrom: 'AliMantach/tiktok-streak-bot',
       ...status,
     });
@@ -121,6 +123,53 @@ export async function POST(request: Request) {
       });
     }
     return NextResponse.json({ success: false, error: 'Screenshot falhou: ' + (ssResult.error || 'desconhecido') });
+  }
+
+  // ===== STEEL API TEST (debug) =====
+  if (action === 'steel_test') {
+    var STEEL_API = 'https://api.steel.dev/v1';
+    var STEEL_API_KEY = process.env.STEEL_API_KEY || '';
+    try {
+      var t0 = Date.now();
+      // 1. Criar sessao Steel
+      var sRes = await fetch(STEEL_API + '/sessions', {
+        method: 'POST',
+        headers: { 'steel-api-key': STEEL_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timeout: 120000 }),
+      });
+      var sText = await sRes.text();
+      var sData;
+      try { sData = JSON.parse(sText); } catch(e) { sData = { error: sText }; }
+      var createMs = Date.now() - t0;
+      var sid = sData.id || '';
+
+      var results: any = { sessionCreated: sRes.status, sessionId: sid, createMs };
+
+      if (sid) {
+        // Testar scrape endpoint (REST, sem WebSocket)
+        var scrapeRes = await fetch(STEEL_API + '/scrape', {
+          method: 'POST', headers: { 'steel-api-key': STEEL_API_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: 'https://www.tiktok.com', format: ['markdown'], sessionId: sid }),
+        });
+        results.scrape = { status: scrapeRes.status };
+        try { results.scrape.body = JSON.parse(await scrapeRes.text()); } catch(e) { results.scrape.raw = (await scrapeRes.text()).slice(0, 300); }
+
+        // Screenshot
+        var ssRes = await fetch(STEEL_API + '/sessions/' + sid + '/screenshot', {
+          method: 'POST', headers: { 'steel-api-key': STEEL_API_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
+        results.screenshot = ssRes.status;
+
+        // Liberar
+        await fetch(STEEL_API + '/sessions/' + sid + '/release', { method: 'POST', headers: { 'steel-api-key': STEEL_API_KEY } });
+        results.released = 200;
+      }
+
+      return NextResponse.json({ success: true, type: 'steel_test', ...results, totalMs: Date.now() - t0 });
+    } catch (e: any) {
+      return NextResponse.json({ success: false, error: 'Steel test falhou: ' + e.message });
+    }
   }
 
   return NextResponse.json({ error: 'Accao desconhecida: ' + action });

@@ -33,9 +33,11 @@ export var OR_URL = 'https://openrouter.ai/api/v1/chat/completions';
 export var OR_MODEL = 'openrouter/free';
 export var OR_FALLBACK_MODEL = 'inclusionai/ling-3.0-flash:free';
 
-// --- Browserless.io (Playwright remoto) ---
-// Free tier: wss://chrome.browserless.io (sem token, 1 sessao)
-// Paid: wss://chrome.browserless.io?token=XXX
+// --- Steel.dev (Browser API com anti-detection + proxy residencial) ---
+// Primeira escolha para TikTok — CAPTCHA solving, fingerprinting, proxy
+export var STEEL_API_KEY = env('STEEL_API_KEY', '');
+
+// --- Browserless.io (fallback — sem anti-detection) ---
 export var BROWSERLESS_TOKEN = env('BROWSERLESS_TOKEN', '');
 export var BROWSERLESS_ENDPOINT = BROWSERLESS_TOKEN
   ? 'wss://chrome.browserless.io?token=' + BROWSERLESS_TOKEN
