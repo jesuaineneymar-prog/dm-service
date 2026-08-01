@@ -107,6 +107,8 @@ var UP_DM_BASE = 'https://api.upload-post.com';
 export async function upSendDMOutbound(apiKey: string, options: {
   recipientId: string;
   message: string;
+  platform?: string;
+  user?: string;
 }) {
   try {
     var res = await fetch(UP_DM_BASE + '/api/uploadposts/dms/send', {
@@ -117,6 +119,8 @@ export async function upSendDMOutbound(apiKey: string, options: {
         'Accept': 'application/json',
       },
       body: JSON.stringify({
+        platform: options.platform || 'instagram',
+        user: options.user || 'jarvis',
         recipient_id: options.recipientId,
         message: options.message,
       }),
