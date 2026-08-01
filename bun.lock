@@ -5,6 +5,7 @@
     "": {
       "name": "mba-brain-agent",
       "dependencies": {
+        "@arcadeai/arcadejs": "^2.4.1",
         "@composio/slim": "^0.14.1",
         "@libsql/client": "^0.17.4",
         "@prisma/adapter-libsql": "^7.9.1",
@@ -31,6 +32,8 @@
   },
   "packages": {
     "@alloc/quick-lru": ["@alloc/quick-lru@5.2.0", "", {}, "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw=="],
+
+    "@arcadeai/arcadejs": ["@arcadeai/arcadejs@2.4.1", "", { "bin": { "arcadeai-arcadejs": "bin/cli" } }, "sha512-DLpvvDBvRNjzVmFYJ+upPrUJ8YRBoGWqPfzhuFp2+lh5Shxm0l9qLwe1Ah4pKvuCatU7TLOOTkFpICitTuuJeQ=="],
 
     "@babel/code-frame": ["@babel/code-frame@7.29.7", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.29.7", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw=="],
 

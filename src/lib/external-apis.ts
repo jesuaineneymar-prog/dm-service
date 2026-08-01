@@ -100,6 +100,57 @@ export async function hikerSearchUsers(apiKey: string, query: string) {
   }
 }
 
+// HikerAPI: Send DM to any user (outbound - can start NEW conversations)
+// This uses Instagram's private API via HikerAPI
+export async function hikerSendDM(apiKey: string, options: {
+  recipientUserId: string;  // Instagram user ID (pk) of the recipient
+  text: string;            // Message text
+  mediaUrl?: string;       // Optional: media URL to send
+}) {
+  try {
+    var body: any = {
+      recipient_users: [options.recipientUserId],
+      text: options.text,
+    };
+    if (options.mediaUrl) {
+      body.media_url = options.mediaUrl;
+    }
+
+    var res = await fetch(HIKER_BASE + '/v1/dm/send', {
+      method: 'POST',
+      headers: {
+        'x-access-key': apiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      var errText = await res.text().catch(function() { return ''; });
+      return { success: false, error: 'HTTP ' + res.status + ': ' + errText.slice(0, 300) };
+    }
+    var data = await res.json();
+    return { success: true, data: data };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+// HikerAPI: Send DM by username (convenience wrapper - resolves username to ID first)
+export async function hikerSendDMByUsername(apiKey: string, username: string, text: string) {
+  // First get the user ID
+  var userResult = await hikerGetUser(apiKey, username);
+  if (!userResult.success || !userResult.data) {
+    return { success: false, error: 'Nao consegui encontrar utilizador @' + username + ': ' + (userResult.error || 'desconhecido') };
+  }
+  var userId = userResult.data.pk || userResult.data.id || userResult.data.user_id;
+  if (!userId) {
+    return { success: false, error: 'Nao consegui extrair ID do utilizador @' + username };
+  }
+  // Then send the DM
+  return hikerSendDM(apiKey, { recipientUserId: String(userId), text: text });
+}
+
 // HikerAPI: Get user's stories
 export async function hikerGetStories(apiKey: string, userId: string) {
   try {
