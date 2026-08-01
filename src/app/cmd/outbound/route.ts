@@ -149,7 +149,7 @@ async function findRandomFollowers(targetUsername: string, count: number) {
 }
 
 // === HELPER: Enviar DM via Zernio (melhor metodo) ===
-async function sendViaZernio(platform: string, recipientId: string, message: string) {
+async function sendViaZernio(platform: string, recipientId: string, message: string, recipientUsername?: string) {
   var accounts = await getZernioAccounts();
   var accountId = platform === 'facebook' ? accounts.fb : accounts.ig;
   if (!accountId) {
@@ -160,6 +160,7 @@ async function sendViaZernio(platform: string, recipientId: string, message: str
     recipientId: recipientId,
     message: message,
     platform: platform,
+    recipientUsername: options.recipientUsername,
   });
   return result;
 }
@@ -266,7 +267,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, error: 'Nao consegui resolver @' + uname + ' para ID. Tenta com userId numerico.' });
           }
         }
-        var zernioResult = await sendViaZernio('instagram', recipId, msgText);
+        var zernioResult = await sendViaZernio('instagram', recipId, msgText, uname);
         if (zernioResult.success) {
           return NextResponse.json({
             success: true, type: 'outbound_dm_sent', platform: 'instagram',
