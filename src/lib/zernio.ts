@@ -122,17 +122,19 @@ export async function zernioMarkRead(conversationId: string) {
 // Create comment-to-DM automation (auto-DM when someone comments)
 export async function zernioCreateCommentAutomation(options: {
   accountId: string;
+  profileId?: string;
   trigger?: string; // 'comment' or 'story_reply'
   keywords?: string[];
   message: string;
   mediaUrl?: string;
+  name?: string;
 }) {
   try {
     var res = await fetch(ZERNIO_BASE + '/comment-automations', {
       method: 'POST',
       headers: zernioHeaders(),
       body: JSON.stringify({
-        profileId: options.accountId,
+        profileId: options.profileId || options.accountId,
         accountId: options.accountId,
         name: options.name || 'Aura Auto-DM ' + (options.trigger || 'comment'),
         trigger: options.trigger || 'comment',

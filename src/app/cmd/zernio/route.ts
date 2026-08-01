@@ -108,10 +108,12 @@ export async function POST(request: Request) {
   if (action === 'create_comment_automation') {
     var autoResult = await zernioCreateCommentAutomation({
       accountId: body.accountId || '',
+      profileId: body.profileId || '6a6a5130412ea007831275dd',
       trigger: body.trigger || 'comment',
       keywords: body.keywords,
       message: body.message || '',
       mediaUrl: body.mediaUrl,
+      name: body.name,
     });
     if (!autoResult.success) return NextResponse.json({ success: false, error: autoResult.error });
     return NextResponse.json({

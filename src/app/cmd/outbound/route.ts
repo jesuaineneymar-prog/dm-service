@@ -19,8 +19,9 @@ import { requireAuth } from '@/lib/auth';
 
 export var maxDuration = 60;
 
-// === Zernio Account IDs ===
+// === Zernio IDs ===
 // Hardcoded to avoid extra API call (Vercel Hobby has 10s timeout)
+var ZERNIO_PROFILE_ID = '6a6a5130412ea007831275dd';
 var IG_ACCOUNT_ID = '6a6a51f5df17280d93d8a106';
 var FB_ACCOUNT_ID = '6a6a51bcdf17280d93d89e06';
 var _zernioAccountsLoaded = false;
