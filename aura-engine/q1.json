@@ -1,0 +1,1 @@
+{"query": "{ service(id: \"37a07126-6096-4b62-a43c-0615657bd460\") { name repoTriggers { edges { node { id branch } } } deployments(last: 1) { edges { node { id status } } } } }"}

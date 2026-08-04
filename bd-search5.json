@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://docs.brightdata.com/api-reference/account-management-api/Add_a_Zone",
+    "name": "Add a zone - Bright Data Docs",
+    "snippet": "Use the Bright Data Account Management API to add a Zone. POST /zone returns 200 OK with zone or account configuration data as JSON.",
+    "host_name": "docs.brightdata.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.brightdata.com/scraping-automation/scraping-browser/code-examples",
+    "name": "Browser API code examples - Bright Data Docs",
+    "snippet": "Explore Bright Data Browser API code examples across 3 technologies (Playwright, Puppeteer, Selenium) for headless browser scraping at scale.",
+    "host_name": "docs.brightdata.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/brightdata/skills/blob/main/skills/bright-data-best-practices/references/browser-api.md",
+    "name": "skills/skills/bright-data-best-practices/references/browser",
+    "snippet": "Bright Data Browser API (also called Scraping Browser) is a managed cloud browser service. It handles proxy management, fingerprinting, CAPTCHA solving, and bot detection bypass automatically.",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://brightdata.com/products/scraping-browser",
+    "name": "Browser API - Automated Browser for Scraping - Bright Data",
+    "snippet": "The Browser API employ automated unlocking and are opened on Bright Data’s servers, so they are ideal for scaling web data scraping projects without requiring extensive infrastructure.",
+    "host_name": "brightdata.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.brightdata.com/scraping-automation/scraping-browser/quickstart",
+    "name": "Create your first Browser API - Bright Data Docs",
+    "snippet": "Get started with Bright Data’s Browser API in just a few steps. This guide walks you through creating your Browser API zone so you can begin running browser-based scraping jobs right away.",
+    "host_name": "docs.brightdata.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

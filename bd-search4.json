@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://docs.brightdata.com/api-reference/account-management-api/Get_Zone_info",
+    "name": "Zone info - Bright Data Docs",
+    "snippet": "Use the Bright Data Account Management API to zone info. GET /zone returns 200 OK with zone or account configuration data as JSON.",
+    "host_name": "docs.brightdata.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.brightdata.com/api-reference/account-management-api/get-all-zones",
+    "name": "All zones - Bright Data Docs",
+    "snippet": "Use the Bright Data Account Management API to all Zones. GET /zone/get_all_zones returns 200 OK with zone or account configuration data as JSON.",
+    "host_name": "docs.brightdata.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.brightdata.com/api-reference/account-management-api/Get_active_Zones",
+    "name": "Active zones - Bright Data Docs",
+    "snippet": "Use the Bright Data Account Management API to active Zones. GET /zone/get_active_zones returns 200 OK with zone or account configuration data as JSON.",
+    "host_name": "docs.brightdata.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.brightdata.com/api-reference/account-management-api/Add_a_Zone",
+    "name": "Add a zone - Bright Data Docs",
+    "snippet": "Use the Bright Data Account Management API to add a Zone. POST /zone returns 200 OK with zone or account configuration data as JSON.",
+    "host_name": "docs.brightdata.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.brightdata.com/api-reference/account-management-api/Get_Zone_permissions",
+    "name": "Zone permission - Bright Data Docs",
+    "snippet": "Use the Bright Data Account Management API to zone Permission. GET /zone/permissions returns 200 OK with zone or account configuration data as JSON.",
+    "host_name": "docs.brightdata.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

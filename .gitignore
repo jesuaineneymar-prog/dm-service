@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+.zscripts/
+tool-results/
+download/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Vercel
+.vercel/
+
+# JARVIS source copy (we work from root now)
+jarvis/
+
+# Build
+.next/
+prisma/db/
+tsconfig.tsbuildinfo
+
+# Misc
+*.log
+*.zip
+ig-debug.png
+.vercel
+.env*
+scripts/*.json
+scripts/*.log
+upload/
+__pycache__/
+*.pyc
+aura-venv/
+db/*.db
+*.db
+dm-service/
+aura-engine/__pycache__/
+services/__pycache__/
+aura-venv/

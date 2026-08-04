@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://github.com/dolanmiu/Messenger-Bot",
+    "name": "dolanmiu/Messenger-Bot: Automate messages to people",
+    "snippet": "Send and automate messages to people on Facebook Messenger without having to use the Facebook Messenger app. It uses Puppeteer to automate the process.\nIt uses Puppeteer to automate the process of sending messages to people on Facebook Messenger. It uses a cron job to send messages at a specified time.",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=h-JqLlNTfrc",
+    "name": "Setup ChatBot from Github with Node.js | Facebook",
+    "snippet": "This is a video for beginner to set up Messenger in the video: 1. Clone my project from Github . 2. Deploy the project to Heroku. Create a ...\nThis is a video for beginner to set up (from scratch) and greetings\", \"thanks\", and \"bye\" sentences. It means that the bot is using Natural ...",
+    "host_name": "www.youtube.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/mavi/instagram-dm-bot",
+    "name": "mavi/instagram-dm-bot: A Puppeteer-based automation",
+    "snippet": "Dec 18, 2025 — A Node.js application built with Puppeteer that automates sending Direct Messages to Instagram accounts via the Facebook Messenger interface. It ...",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "Dec 18, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/featherbear/facebook-messenger-puppeteer",
+    "name": "Facebook Messenger Chat API via Puppeteer",
+    "snippet": "This project aims to create bindings to Messenger from a headless instance of Chrome using puppeteer , such that a fully fledged browser will do all of Facebook ...",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/pkochanowicz/ContinuousReplyApp",
+    "name": "pkochanowicz/ContinuousReplyApp: Python script replying",
+    "snippet": "This script uses the Playwright library to interact with the browser and send responses. Features. Automate sending messages on Facebook Messenger ; Use a local ...\nContinuousReplyApp is an open-source Python script that automates sending messages on Facebook Messenger using a local LLaMA model. This script uses the ...",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to/checkly/setting-state-using-cookies-1bk",
+    "name": "Setting state using cookies with Puppeteer and Playwright",
+    "snippet": "Oct 28, 2020 — This article shows how we can use cookies and the Web Storage APIs to set state in our Puppeteer and Playwright scripts, opening up new scenarios and saving on ...",
+    "host_name": "dev.to",
+    "rank": 5,
+    "date": "Oct 28, 2020",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=dLqFixlUCLs",
+    "name": "Facebook Messenger Bot - #2 Embed Messenger Chat",
+    "snippet": "Complete guide to build a simple Facebook Messenger Chatbot in 60 minutes with detail explanations.",
+    "host_name": "www.youtube.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.facebook.com/documentation/business-messaging/messenger-platform/getting-started/quick-start",
+    "name": "Quick start tutorial - Meta for Developers - Facebook",
+    "snippet": "This tutorial guides you through everything you need to know to build your first Messenger experience. Sends messages via the Send API. send a message to the  ...",
+    "host_name": "developers.facebook.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/42692222/facebook-messenger-detect-closing-webview-mobile",
+    "name": "Facebook messenger detect closing webview (mobile)",
+    "snippet": "I have a messenger bot that provides users with links to a webpage. Is there a way to detect when the user closed the webview and therefore ...",
+    "host_name": "stackoverflow.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/1780044572888558/posts/1782292852663730",
+    "name": "Hello everyone 👋 This is an automated post using Puppeteer.",
+    "snippet": "It's an automation tool for Facebook . Features: - auto comment reply - auto dm reply - messenger reply - ai reply - online store builder - order ...",
+    "host_name": "www.facebook.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

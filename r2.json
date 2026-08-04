@@ -1,0 +1,29 @@
+[
+  {
+    "url": "https://github.com/dolanmiu/Messenger-Bot",
+    "name": "dolanmiu/Messenger-Bot: Automate messages to people",
+    "snippet": "It uses Puppeteer to automate the process of sending messages to people on Facebook Messenger . It uses a cron job to send messages at a specified time.\nIt uses Puppeteer to automate the process of sending messages to people on Facebook Messenger . It uses a cron job to send messages at a specified time. Read more",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/dolanmiu",
+    "name": "Dolan dolanmiu",
+    "snippet": "Messenger-Bot Public Automate messages to people on Facebook Messenger . Public Build an electron project scaffolded",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/jarvis",
+    "name": "jarvis · GitHub Topics",
+    "snippet": "It does almost anything which includes sending emails , Optical Text Recognition, Dynamic News Reporting at any time with API integration, Todo list generator,",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  }
+]

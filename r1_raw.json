@@ -1,0 +1,20 @@
+{
+  "code": 200,
+  "data": {
+    "description": "",
+    "html": "<html><head><meta name=\"color-scheme\" content=\"light dark\"></head><body><pre style=\"word-wrap: break-word; white-space: pre-wrap;\"># Instagram DM Bot\n\n![Status](https://img.shields.io/badge/Status-Archived-red?style=flat-square)\n![Node.js](https://img.shields.io/badge/Node.js-v16.11+-green?style=flat-square)\n![Puppeteer](https://img.shields.io/badge/Puppeteer-Automation-orange?style=flat-square)\n\n> **Note:** Automated interaction with Instagram may violate their Terms of Service.\n\nA Node.js application built with ``Puppeteer`` that automates sending Direct Messages to Instagram accounts via the Facebook Messenger interface. It is designed to simulate human-like behavior.\n\n## **🚀 Features**\n\n- **Web Scraping Automation:** Uses ``Puppeteer`` to interact with the web interface.\n- **Human-Like Interaction:** Designed to run like a real user to avoid basic detection.\n- **Bulk Messaging:** Send messages to a list of accounts automatically.\n- **Customizable List:** Manage target accounts via a simple text file.\n\n## **🛠 Installation**\n\n1. **Clone the repository:**\n\n   ``git clone https://github.com/mavi/instagram-dm-bot.git``\n\n2. **Install dependencies:**\n\n   ``npm install``\n\n3. **Configuration:**\n\n   - Open ``app.js`` and configure your settings between lines 10 and 13.\n   - Add target Instagram usernames (without the \"@\" symbol) to ``accs-to-dm.txt``, one per line.\n\n4. **Start the bot:**\n\n   ``node app.js``\n\n## **📂 Structure**\n\n- ``app.js`` - Main application logic and Puppeteer configuration.\n- ``accs-to-dm.txt`` - List of target Instagram accounts.\n- ``.puppeteerrc.cjs`` - Puppeteer configuration file.\n- ``package.json`` - Project dependencies and scripts.\n\n## **📄 License**\n\nThis project is open-source and available for educational use.\n</pre></body></html>",
+    "httpStatus": 200,
+    "httpStatusText": "",
+    "title": "",
+    "url": "https://raw.githubusercontent.com/mavi/instagram-dm-bot/main/README.md",
+    "usage": {
+      "tokens": 441
+    }
+  },
+  "meta": {
+    "usage": {
+      "tokens": 441
+    }
+  },
+  "status": 200
+}

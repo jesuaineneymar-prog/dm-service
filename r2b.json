@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://github.com/dolanmiu/Messenger-Bot",
+    "name": "dolanmiu/Messenger-Bot: Automate messages to people",
+    "snippet": "It uses Puppeteer to automate the process of sending messages to people on Facebook Messenger. It uses a cron job to send messages at a specified time.\nMessenger Bot Send and automate messages to people on Facebook Messenger without having to use the Facebook Messenger app. It uses Puppeteer to automate the process of sending messages to people on Facebook Messenger. It uses a cron job to send messages at a specified time.",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/facebook-bot?l=javascript&o=asc&s=forks",
+    "name": "facebook-bot · GitHub Topics",
+    "snippet": "A powerful Facebook Messenger bot with commands for media downloading, uptime tracking, and more. Built for ease of use and customization. using Puppeteer. ...",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/assafelovic/facebook_messenger_bot",
+    "name": "Beginners Facebook Messenger bot using Node.js and",
+    "snippet": "The Chatbot is built on a Node.js (ES6) server, connects with MongoDB and uses Facebook Messenger and Graph API.",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=h-JqLlNTfrc",
+    "name": "Setup ChatBot from Github with Node.js | Facebook",
+    "snippet": "This is a video for beginner to set up (from scratch) and run a Facebook the Facebook webhook. Full project (final code) at Github: Build a ...",
+    "host_name": "www.youtube.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/featherbear/facebook-messenger-puppeteer",
+    "name": "Facebook Messenger Chat API via Puppeteer",
+    "snippet": "This project aims to create bindings to Messenger from a headless instance of Chrome using puppeteer, such that a fully fledged browser will do all of Facebook ...\nWhilst Facebook does have an official API, it is run on service accounts. Good for most cases, but not for all. This project aims to create bindings to Messenger from a headless instance of Chrome using puppeteer, such that a fully fledged browser will do all of Facebook's microanalytic blunders",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,247 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Prospect {
+  id           String   @id @default(cuid())
+  platform     String
+  username     String
+  displayName  String?
+  followers    Int      @default(0)
+  following    Int      @default(0)
+  bio          String?
+  profileUrl   String?
+  avatarUrl    String?
+  score        Float    @default(0)
+  category    String?  @default("prospect")
+  status       String   @default("new")
+  notes        String?
+  externalId   String?
+  lastContactedAt DateTime?
+  lastRepliedAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  messages     Message[]
+  followUps    FollowUp[]
+}
+
+model Message {
+  id           String    @id @default(cuid())
+  prospectId   String
+  prospect     Prospect  @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  direction    String
+  content      String
+  platform     String?
+  sentAt       DateTime @default(now())
+  isRead       Boolean  @default(false)
+}
+
+model FollowUp {
+  id           String    @id @default(cuid())
+  prospectId   String
+  prospect    Prospect  @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  scheduledAt DateTime
+  status       String   @default("pending")
+  message      String?
+  sentAt       DateTime?
+  result       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now())
+}
+
+model AnalyticsEvent {
+  id           String   @id @default(cuid())
+  platform     String
+  eventType    String
+  metricValue  Float    @default(0)
+  metadata     String?
+  recordedAt   DateTime @default(now())
+}
+
+model ContentPost {
+  id           String   @id @default(cuid())
+  platform     String?
+  caption      String
+  hashtags     String?
+  mediaUrl     String?
+  mediaType    String?
+  status       String   @default("draft")
+  scheduledAt  DateTime?
+  publishedAt  DateTime?
+  engagementData String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now())
+
+  scheduledPosts ScheduledPost[]
+}
+
+model ScheduledPost {
+  id           String   @id @default(cuid())
+  contentPostId String
+  contentPost   ContentPost @relation(fields: [contentPostId], references: [id], onDelete: Cascade)
+  platforms    String
+  scheduledFor DateTime
+  status       String   @default("pending")
+  uploadPostId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now())
+}
+
+model Notification {
+  id            String   @id @default(cuid())
+  type          String
+  title         String
+  message       String
+  platform      String?
+  sourceId      String?
+  isRead        Boolean  @default(false)
+  metadata      String?
+  createdAt     DateTime @default(now())
+}
+
+model AutomationLog {
+  id            String    @id @default(cuid())
+  type          String
+  action        String
+  platform      String?
+  targetId      String?
+  targetName    String?
+  status        String   @default("pending")
+  result        String?
+  triggeredAt   DateTime @default(now())
+  completedAt   DateTime?
+}
+
+model ABTest {
+  id             String   @id @default(cuid())
+  name           String
+  platform       String
+  variantA       String
+  variantB       String
+  hashtagsA      String?
+  hashtagsB      String?
+  status         String   @default("draft")
+  impressionsA   Int      @default(0)
+  impressionsB   Int      @default(0)
+  likesA         Int      @default(0)
+  likesB         Int      @default(0)
+  commentsA      Int      @default(0)
+  commentsB      Int      @default(0)
+  winner         String?
+  contentPostId  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ClientReport {
+  id             String   @id @default(cuid())
+  clientName     String
+  periodStart    DateTime
+  periodEnd      DateTime
+  platform       String?
+  followersStart Int      @default(0)
+  followersEnd   Int      @default(0)
+  postsPublished Int      @default(0)
+  totalLikes     Int      @default(0)
+  totalComments  Int      @default(0)
+  totalDMs       Int      @default(0)
+  newProspects   Int      @default(0)
+  conversions    Int      @default(0)
+  summary        String?
+  generatedAt   DateTime @default(now())
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+// --- v4: Persistencia para moderação, tendências, seguidores, calendário ---
+
+model ModerationLog {
+  id            String   @id @default(cuid())
+  platform      String
+  commentId     String
+  commentText   String
+  username      String?
+  action        String   @default("none")
+  reason        String?
+  toxicityScore Float?
+  llmVerdict    String?
+  createdAt     DateTime @default(now())
+}
+
+model TrendAlert {
+  id            String   @id @default(cuid())
+  keyword       String
+  platform      String?
+  mentionCount  Int      @default(0)
+  score         Float    @default(0)
+  data          String?
+  isActive      Boolean  @default(true)
+  detectedAt    DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model FollowerSnapshot {
+  id            String   @id @default(cuid())
+  platform      String
+  followerId    String
+  username      String?
+  fullName      String?
+  followers     Int      @default(0)
+ following     Int      @default(0)
+  isVerified    Boolean  @default(false)
+  isPrivate     Boolean  @default(false)
+  bio           String?
+  category      String?  @default("follower")
+  snapshotAt    DateTime @default(now())
+}
+
+model ContentCalendar {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?
+  platform      String?
+  pillar        String?
+   scheduledFor DateTime?
+  status        String   @default("idea")
+  priority      String   @default("normal")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model PostHistory {
+  id            String   @id @default(cuid())
+  contentPostId String?
+  platform      String
+  externalPostId String?
+  caption       String?
+  mediaUrl      String?
+  status        String   @default("published")
+  publishedAt   DateTime?
+  engagementData String?
+  source        String   @default("uploadpost")
+  createdAt     DateTime @default(now())
+}
+
+model ZernioPost {
+  id            String   @id @default(cuid())
+  zernioId      String?
+  platform      String?
+  caption       String?
+  status        String   @default("draft")
+  scheduledAt   DateTime?
+  publishedAt   DateTime?
+  analyticsData String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

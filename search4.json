@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://github.com/topics/instagram-dm",
+    "name": "instagram-dm · GitHub Topics",
+    "snippet": "A quick and easy tool for automating your Instagram DMs . c Updated on Jan 22, 2024 Python. A bot that can send messages for you to Instagram users. Anything ...\nA quick and easy tool for automating your Instagram DMs . Updated on Jan 22, 2024 Python. A bot that can send messages for you to Instagram users. Anything you ...",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/Python/comments/gan3ok/i_made_an_instagram_dm_bot_using_selenium_and",
+    "name": "I made an instagram DM bot using Selenium and Chatterbot : r",
+    "snippet": "I have made some Instagram bots in the past but I quit because they constantly change their HTML and it's difficult to keep the code working.",
+    "host_name": "www.reddit.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/instapy?l=python",
+    "name": "instapy · GitHub Topics",
+    "snippet": "Free scripts, bots and Python API wrapper . Get free followers with our auto like, auto follow and other scripts! python bot instagram like comment follow ...",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/61029997/how-can-i-use-selenium-in-python-to-send-direct-messages-in-instagram",
+    "name": "how can I use selenium in python to send direct messages",
+    "snippet": "Hi i'm a newbie and i want to try and make an instagram bot using selenium to send birthday messages to my friends and i ran into a problem when ...",
+    "host_name": "stackoverflow.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/dm-automation",
+    "name": "dm-automation",
+    "snippet": "AI assistant that answers Instagram DMs in your own voice, qualifies leads, and quotes from your rate card. Instagram DM automation bot in Python",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@pro.taktik.bot/taktik-bot-open-source-instagram-bot-in-python-with-adb-d3abcd86e759",
+    "name": "TAKTIK-bot: Open Source Instagram Bot in Python with ADB",
+    "snippet": "TAKTIK, an open source Instagram bot written in Python . TAKTIK simulates a real user on a real Android phone.\nTAKTIK, an open source Instagram bot written in Python . APIs or Selenium, TAKTIK simulates a real user on a real Android phone.",
+    "host_name": "medium.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/termux-automation?l=python",
+    "name": "termux-automation",
+    "snippet": "May 13, 2026 — A powerful and fully automated Termux setup tool that transforms your Android terminal into a modern, optimized, and visually stunning ...",
+    "host_name": "github.com",
+    "rank": 6,
+    "date": "May 13, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/insta-bot",
+    "name": "insta-bot · GitHub Topics",
+    "snippet": "Built with Python , it allows users to schedule posts, manage account settings, and analyze audience engagement efficiently using simple scripts. instagram ...",
+    "host_name": "github.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.geeksforgeeks.org/python/send-direct-message-on-instagram-using-selenium-in-python",
+    "name": "Send Direct Message On Instagram using Selenium in",
+    "snippet": "Jul 23, 2025 — In this article, we will learn how we can send a direct message to users on Instagram without any manual action. We will be using the selenium module to do ...",
+    "host_name": "www.geeksforgeeks.org",
+    "rank": 8,
+    "date": "Jul 23, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/ohld/igbot/wiki/Run-Instabot-In-Termux",
+    "name": "Run Instabot In Termux · ohld/igbot Wiki",
+    "snippet": "This tutorial will show you how to run instabot scripts on your Android device using Termux app . The example script is mass story viewer.",
+    "host_name": "github.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

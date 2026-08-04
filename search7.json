@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://github.com/subzeroid/instagrapi",
+    "name": "subzeroid/instagrapi: 🔥 The fastest and powerful Python",
+    "snippet": "Fast and effective unofficial Instagram API wrapper for Python . instagrapi combines public web and private mobile API flows, supports session persistence ... Read more\nFast and effective unofficial Instagram API wrapper for Python. instagrapi combines public web and private mobile API flows, supports session persistence ...",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://instagrapi.com/guides/instagram-private-api-python",
+    "name": "Instagram Private API Python Guide 2026: instagrapi Quickstart",
+    "snippet": "Jun 9, 2026 — If you need to read a personal feed, walk a tag, pull comments, or send a DM from Python , the private API is the only path. instagrapi is a ... Read more\nIf you need to read a personal feed, walk a tag, pull comments, or send a DM from Python, the private API is the only path. instagrapi is a ...",
+    "host_name": "instagrapi.com",
+    "rank": 1,
+    "date": "Jun 9, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/subzeroid/aiograpi-rest",
+    "name": "subzeroid/aiograpi-rest: 🌐 RESTful API Wrapper for",
+    "snippet": "RESTful HTTP service that wraps aiograpi (the async fork of instagrapi ) so you can call Instagram's private API from any programming language. Read more\naiograpi is the actively-maintained async Python wrapper for Instagram's private mobile API (the async fork of instagrapi ) — full write surface (post, DM ...",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://subzeroid.github.io/instagrapi",
+    "name": "instagrapi | 🔥 The fastest and powerful Python library for",
+    "snippet": "Fast and effective unofficial Instagram API wrapper for Python . instagrapi combines public web and private mobile API flows, supports session persistence and ... Read more\nFast and effective unofficial Instagram API wrapper for Python. instagrapi combines public web and private mobile API flows, supports session persistence and ...",
+    "host_name": "subzeroid.github.io",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/73178091/send-direct-message-using-instagrapi",
+    "name": "send direct message using instagrapi - python",
+    "snippet": "a basic way to send direct messages from instagrapi import. How to send an Instagram Direct message using the undocumented API or undocumented ...\nI'm not really sure what the error is, but here is a basic way to send direct messages. from instagrapi import Client cl = Client() ...",
+    "host_name": "stackoverflow.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/instapy?l=python",
+    "name": "instapy · GitHub Topics",
+    "snippet": "Free scripts, bots and Python API wrapper . Get free followers with our auto like, auto follow and other scripts! Python library and CLI to upload photo and ...",
+    "host_name": "github.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/instagram-api",
+    "name": "instagram-api · GitHub Topics",
+    "snippet": "A Python library to access Instagram's private API . A complete Private Instagram API for. Python library and CLI to upload photo and video on Instagram.",
+    "host_name": "github.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://generalistprogrammer.com/tutorials/instagram-private-api-python-package-guide",
+    "name": "instagram-private-api Python Guide [2026] | PyPI Tutorial",
+    "snippet": "Nov 16, 2025 — Complete instagram - private - api guide: a client interface for the private instagram api. Installation, usage examples, troubleshooting & best ...\nComplete instagram-private-api guide: a client interface for the private instagram api. Installation, usage examples, troubleshooting & best ...",
+    "host_name": "generalistprogrammer.com",
+    "rank": 7,
+    "date": "Nov 16, 2025",
+    "favicon": ""
+  }
+]

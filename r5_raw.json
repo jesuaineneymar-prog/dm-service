@@ -1,0 +1,20 @@
+{
+  "code": 200,
+  "data": {
+    "description": "",
+    "html": "<html><head><meta name=\"color-scheme\" content=\"light dark\"></head><body><pre style=\"word-wrap: break-word; white-space: pre-wrap;\"># Continuous: The Far-Out Facebook Messenger Chatbot\n=====================================================\n\n**What is ContinuousReplyApp?**\n\nContinuousReplyApp is an open-source Python script that automates sending messages on Facebook Messenger using a local LLaMA model. This script uses the Playwright library to interact with the browser and send responses.\n\n**Features**\n\n* Automate sending messages on Facebook Messenger\n* Use a local LLaMA model for generating responses\n* Supports multiple styles of response (e.g., \"Who are we today?\")\n\n**Requirements**\n\n* Python 3.12+\n* `playwright` library (`pip install playwright`)\n* `requests` library (`pip install requests`)\n* Local LLaMA model setup\n\n**Setup**\n\n1. Create a new file called `config.txt` and add your local LLaMA model URL.\n2. Run the script using `python main.py`.\n\n**How it Works**\n\n1. The script reads the configuration from the `config.txt` file.\n2. It launches a Google Chrome browser instance and logs in to Facebook Messenger.\n3. When a new message is received, the script generates a response using the local LLaMA model.\n4. The response is then sent back to the sender.\n\n**Styles of Response**\n\nTo change the style of response, simply enter your preferred style when prompted by the script (e.g., \"Who are we today?\").\n\n**Example of use:**\nhttps://www.youtube.com/watch?v=XJo8JXx7k60 - two bots chatting\n\n**Troubleshooting**\n\n* If the script fails to launch the browser or log in to Facebook Messenger, ensure that you have the correct configuration and that Playwright is installed.\n* If the script fails to generate a response, check that your local LLaMA model is set up correctly.\n\n**Code Structure**\n\nThe code is organized into several classes and functions:\n\n* `LLamaClient`: A class for interacting with the local LLaMA model.\n* `run_messenger`: A function for launching the browser and logging in to Facebook Messenger.\n* `receive_message`: A function for receiving messages from Facebook Messenger.\n* `get_response`: A function for generating responses using the local LLaMA model.\n* `write_fb_message`: A function for sending responses back to the sender.\n\n**License**\n\nContinuousReplyApp is released under the MIT License. See LICENSE.md for details.</pre></body></html>",
+    "httpStatus": 200,
+    "httpStatusText": "",
+    "title": "",
+    "url": "https://raw.githubusercontent.com/pkochanowicz/ContinuousReplyApp/main/README.md",
+    "usage": {
+      "tokens": 525
+    }
+  },
+  "meta": {
+    "usage": {
+      "tokens": 525
+    }
+  },
+  "status": 200
+}

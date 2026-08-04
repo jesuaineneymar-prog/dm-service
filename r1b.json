@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://github.com/mavi/instagram-dm-bot",
+    "name": "mavi/instagram-dm-bot: A Puppeteer-based automation",
+    "snippet": "Dec 18, 2025 — A Node.js application built with Puppeteer that automates sending Direct Messages to Instagram accounts via the Facebook Messenger interface.\n@mavi/instagram-dm-bot This app made with a Puppeteer web scraper to run like a human, and it allows you to send DMs to Instagram accounts via Facebook Messenger.",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "Dec 18, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/sptmru/instagram_puppeteer_bot",
+    "name": "sptmru/instagram_puppeteer_bot: Simple Puppeteer-",
+    "snippet": "InstagramBot is a Puppeteer-based class with some Instagram automation methods: signin(credentials) - signs user with provided credentials into instagram.",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/instagram-dm",
+    "name": "instagram-dm · GitHub Topics",
+    "snippet": "A quick and easy tool for automating your Instagram DMs . A bot that can send messages for you to Instagram users. Ever wanted to send hundreds of the same text ...",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/anaskasmi/InstagramBot",
+    "name": "anaskasmi/InstagramBot: Instagram Bot built by NodeJs",
+    "snippet": "README. InstagramBot. Instagram Bot built by NodeJs and Puppeteer , to automate sending direct messages and following a user's follower ...",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/dolanmiu/Messenger-Bot/blob/master/README.md",
+    "name": "README.md - dolanmiu/Messenger-Bot",
+    "snippet": "It uses Puppeteer to automate the process of sending messages to people on Facebook Messenger. It uses a cron job to send messages at a specified time.",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

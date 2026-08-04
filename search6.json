@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://github.com/topics/instagram-dm",
+    "name": "instagram-dm · GitHub Topics",
+    "snippet": "A bot that can send messages for you to Instagram users . Ever wanted to send hundreds of the same text message to a friend or several friends efficiently?",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/dm-automation",
+    "name": "dm-automation",
+    "snippet": "Instagram DM automation bot in Python . Auto-replies to comments and sends follow-gated DM links via the Graph API on GitHub Actions",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/subzeroid/instagrapi",
+    "name": "subzeroid/instagrapi: 🔥 The fastest and powerful Python",
+    "snippet": "Fast and effective unofficial Instagram API wrapper for Python . instagrapi combines public web and private mobile API flows, supports session persistence ...",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/social-media-bot?l=python&o=desc&s=forks",
+    "name": "social-media-bot",
+    "snippet": "A Python -based AI bot that generates images using Stability AI, DALL-E 3, and Google Imagen, and posts them to Instagram and Threads.",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/social-media-api?l=python&o=asc&s=updated",
+    "name": "social-media-api",
+    "snippet": "This is the codebase for the Capture The Narrative social media bot competition 2025 . It was built to deploy viral bots in a mock social media environment ...\nModern Python SDK for Facebook and Instagram public data . Programmatically publish videos & images to TikTok, Instagram, YouTube, LinkedIn, X, Facebook, ...",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/instagram-api?l=python",
+    "name": "instagram-api",
+    "snippet": "A Python library to access Instagram's private API. Python library and CLI to upload photo and video on Instagram. Python Library for Instagram Web & Mobile ...",
+    "host_name": "github.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/Python/comments/1pjo9s2/i_built_a_unified_api_for",
+    "name": "I built a unified API for Ins/TikTok/Twitter/Facebook/LinkedIn",
+    "snippet": "UniAPI provides a unified Python API that allows you to perform common social media actions—such as liking posts, commenting, following users, ...",
+    "host_name": "www.reddit.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to/trixsec/build-a-python-bot-to-automate-social-media-engagement-3d9l",
+    "name": "Build a Python Bot to Automate Social Media Engagement",
+    "snippet": "Oct 22, 2024 — This script will demonstrate how to create a basic structure for automating engagement on Twitter, Facebook , and Instagram .",
+    "host_name": "dev.to",
+    "rank": 7,
+    "date": "Oct 22, 2024",
+    "favicon": ""
+  }
+]

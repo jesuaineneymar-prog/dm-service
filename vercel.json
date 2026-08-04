@@ -1,0 +1,9 @@
+{
+  "framework": "nextjs",
+  "crons": [
+    { "path": "/api/cron/master", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/comment-dm", "schedule": "0 */2 * * *" },
+    { "path": "/api/cron/tiktok", "schedule": "0 */3 * * *" },
+    { "path": "/api/cron/analytics", "schedule": "0 6 * * *" }
+  ]
+}

@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://github.com/SoCloseSociety/InstagramMpBulkSender",
+    "name": "️ Automate bulk DMs on Instagram — multi-browser,",
+    "snippet": "Instagram DM Bulk Sender is a free, open-source Instagram automation tool built with Python and Selenium. It automates sending direct messages to multiple ...\nInstagram DM Bulk Sender is a free, open-source Instagram automation tool built with Python and Selenium. It automates sending direct messages to multiple Instagram profiles from a CSV list.",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.testmo.com/guides/github-actions-selenium",
+    "name": "GitHub Actions & Selenium Guide (with Parallel Browser",
+    "snippet": "In this guide we will go through all the steps to set up Selenium browser test automation with GitHub Actions, including parallel testing against multiple ...",
+    "host_name": "www.testmo.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/Xceptance/multi-browser-suite",
+    "name": "XLT Multi Browser Test Suite",
+    "snippet": "Dec 9, 2020 — This test suite demonstrates how to target all available Selenium /WebDriver browsers with XLT. All the code is MIT licensed.",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "Dec 9, 2020",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/seleniumbase/seleniumbase",
+    "name": "seleniumbase/SeleniumBase: 📊 APIs for web automation",
+    "snippet": "SeleniumBase is a Python framework for browser automation and testing . SeleniumBase uses Selenium/WebDriver APIs and incorporates test-runners such as pytest ...",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.browserstack.com/docs/automate/selenium/github-actions",
+    "name": "Integrate your Selenium test suite with GitHub Actions",
+    "snippet": "A step-by-step guide to help you integrate GitHub Actions with the BrowserStack device cloud for running all your Selenium tests on BrowserStack Automate.",
+    "host_name": "www.browserstack.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

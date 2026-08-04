@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://github.com/pkochanowicz/ContinuousReplyApp",
+    "name": "pkochanowicz/ContinuousReplyApp: Python script replying",
+    "snippet": "This script uses the Playwright library to interact with the browser and send responses. Features. Automate sending messages on Facebook Messenger; Use a local ...\nWhat is ContinuousReplyApp? ContinuousReplyApp is an open-source Python script that automates sending messages on Facebook Messenger using a local LLaMA model. This script uses the Playwright library to interact with the browser and send responses.",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/facebook-messages",
+    "name": "facebook-messages · GitHub Topics",
+    "snippet": "It allows you to generate fake chat messages for demos, mockups, testing, storytelling, or design previews without sending real messages. chat simulator ...",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/Lencho123/playwright-Facebook-scraper",
+    "name": "Lencho123/playwright-Facebook-scraper",
+    "snippet": "A structured Playwright-based browser automation project for collecting public Facebook page posts and saving them to CSV.",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/facebook-messenger?o=desc&s=forks",
+    "name": "facebook-messenger",
+    "snippet": "Botkit is an open source developer tool for building chat bots, apps and custom integrations for major messaging platforms.",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/Ibrahimghali/Facebook-Scraper",
+    "name": "Ibrahimghali/Facebook-Scraper",
+    "snippet": "A Python script for automating Facebook login, searching for topics, and retrieving post content, reactions, comments, and shares using Playwright.",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

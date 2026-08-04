@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://business-api.tiktok.com/portal/bm-api/education-hub",
+    "name": "Business Messaging API Education Hub",
+    "snippet": "TikTok's API for Business allows developers to connect to the TikTok for Business platforms and build innovative solutions for global advertisers.",
+    "host_name": "business-api.tiktok.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ads.tiktok.com/help/article/marketing-api?lang=en",
+    "name": "About API for Business",
+    "snippet": "Use the API to send and receive messages in real-time , set up automated replies for faster communication, and efficiently manage message threads\nUse the API to send and receive messages in real-time , set up automated replies for faster communication, and efficiently manage message threads to streamline ...",
+    "host_name": "ads.tiktok.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://business-api.tiktok.com/portal",
+    "name": "TikTok Business API",
+    "snippet": "TikTok's API for Business allows developers to connect to the TikTok for Business platforms and build innovative solutions for global advertisers.",
+    "host_name": "business-api.tiktok.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/77044183/getting-direct-messages-via-official-tiktok-api",
+    "name": "Getting Direct Messages via Official TikTok API",
+    "snippet": "Yes, there's no way to fetch direct messages from a user. Checking the scope list is a good way to list the available granted permissions a user can provide. Read more",
+    "host_name": "stackoverflow.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.infobip.com/docs/tiktok",
+    "name": "TikTok Business Messaging documentation",
+    "snippet": "Developer resources. Explore the TikTok API to send messages, receive replies, and track delivery events in real time. Start with a test sender or integrate ... Read more",
+    "host_name": "www.infobip.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/davidteather/TikTok-Api/issues/53",
+    "name": "API Support for sending and receiving messages · Issue #53",
+    "snippet": "Jan 22, 2020 — Hi. Are you planning on adding API support for sending and receiving messages ? Would this even be possible? Thanks for your response.",
+    "host_name": "github.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.pancake.biz/pancake/st-f1/st-p6/st-s4/st-ss1?lang=en",
+    "name": "TikTok Business Messaging",
+    "snippet": "The TikTok Business Messaging API is a tool that enables businesses to manage TikTok Direct Messages through the Pancake platform. Read more",
+    "host_name": "docs.pancake.biz",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.chatwoot.com/self-hosted/configuration/features/integrations/tiktok",
+    "name": "Setting Up TikTok Channel",
+    "snippet": "Register an app in the TikTok Developer Portal. · Apply for Business Messaging API access. · Configure app permissions and ... Read more\nThe TikTok channel integration enables you to manage TikTok Business Messaging conversations directly from Chatwoot. Agents can receive and reply to ...",
+    "host_name": "developers.chatwoot.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://business-api.tiktok.com/portal/docs",
+    "name": "Docs | TikTok API for Business",
+    "snippet": "Getting started with TikTok's API for Business . Our API docs provide guides, API references, and more to help developers build their integrations.",
+    "host_name": "business-api.tiktok.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://sleekflow.io/en-us/channels-integrations/tiktok-business-messaging",
+    "name": "TikTok Business Messaging API",
+    "snippet": "Stop treating TikTok as just a branding channel. Start converting viral views into quality leads with SleekFlow's TikTok Business Messaging API integration.",
+    "host_name": "sleekflow.io",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

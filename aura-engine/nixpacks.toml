@@ -1,0 +1,10 @@
+[phases.build]
+
+cmds = [
+  'pip install --no-cache-dir -r requirements.txt',
+  'playwright install chromium',
+  'playwright install-deps chromium'
+]
+
+[start]
+cmd = 'python main.py'

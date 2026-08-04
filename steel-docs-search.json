@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://steel.dev/blog/beginner-s-guide-to-steel",
+    "name": "Beginner's Guide to Steel.dev Browser Automation",
+    "snippet": "Jul 9, 2025 — Steel's session API provides persistent browser instances that maintain cookies, local storage, and authentication state across requests.",
+    "host_name": "steel.dev",
+    "rank": 0,
+    "date": "Jul 9, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.steel.dev",
+    "name": "Steel Docs - Steel.dev",
+    "snippet": "Use these docs to create cloud browser sessions and connect your automation tools. Getting started and APIs. Get Started with CLI + Agent Skill. Install Steel ... Read more",
+    "host_name": "docs.steel.dev",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://steel.dev",
+    "name": "Steel.dev",
+    "snippet": "Steel is open-source browser infrastructure for AI agents . Run scalable cloud browser sessions for web automation through a simple developer API.",
+    "host_name": "steel.dev",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/steel-dev/steel-browser",
+    "name": "steel-dev/steel-browser: 🔥 Open Source Browser API for AI",
+    "snippet": "The / sessions endpoint lets you relaunch the browser with custom options or extensions (e.g. with a custom proxy) and also reset the browser state.",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.steel.dev/overview/sessions-api/embed-sessions/past-sessions",
+    "name": "Past Sessions | Steel Docs",
+    "snippet": "Steel automatically records every session so you can replay it later. You can fetch those events from the /v1/sessions/:id/events endpoint and replay them\nEvery Steel browser session records page events. You can fetch those events from the / v1 / sessions /:id/events endpoint and replay them using rrweb-player .",
+    "host_name": "docs.steel.dev",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+@keyframes float-up { 0%{transform:translateY(100vh) scale(0);opacity:0} 10%{opacity:.8} 90%{opacity:.3} 100%{transform:translateY(-100px) scale(1);opacity:0} }
+@keyframes pulse-glow { 0%,100%{box-shadow:0 0 8px rgba(225,29,46,.3)} 50%{box-shadow:0 0 22px rgba(225,29,46,.6)} }
+@keyframes scan-line { 0%{top:-2px} 100%{top:100%} }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+@keyframes slideInRight { from{transform:translateX(100%)} to{transform:translateX(0)} }
+@keyframes spin { to{transform:rotate(360deg)} }
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  margin:0;padding:0;
+  background:#000;
+  color:#e0e0e0;
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+::-webkit-scrollbar{width:0;background:transparent}
+
+.particle{
+  position:absolute;width:2px;height:2px;
+  background:#ff2d2d;border-radius:50%;opacity:0;
+  animation:float-up 8s infinite linear;
+  box-shadow:0 0 6px rgba(255,45,45,.5);
+}

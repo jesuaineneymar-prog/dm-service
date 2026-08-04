@@ -1,0 +1,12 @@
+query {
+  project(id: "acc6bfb1-9cd7-42ac-a862-fa1e14196a33") {
+    services {
+      edges {
+        node {
+          id
+          name
+        }
+      }
+    }
+  }
+}

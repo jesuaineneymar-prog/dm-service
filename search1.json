@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://github.com/topics/instagram-dm",
+    "name": "instagram-dm · GitHub Topics",
+    "snippet": "A bot that can send messages for you to Instagram users . Ever wanted to send hundreds of the same text message to a friend or several friends efficiently? Read more\nA quick and easy tool for automating your Instagram DMs . A bot that can send messages for you to Instagram users. Ever wanted to send hundreds of the same text ...",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/dm-automation",
+    "name": "dm-automation",
+    "snippet": "Instagram DM automation bot in Python and a free ManyChat alternative. Auto-replies to comments and sends follow-gated DM links via the Graph API on GitHub ...",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/automation/comments/1l5jwtw/instagram_automation",
+    "name": "r/automation - Instagram Automation",
+    "snippet": "Ive recently shared an image of the following python instagram automation . I know is basic but many users requested the script so they can learn. Read more\nInstagram bots on GitHub . It is ongoing development so expect updates. I built an Instagram DM automation that sends personalized messages",
+    "host_name": "www.reddit.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@uday.devworks/how-to-build-instagram-comment-to-dm-automation-using-instagram-graph-api-v25-0-4d898dd1c243",
+    "name": "How to Build Instagram Comment-to-DM Automation Using",
+    "snippet": "In this guide, I'll walk you through the entire process of setting up an Instagram API integration that triggers auto DMs based on comments.",
+    "host_name": "medium.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/message-automation",
+    "name": "message-automation · GitHub Topics",
+    "snippet": "Automate targeted Instagram direct messages to scale outreach and enhance efficiency for creators, marketers, and businesses. python api bot instagram ... Read more",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/70933609/how-to-send-instagram-dm-everyday-at-specific-time-using-pythoninstabot",
+    "name": "How to send instagram DM everyday at specific time using",
+    "snippet": "I am using the Instabot library to send the message on Instagram however I wanted to make a python program that will send a direct message on Instagram every ... Read more",
+    "host_name": "stackoverflow.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/python/posts/850787845761781",
+    "name": "Instagram like and follow bot in Python",
+    "snippet": "Its a bot , You can make a lots of (fake) accounts using it and then you can increase your followers and likes on posts! Create automated direct ...",
+    "host_name": "www.facebook.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/chatwoot/chatwoot/issues/2096",
+    "name": "New inbox channel: Instagram DM's & FB comments #2096",
+    "snippet": "Apr 13, 2021 — The messenger API now supports IG DM's . A new IG inbox channel and integrate the comment system from FB and IG into respective channels. https: ...",
+    "host_name": "github.com",
+    "rank": 7,
+    "date": "Apr 13, 2021",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=v7PDYv5i0pY",
+    "name": "How to do Cold Outreach on Facebook in 2025",
+    "snippet": "This is a full tutorial on how to scrape leads for free on Facebook and automate cold outreach on FB in 2024 . Automate 50 DMs/day for free ...",
+    "host_name": "www.youtube.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/Python/comments/gan3ok/i_made_an_instagram_dm_bot_using_selenium_and",
+    "name": "I made an instagram DM bot using Selenium and Chatterbot : r",
+    "snippet": "I made an instagram DM bot using Selenium and Chatterbot … is it just sending prewritten text or is it analyzing? Have you pushed this to ...",
+    "host_name": "www.reddit.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

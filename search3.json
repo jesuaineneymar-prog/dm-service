@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://github.com/orgs/community/discussions/136292",
+    "name": "Autoamted buying bot in puppeteer #136292",
+    "snippet": "Aug 19, 2024 — Playwright : Similar to Puppeteer but supports multiple browsers (Chrome, Firefox, WebKit). It can handle complex scenarios and has built-in ...",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "Aug 19, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/facebook-automation",
+    "name": "facebook-automation · GitHub Topics",
+    "snippet": "Facebook Auto Reporter is a Python Selenium tool that automates Facebook login flows and simulates repeated report submissions for testing and automation ...",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/bonigarcia/browser-automation-apis",
+    "name": "bonigarcia/browser-automation-apis",
+    "snippet": "This repository contains several end-to-end test examples using Selenium , Cypress, Puppeteer and Playwright , © 2024 -2025) is a project created by Boni García,",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/web-automation",
+    "name": "web-automation · GitHub Topics",
+    "snippet": "This repository contains a script to scrape Facebook Marketplace data using Playwright , BeautifulSoup and Streamlit. marketplace Updated on Apr 28, 2024",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/mavi/instagram-dm-bot",
+    "name": "mavi/instagram-dm-bot: A Puppeteer-based automation",
+    "snippet": "Dec 18, 2025 — A Node.js application built with Puppeteer that automates sending Direct Messages to Instagram accounts via the Facebook Messenger interface.\nDec 18, 2025 — A Node.js application built with Puppeteer that automates sending Direct Messages to Instagram accounts via the Facebook Messenger interface. It ...",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "Dec 18, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/1780044572888558/posts/1780664359493246",
+    "name": "Hello everyone 👋 This is an automated post using Puppeteer.",
+    "snippet": "It's an automation tool for Facebook . Features: - auto comment reply - auto dm reply - messenger reply - ai reply - online store builder - order ...",
+    "host_name": "www.facebook.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=4Y_o7eY8a9Q",
+    "name": "Browser Harness GitHub vs Puppeteer, Playwright, Selenium",
+    "snippet": "Browser Harness changes AI web automation by removing brittle DOM selector layers used in Puppeteer , Playwright , and Selenium .",
+    "host_name": "www.youtube.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/featherbear/facebook-messenger-puppeteer",
+    "name": "Facebook Messenger Chat API via Puppeteer",
+    "snippet": "This project aims to create bindings to Messenger from a headless instance of Chrome using puppeteer , such that a fully fledged browser will do all of Facebook ...",
+    "host_name": "github.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/puppeteer-alternative?o=desc&s=stars",
+    "name": "puppeteer-alternative",
+    "snippet": "Automate job applications, price monitoring, trading bots, web scraping. Puppeteer/Selenium alternative with 40+ capabilities. trading-bot web-scraping ...",
+    "host_name": "github.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/dm-automation?o=desc&s=updated",
+    "name": "dm-automation",
+    "snippet": "Jul 27, 2026 — Facebook DM auto-responder with AI agent , Built with Python, PyQt6, and Playwright, it mimics genuine human behavior … to automate bulk ...",
+    "host_name": "github.com",
+    "rank": 9,
+    "date": "Jul 27, 2026",
+    "favicon": ""
+  }
+]

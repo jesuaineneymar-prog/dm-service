@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://brightdata.com/products/scraping-browser",
+    "name": "Browser API - Automated Browser for Scraping",
+    "snippet": "Browser API is a GUI browser designed for web scraping. Connect via Puppeteer, SBR_WS_ENDPOINT =. Yes, Browser API is fully compatible with Puppeteer.\nCloud-based dynamic scraping Browser API is designed for browser-based data collection workflows that require full page rendering, user-like interactions, and advanced unblocking capabilities. Easy Integration Connect via Puppeteer, Selenium, or Playwright with a single endpoint change.",
+    "host_name": "brightdata.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/luminati-io/scraping-browser",
+    "name": "Scraping Browser is an automated headless",
+    "snippet": "A fully automated headless browser solution for dynamic web scraping with Puppeteer, Selenium, and Playwright. The Scraping Browser is opened as a GUI on Bright ...\nScraping Browser is a fully-hosted browser-based scraping solution that automates multi-step data collection with built-in proxy management, CAPTCHA solving, and advanced website unblocking.",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.brightdata.com/scraping-automation/scraping-browser/code-examples",
+    "name": "Browser API code examples",
+    "snippet": "Explore Bright Data Browser API code examples across 3 technologies (Playwright, Puppeteer, Selenium) for headless browser scraping at scale. point: SBR_WS_ ...\nExplore Bright Data Browser API code examples across 3 technologies (Playwright, Puppeteer, Selenium) for headless browser scraping at scale. Below are examples of Browser API usage in various scenarios and libraries.",
+    "host_name": "docs.brightdata.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://brightdata.com/blog/web-data/proxy-scraping-vs-scraping-browser",
+    "name": "Switch to Bright Data Scraping Browser for Scalable Web",
+    "snippet": "This article teaches you how to transition from traditional proxy-based scraping to Bright Data Scraping Browser. SBR_WS_ENDPOINT",
+    "host_name": "brightdata.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://lablab.ai/tech/bright-data/bright-data-scraping-browser",
+    "name": "Bright Data Scraping Browser",
+    "snippet": "Bright Data Scraping Browser is a fully managed cloud browser that runs Playwright, Puppeteer, and Selenium scripts with built-in proxy rotation, CAPTCHA s.",
+    "host_name": "lablab.ai",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

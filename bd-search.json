@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://docs.brightdata.com/scraping-automation/scraping-browser/configuration",
+    "name": "How to configure the Browser API - Bright Data Docs",
+    "snippet": "Configure the Bright Data Browser API with your username and password, connect 1 of 3 drivers (Puppeteer, Playwright, Selenium) and run browser sessions. To get started, you’ll need your Browser API credentials, specifically the Username and Password used by your web automation tool.",
+    "host_name": "docs.brightdata.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.brightdata.com/scraping-automation/scraping-browser/code-examples",
+    "name": "Browser API code examples - Bright Data Docs",
+    "snippet": "This example demonstrates how browser caching improves performance across multiple navigations to the same domain. Make sure to replace USER:PASS with your own credentials",
+    "host_name": "docs.brightdata.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://brightdata.com/products/scraping-browser",
+    "name": "Browser API - Automated Browser for Scraping - Bright Data",
+    "snippet": "The Browser API employ automated unlocking and are opened on Bright Data’s servers, so they are ideal for scaling web data scraping projects without requiring extensive infrastructure.",
+    "host_name": "brightdata.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/api-evangelist/brightdata/blob/main/README.md",
+    "name": "brightdata/README.md at main · api-evangelist/brightdata",
+    "snippet": "Proxy zones and the Scraping Browser use zone credentials (brd-customer-<CUSTOMER_ID>-zone-<ZONE> + zone password) — for the Scraping Browser these are embedded in the wss:// URL userinfo.",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "Jul 12, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://brightdata.com/products/scraping-browser/fingerprint-web-browser",
+    "name": "Fingerprint Web Browser - Cloud Anti-Detect Browser API",
+    "snippet": "Bright Data is committed to collecting only publicly available data. To uphold this commitment, Browser API is configured by default to prevent any attempts to log in to accounts by disabling password entry.",
+    "host_name": "brightdata.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]
