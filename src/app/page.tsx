@@ -718,7 +718,7 @@ function AnalyticsTab() {
             { label: 'Total Seguidores', value: stats?.followers?.toLocaleString() || '0', icon: <Users size={16} /> },
             { label: 'Engajamento', value: stats?.engagementRate ? stats.engagementRate + '%' : '0%', icon: <TrendingUp size={16} /> },
             { label: 'Posts este mes', value: stats?.posts || '0', icon: <FileText size={16} /> },
-            { label: 'DMs Enviados', value: '-', icon: <MessageSquare size={16} /> },
+            { label: 'DMs Enviados', value: stats?.dmStats?.coldDmSent || '0', icon: <MessageSquare size={16} /> },
           ].map((c, i) => (
             <div key={i} style={S.card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -757,6 +757,63 @@ function AnalyticsTab() {
                 <Tooltip contentStyle={{ background: '#1a1a1a', border: '1px solid rgba(255,68,68,0.2)', borderRadius: 8 }} />
               </PieChart>
             </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* PLATFORM BREAKDOWN */}
+        {stats?.platforms && (stats.platforms.ig?.followers || stats.platforms.fb?.likes) && (
+          <div style={S.card}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 12 }}>Por Plataforma</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {stats.platforms.ig?.source !== 'none' && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#E1306C' }} />
+                    <span style={{ ...S.textP, fontSize: 12 }}>Instagram</span>
+                  </div>
+                  <span style={{ ...S.textP, fontSize: 13, fontWeight: 700 }}>{(stats.platforms.ig?.followers || 0).toLocaleString()}</span>
+                </div>
+              )}
+              {stats.platforms.fb?.source !== 'none' && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#1877F2' }} />
+                    <span style={{ ...S.textP, fontSize: 12 }}>Facebook</span>
+                  </div>
+                  <span style={{ ...S.textP, fontSize: 13, fontWeight: 700 }}>{(stats.platforms.fb?.likes || 0).toLocaleString()}</span>
+                </div>
+              )}
+              {stats?.crmStats && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ade80' }} />
+                    <span style={{ ...S.textP, fontSize: 12 }}>CRM Contacts</span>
+                  </div>
+                  <span style={{ ...S.textP, fontSize: 13, fontWeight: 700 }}>{stats.crmStats.contacted}/{stats.crmStats.total}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* FB POSTS */}
+        {stats?.fbPosts?.length > 0 && (
+          <div style={S.card}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 12 }}>Posts Facebook</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {stats.fbPosts.slice(0, 5).map((p: any, i: number) => (
+                <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(p.caption || 'Sem caption').slice(0, 60)}</div>
+                    <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+                      <span style={{ ...S.textS, fontSize: 11, display: 'flex', alignItems: 'center', gap: 3 }}><Heart size={11} /> {p.likes || 0}</span>
+                      <span style={{ ...S.textS, fontSize: 11, display: 'flex', alignItems: 'center', gap: 3 }}><MessageSquare size={11} /> {p.comments || 0}</span>
+                      <span style={{ ...S.textS, fontSize: 11, display: 'flex', alignItems: 'center', gap: 3 }}><Eye size={11} /> {p.shares || 0}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -1048,10 +1105,31 @@ function ContentTab() {
   const publishDraft = async (id: string) => {
     setPublishing(id);
     try {
-      await apiCall('/cmd/content', { action: 'publish_draft', id, platforms: pubPlatforms });
-      await fetchDrafts();
-      setShowPublish(null);
-      setGenerated(null);
+      var pubBody: any = { action: 'post', platforms: pubPlatforms, caption: '' };
+      // If publishing the generated post
+      if (id === 'generated' && generated) {
+        pubBody.caption = generated.caption;
+        if (mediaFile) {
+          var reader = new FileReader();
+          pubBody.mediaData = await new Promise<string>((resolve) => { reader.onload = (e) => resolve((e.target?.result as string).split(',')[1]); reader.readAsDataURL(mediaFile); });
+          pubBody.mediaType = mediaFile.type.startsWith('video') ? 'video' : 'image';
+        } else if (generated.mediaUrl) {
+          pubBody.imageUrl = generated.mediaUrl;
+        }
+      } else {
+        // Publishing a saved draft
+        var draft = drafts.find((d: any) => d.id === id);
+        if (draft) {
+          pubBody.caption = draft.caption;
+          if (draft.mediaUrl) pubBody.imageUrl = draft.mediaUrl;
+        }
+      }
+      var res = await apiCall('/cmd/publish', pubBody);
+      if (res.success) {
+        await fetchDrafts();
+        setShowPublish(null);
+        setGenerated(null);
+      }
     } catch(e) { console.warn('Aura:', e); }
     setPublishing(null);
   };
@@ -1357,6 +1435,9 @@ function DmTab() {
   const [autoLoginLoading, setAutoLoginLoading] = useState('');
   const msgEndRef = useRef<HTMLDivElement>(null);
   const [accounts, setAccounts] = useState<any[]>([]);
+  const [autoReplying, setAutoReplying] = useState(false);
+  const [coldDmTarget, setColdDmTarget] = useState('');
+  const [coldDmSending, setColdDmSending] = useState(false);
 
   useEffect(() => { msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
@@ -1421,6 +1502,22 @@ function DmTab() {
     setTimeout(() => setKeySaved(''), 2000);
   };
 
+  const autoReplyDMs = async () => {
+    setAutoReplying(true);
+    try { await apiCall('/cmd/publish', { action: 'auto_reply_dms', platform: platform !== 'all' ? platform : undefined, limit: 5, replyAll: false }); fetchConversations(); } catch(e) { console.warn('Aura:', e); }
+    setAutoReplying(false);
+  };
+
+  const sendColdDm = async () => {
+    if (!coldDmTarget.trim()) return;
+    setColdDmSending(true);
+    try {
+      var res = await apiCall('/cmd/publish', { action: 'cold_dm', platform: 'instagram', target: coldDmTarget.trim().replace(/^@/, ''), aiGenerate: true, context: 'prospecto' });
+      if (res.success) setColdDmTarget('');
+    } catch(e) { console.warn('Aura:', e); }
+    setColdDmSending(false);
+  };
+
   useEffect(() => { fetchConversations(); fetchAccounts(); }, [platform]);
 
   // Refresh conversations every 30s
@@ -1460,6 +1557,7 @@ function DmTab() {
               {unreadTotal > 0 && <span style={{ ...S.badge('#ff4444'), fontSize: 10, padding: '1px 7px' }}>{unreadTotal}</span>}
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={autoReplyDMs} disabled={autoReplying} style={{ background: 'none', border: 'none', color: autoReplying ? '#4ade80' : '#666', cursor: 'pointer', padding: 3 }} title="Auto-Reply DMs"><Bot size={14} /></button>
               <button onClick={() => setShowKeys(!showKeys)} style={{ background: 'none', border: 'none', color: showKeys ? '#ff4444' : '#666', cursor: 'pointer', padding: 3 }} title="API Keys"><Key size={14} /></button>
               <button onClick={fetchConversations} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', padding: 3 }}><RefreshCw size={14} /></button>
             </div>
@@ -1473,6 +1571,11 @@ function DmTab() {
                 color: platform === p ? '#ff4444' : '#666',
               }}>{p === 'all' ? 'Todos' : p === 'instagram' ? 'IG' : p === 'facebook' ? 'FB' : 'TT'}</button>
             ))}
+          </div>
+          {/* Cold DM Quick Send */}
+          <div style={{ marginTop: 8, display: 'flex', gap: 4 }}>
+            <input value={coldDmTarget} onChange={e => setColdDmTarget(e.target.value)} placeholder="@username" style={{ ...S.input, height: 30, fontSize: 11, padding: '0 10px', flex: 1 }} onKeyDown={e => { if (e.key === 'Enter') sendColdDm(); }} />
+            <button onClick={sendColdDm} disabled={coldDmSending || !coldDmTarget.trim()} style={{ ...S.btn, height: 30, fontSize: 10, padding: '0 10px' }}>{coldDmSending ? '...' : 'DM'}</button>
           </div>
           {/* Connected accounts */}
           {accounts.length > 0 && (
@@ -2190,6 +2293,126 @@ function ReportsTab() {
   );
 }
 
+
+// ===== TAB: CAMPAIGNS =====
+function CampaignsTab() {
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newPlatform, setNewPlatform] = useState('instagram');
+  const [newObjective, setNewObjective] = useState('');
+  const [newMessage, setNewMessage] = useState('');
+  const [newContext, setNewContext] = useState('');
+  const [newTargets, setNewTargets] = useState('');
+  const [executing, setExecuting] = useState<string | null>(null);
+
+  const fetchCampaigns = async () => {
+    setLoading(true);
+    var [cRes, sRes] = await Promise.all([
+      apiCall('/cmd/campaigns', { action: 'list' }),
+      apiCall('/cmd/campaigns', { action: 'stats' }),
+    ]);
+    if (cRes.success) setCampaigns(cRes.data || []);
+    if (sRes.success) setStats(sRes.data);
+    setLoading(false);
+  };
+
+  const createCampaign = async () => {
+    if (!newName.trim()) return;
+    var targets = newTargets.trim().split('\n').filter(function(t: string) { return t.trim(); }).map(function(t: string) { return { username: t.trim().replace(/^@/, '') }; });
+    var res = await apiCall('/cmd/campaigns', { action: 'create', name: newName, platform: newPlatform, objective: newObjective, baseMessage: newMessage, context: newContext, targets });
+    if (res.success) { setShowCreate(false); setNewName(''); setNewObjective(''); setNewMessage(''); setNewContext(''); setNewTargets(''); fetchCampaigns(); }
+  };
+
+  const executeCampaign = async (id: string) => {
+    setExecuting(id);
+    await apiCall('/cmd/campaigns', { action: 'execute', id });
+    setExecuting(null);
+    fetchCampaigns();
+  };
+
+  const deleteCampaign = async (id: string) => {
+    await apiCall('/cmd/campaigns', { action: 'delete', id });
+    fetchCampaigns();
+  };
+
+  useEffect(() => { fetchCampaigns(); }, []);
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: 16, WebkitOverflowScrolling: 'touch' }}>
+      <div style={{ maxWidth: 480, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>Campanhas</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={fetchCampaigns} disabled={loading} style={{ ...S.btnOutline, padding: '0 12px', height: 34, fontSize: 12 }}><RefreshCw size={14} /></button>
+            <button onClick={() => setShowCreate(!showCreate)} style={{ ...S.btn, padding: '0 12px', height: 34, fontSize: 12 }}>+ Nova</button>
+          </div>
+        </div>
+
+        {stats && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+            {[
+              { label: 'Total', value: stats.total },
+              { label: 'Enviados', value: stats.totalSent, color: '#4ade80' },
+              { label: 'Taxa', value: stats.successRate, color: '#ff4444' },
+            ].map((c: any, i: number) => (
+              <div key={i} style={S.card}>
+                <div style={{ ...S.textS, fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>{c.label}</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: c.color || '#fff' }}>{c.value}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {showCreate && (
+          <div style={S.card}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 12 }}>Nova Campanha</div>
+            <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nome da campanha" style={{ ...S.input, marginBottom: 8 }} />
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              {['instagram', 'facebook'].map(p => (
+                <button key={p} onClick={() => setNewPlatform(p)} style={{ padding: '6px 14px', borderRadius: 8, fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer', background: newPlatform === p ? '#ff4444' : 'rgba(255,255,255,0.06)', color: newPlatform === p ? '#fff' : '#888', textTransform: 'capitalize' }}>{p}</button>
+              ))}
+            </div>
+            <input value={newObjective} onChange={e => setNewObjective(e.target.value)} placeholder="Objectivo (ex: vender servico de branding)" style={{ ...S.input, marginBottom: 8 }} />
+            <textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Mensagem base (deixe vazio para IA gerar)" style={{ ...S.input, height: 60, resize: 'none', marginBottom: 8 }} />
+            <textarea value={newContext} onChange={e => setNewContext(e.target.value)} placeholder="Contexto extra para a IA" style={{ ...S.input, height: 40, resize: 'none', marginBottom: 8 }} />
+            <textarea value={newTargets} onChange={e => setNewTargets(e.target.value)} placeholder="Alvos (um username por linha)\n@user1\n@user2" style={{ ...S.input, height: 80, resize: 'none', marginBottom: 10, fontFamily: "'SF Mono',Menlo,monospace", fontSize: 12 }} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={createCampaign} style={{ ...S.btn, flex: 1 }}>Criar</button>
+              <button onClick={() => setShowCreate(false)} style={{ ...S.btnOutline, flex: 1 }}>Cancelar</button>
+            </div>
+          </div>
+        )}
+
+        {loading && !campaigns.length && <Spinner />}
+        {campaigns.length === 0 && !loading && <div style={{ ...S.textS, fontSize: 12, textAlign: 'center' }}>Sem campanhas. Cria a primeira.</div>}
+        {campaigns.map((c: any) => (
+          <div key={c.id} style={S.card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{c.name}</div>
+                <div style={{ ...S.textS, fontSize: 11, marginTop: 2 }}>{c.platform} | {c.targetCount} alvos | {c.status}</div>
+              </div>
+              {S.badge(c.status === 'completed' ? '#4ade80' : c.status === 'running' ? '#ff8c00' : c.status === 'draft' ? '#666' : '#ff4444')(c.status)}
+            </div>
+            {c.objective && <div style={{ ...S.textS, fontSize: 11, marginBottom: 6 }}>Obj: {c.objective}</div>}
+            <div style={{ display: 'flex', gap: 16, marginBottom: 8 }}>
+              <span style={{ ...S.textG, fontSize: 12 }}>{c.sentCount} enviados</span>
+              <span style={{ color: '#ff4444', fontSize: 12 }}>{c.failedCount} falhados</span>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {c.status === 'draft' && <button onClick={() => executeCampaign(c.id)} disabled={executing === c.id} style={{ ...S.btn, padding: '0 12px', height: 32, fontSize: 11 }}>{executing === c.id ? 'A enviar...' : 'Executar'}</button>}
+              <button onClick={() => deleteCampaign(c.id)} style={{ ...S.btnOutline, padding: '0 12px', height: 32, fontSize: 11, borderColor: 'rgba(255,0,0,0.3)', color: '#ff4444' }}><Trash2 size={12} /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ===== TAB 9: A/B TESTING =====
 function ABTestTab() {
   const [tests, setTests] = useState<any[]>([]);
@@ -2394,6 +2617,7 @@ function MainApp({ onLogout }: { onLogout: () => void }) {
     { id: 'content', label: 'Content', icon: '✨' },
     { id: 'scheduler', label: 'Scheduler', icon: '⏰' },
     { id: 'abtest', label: 'A/B', icon: '🧪' },
+    { id: 'campaigns', label: 'Camps', icon: '🎯' },
     { id: 'reports', label: 'Reports', icon: '📄' },
     { id: 'settings', label: 'Config', icon: '⚙️' },
     { id: 'mcp', label: 'MCP', icon: '🔌' },
@@ -2441,6 +2665,7 @@ function MainApp({ onLogout }: { onLogout: () => void }) {
         {tab === 'content' && <ContentTab />}
         {tab === 'scheduler' && <SchedulerTab />}
         {tab === 'abtest' && <ABTestTab />}
+        {tab === 'campaigns' && <CampaignsTab />}
         {tab === 'reports' && <ReportsTab />}
         {tab === 'settings' && <SettingsTab />}
         {tab === 'mcp' && <McpTab />}

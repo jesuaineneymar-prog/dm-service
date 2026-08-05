@@ -80,7 +80,51 @@ async function deleteProspect(id: string) {
 }
 
 async function importProspects(platform: string, source: string, query: string) {
-  // TODO: replace with Zernio or ScrapingBee
+  if (source === 'ig_followers') {
+    // Import IG followers via instagrapi
+    try {
+      var { igGetFollowers } = await import('@/lib/ig-publish');
+      var result = await igGetFollowers(100);
+      if (!result.success) return { imported: 0, prospects: [], error: result.error };
+      var imported = 0;
+      var skipped = 0;
+      for (var i = 0; i < result.followers.length; i++) {
+        var f = result.followers[i];
+        var existing = await db.prospect.findFirst({ where: { platform: 'instagram', username: f.username } });
+        if (!existing) {
+          await db.prospect.create({
+            data: {
+              platform: 'instagram',
+              username: f.username,
+              displayName: f.fullName || null,
+              followers: f.followers || 0,
+              following: f.following || 0,
+              bio: f.bio || null,
+              category: f.isVerified ? 'influencer' : 'follower',
+              externalId: f.userId,
+            },
+          });
+          imported++;
+        } else { skipped++; }
+      }
+      return { imported, skipped, prospects: result.followers, total: result.followers.length };
+    } catch(e: any) {
+      return { imported: 0, prospects: [], error: e.message };
+    }
+  }
+
+  if (source === 'search') {
+    // Search for profiles via scraping
+    try {
+      var { sbScrapeSocial } = await import('@/lib/external-apis');
+      var scrapeResult = await sbScrapeSocial(platform, query);
+      if (!scrapeResult.success) return { imported: 0, prospects: [], error: scrapeResult.error };
+      return { imported: 0, prospects: [], scraped: true, data: scrapeResult.data };
+    } catch(e: any) {
+      return { imported: 0, prospects: [], error: e.message };
+    }
+  }
+
   return { imported: 0, prospects: [] };
 }
 

@@ -245,3 +245,22 @@ model ZernioPost {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
+
+model Campaign {
+  id           String   @id @default(cuid())
+  name         String
+  platform     String   @default("instagram")
+  objective    String   @default("")
+  baseMessage  String   @default("")
+  aiGenerate   Boolean  @default(true)
+  context      String   @default("")
+  targetList   String   @default("[]")
+  status       String   @default("draft")
+  sentCount    Int      @default(0)
+  failedCount  Int      @default(0)
+  results      String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

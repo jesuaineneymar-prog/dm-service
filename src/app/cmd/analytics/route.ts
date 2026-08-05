@@ -1,5 +1,5 @@
 // ============================================================
-//  Aura ANALYTICS API — dados reais via Zernio + UploadPost
+//  Aura ANALYTICS API — dados reais via Zernio + UploadPost + FB Graph
 // ============================================================
 
 import { NextResponse } from 'next/server';
@@ -7,6 +7,8 @@ import { db } from '@/lib/db';
 import { UPLOADPOST_KEY, IG_USERNAME } from '@/lib/config';
 import { requireAuth } from '@/lib/auth';
 import { zernioGetAnalytics, zernioListAccounts, zernioGetAudience } from '@/lib/zernio';
+import { fbGetInsights, fbGetPosts } from '@/lib/fb-publish';
+import { igGetUserStats } from '@/lib/ig-publish';
 import { sbGetIGProfile } from '@/lib/external-apis';
 
 export var maxDuration = 60;
@@ -20,8 +22,8 @@ async function uploadPostFetch(path: string) {
 }
 
 async function getStats() {
-  // Try Zernio analytics first
-  var zernioData: any = null;
+  // 1. Zernio analytics
+   var zernioData: any = null;
   try {
     var accountsRes = await zernioListAccounts();
     if (accountsRes.success && accountsRes.data) {
@@ -34,19 +36,42 @@ async function getStats() {
     }
   } catch (e: any) { console.error('Zernio analytics:', e.message); }
 
-  // Fetch UploadPost profiles/history
-  var upProfiles: any = null;
+  // 2. instagrapi direct stats
+   var igStats: any = null;
+  try { igStats = await igGetUserStats(); } catch(e: any) { console.error('IG stats:', e.message); }
+
+  // 3. FB Graph insights
+   var fbInsights: any = null;
+  try { fbInsights = await fbGetInsights(); } catch(e: any) { console.error('FB insights:', e.message); }
+
+  // 4. FB Posts
+   var fbPosts: any[] = [];
+  try { var fbRes = await fbGetPosts(10); if (fbRes.success) fbPosts = fbRes.posts; } catch(e: any) {}
+
+  // 5. UploadPost history
+   var upProfiles: any = null;
   var upHistory: any = null;
-  try { upProfiles = await uploadPostFetch('/uploadposts/users'); } catch (e: any) { console.error('UploadPost profiles:', e.message); }
-  try { upHistory = await uploadPostFetch('/uploadposts/history'); } catch (e: any) { console.error('UploadPost history:', e.message); }
+  try { upProfiles = await uploadPostFetch('/uploadposts/users'); } catch (e: any) {}
+  try { upHistory = await uploadPostFetch('/uploadposts/history'); } catch (e: any) {}
 
-  // Parse Zernio data
-  var followers = zernioData?.followers_count || zernioData?.followerCount || 0;
-  var following = zernioData?.following_count || zernioData?.followingCount || 0;
-  var posts = zernioData?.posts_count || zernioData?.mediaCount || 0;
+  // Parse data
+   var igFollowers = igStats?.followers || zernioData?.followers_count || zernioData?.followerCount || 0;
+   var igFollowing = igStats?.following || zernioData?.following_count || zernioData?.followingCount || 0;
+  var igPosts = igStats?.posts || zernioData?.posts_count || zernioData?.mediaCount || 0;
 
-  // Parse UploadPost history for engagement
-  var engagementRate = 0;
+  // FB page data
+  var fbPageLikes = 0;
+  var fbPageReach = 0;
+  if (fbInsights?.success && fbInsights.data) {
+    for (var i = 0; i < fbInsights.data.length; i++) {
+      var m = fbInsights.data[i];
+      if (m.name === 'page_fans') fbPageLikes = m.values?.[0]?.value || 0;
+      if (m.name === 'page_impressions_unique') fbPageReach = m.values?.[0]?.value || 0;
+    }
+  }
+
+  // Engagement rate
+   var engagementRate = 0;
   var recentPosts: any[] = [];
   if (upHistory && Array.isArray(upHistory)) {
     recentPosts = upHistory.slice(0, 10).map(function(h: any) {
@@ -54,28 +79,59 @@ async function getStats() {
     });
     var totalLikes = recentPosts.reduce(function(s: number, p: any) { return s + (p.likes || 0); }, 0);
     var totalComments = recentPosts.reduce(function(s: number, p: any) { return s + (p.comments || 0); }, 0);
-    if (followers > 0 && recentPosts.length > 0) engagementRate = parseFloat(((totalLikes + totalComments) / (followers * recentPosts.length) * 100).toFixed(2));
+    var totalFollowers = igFollowers + fbPageLikes;
+    if (totalFollowers > 0 && recentPosts.length > 0) engagementRate = parseFloat(((totalLikes + totalComments) / (totalFollowers * recentPosts.length) * 100).toFixed(2));
   }
 
-  // Store analytics event
+  // DM stats from automation logs
+  var dmSent = 0;
+  var dmReceived = 0;
+  var coldDmSent = 0;
   try {
+    var weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    var logs = await db.automationLog.findMany({ where: { triggeredAt: { gte: weekAgo } } });
+    for (var j = 0; j < logs.length; j++) {
+      if (logs[j].type === 'auto_reply') dmSent++;
+      if (logs[j].type === 'cold_dm' && logs[j].status === 'completed') coldDmSent++;
+    }
+  } catch(e) {}
+
+  // Store analytics event
+   try {
     var oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     var existing = await db.analyticsEvent.findFirst({ where: { platform: 'instagram', eventType: 'followers', recordedAt: { gte: oneHourAgo } } });
     if (!existing) {
-      await db.analyticsEvent.create({ data: { platform: 'instagram', eventType: 'followers', metricValue: followers, metadata: JSON.stringify({ username: IG_USERNAME, following, posts, engagementRate, source: 'zernio' }) } });
+      await db.analyticsEvent.create({ data: { platform: 'instagram', eventType: 'followers', metricValue: igFollowers, metadata: JSON.stringify({ username: IG_USERNAME, following: igFollowing, posts: igPosts, engagementRate, source: 'combined' }) } });
     }
   } catch (e: any) { console.error('AnalyticsEvent:', e.message); }
 
-  var platforms: any = { ig: {}, fb: {} };
-  if (zernioData) {
-    platforms.ig = { username: IG_USERNAME, followers, following, posts, source: 'zernio' };
-  }
-  if (upProfiles) {
-    var sa = upProfiles.social_accounts || upProfiles.profile?.social_accounts || {};
-    if (sa.facebook && typeof sa.facebook === 'object') platforms.fb = { handle: sa.facebook.handle || '', displayName: sa.facebook.display_name || '' };
-  }
+  var platforms: any = {
+    ig: { username: IG_USERNAME, followers: igFollowers, following: igFollowing, posts: igPosts, source: igStats ? 'instagrapi' : zernioData ? 'zernio' : 'none' },
+    fb: { likes: fbPageLikes, reach: fbPageReach, posts: fbPosts.length, source: fbInsights ? 'graph_api' : 'none' },
+  };
 
-  return { followers, following, posts, engagementRate, platforms, recentPosts, source: 'zernio_uploadpost' };
+  // CRM stats
+  var crmStats: any = { total: 0, contacted: 0 };
+  try {
+    var prospectCount = await db.prospect.count();
+    var contactedCount = await db.prospect.count({ where: { lastContactedAt: { not: null } } });
+    crmStats = { total: prospectCount, contacted: contactedCount };
+  } catch(e) {}
+
+  return {
+    followers: igFollowers + fbPageLikes,
+    igFollowers,
+    fbPageLikes,
+    following: igFollowing,
+    posts: igPosts + fbPosts.length,
+    engagementRate,
+    platforms,
+    recentPosts,
+    fbPosts,
+    dmStats: { autoReplied: dmSent, coldDmSent: coldDmSent },
+    crmStats,
+    source: 'combined',
+  };
 }
 
 async function getEngagementHistory(startDate: string) {
@@ -96,16 +152,28 @@ async function trackEvent(platform: string, eventType: string, metricValue: numb
 }
 
 async function getTopPosts() {
+  // Try IG stats + FB posts
+  var topPosts: any[] = [];
+  try {
+    var fbRes = await fbGetPosts(10);
+    if (fbRes.success) {
+      topPosts = fbRes.posts.map(function(p: any) { return { ...p, platform: 'facebook' }; });
+    }
+  } catch(e: any) {}
   try {
     var accountsRes = await zernioListAccounts();
-    if (!accountsRes.success) return [];
-    var accounts = Array.isArray(accountsRes.data) ? accountsRes.data : (accountsRes.data.accounts || []);
-    var igAccount = accounts.find(function(a: any) { return a.platform === 'instagram'; });
-    if (!igAccount) return [];
-    var analyticsRes = await zernioGetAnalytics({ accountId: igAccount._id });
-    if (analyticsRes.success && analyticsRes.data?.topPosts) return analyticsRes.data.topPosts;
+    if (accountsRes.success) {
+      var accounts = Array.isArray(accountsRes.data) ? accountsRes.data : (accountsRes.data.accounts || []);
+      var igAccount = accounts.find(function(a: any) { return a.platform === 'instagram'; });
+      if (igAccount) {
+        var analyticsRes = await zernioGetAnalytics({ accountId: igAccount._id });
+        if (analyticsRes.success && analyticsRes.data?.topPosts) {
+          topPosts = topPosts.concat(analyticsRes.data.topPosts.map(function(p: any) { return { ...p, platform: 'instagram' }; }));
+        }
+      }
+    }
   } catch (e: any) { console.error('getTopPosts:', e.message); }
-  return [];
+  return topPosts;
 }
 
 async function getAudienceInsights() {
