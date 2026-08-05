@@ -113,6 +113,64 @@ export async function fullTokenRefresh(shortLivedToken: string): Promise<{ succe
   };
 }
 
+// === AUTO-REFRESH: Checa expiracao e renova se necessario ===
+// Chamado pelo cron master a cada 5 min
+// Se o token vai expirar em < 24h, tenta renovar automaticamente
+
+export async function autoRefreshPageTokenIfNeeded(): Promise<{ refreshed: boolean; newToken?: string; error?: string }> {
+  var pageToken = await getEffectivePageToken();
+  if (!pageToken) return { refreshed: false, error: 'Sem page token' };
+  if (!META_APP_ID || !META_APP_SECRET) return { refreshed: false, error: 'Sem APP_ID ou APP_SECRET' };
+
+  try {
+    // Check token expiry
+    var debug = await debugMetaToken(pageToken);
+    if (!debug.isValid) {
+      console.log('[TokenManager] Token invalido, tentando renovar...');
+    } else if (debug.expiresAt) {
+      var expiresAt = new Date(debug.expiresAt * 1000);
+      var now = new Date();
+      var hoursLeft = (expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60);
+      if (hoursLeft > 24) {
+        return { refreshed: false }; // Token ainda e valido por mais de 24h
+      }
+      console.log('[TokenManager] Token expira em ' + Math.round(hoursLeft) + 'h, renovando...');
+    } else {
+      return { refreshed: false }; // Sem info de expiracao, assumir valido
+    }
+
+    // Try to exchange for long-lived
+    var llResult = await exchangeForLongLived(pageToken);
+    if (llResult.success && llResult.token) {
+      // Try to get new page token from long-lived user token
+      var ptResult = await getPermanentPageToken(llResult.token);
+      if (ptResult.success && ptResult.pageToken) {
+        console.log('[TokenManager] Page token renovado com sucesso!');
+        // Save to DB
+        try {
+          var dbModule = await import('./db');
+          var db = await dbModule.db;
+          await db.systemSetting.upsert({
+            where: { key: 'meta_page_token' },
+            update: { value: ptResult.pageToken },
+            create: { key: 'meta_page_token', value: ptResult.pageToken }
+          });
+          console.log('[TokenManager] Novo token salvo no DB');
+        } catch(e) { console.warn('[TokenManager] Falha ao salvar no DB:', e); }
+        return { refreshed: true, newToken: ptResult.pageToken };
+      } else {
+        console.log('[TokenManager] Nao conseguiu obter page token novo:', ptResult.error);
+      }
+    } else {
+      console.log('[TokenManager] Exchange falhou:', llResult.error);
+    }
+
+    return { refreshed: false, error: 'Nao foi possivel renovar automaticamente. Gere um novo token no Facebook Developer.' };
+  } catch (e: any) {
+    return { refreshed: false, error: e.message };
+  }
+}
+
 // === GET CURRENT STATUS ===
 
 export async function getMetaTokenStatus(): Promise<any> {
