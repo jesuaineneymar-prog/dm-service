@@ -31,7 +31,7 @@ export var IG_USERNAME = env('IG_USERNAME', '');
 
 // --- OpenRouter (IA) ---
 export var OR_URL = 'https://openrouter.ai/api/v1/chat/completions';
-export var OR_MODEL = 'x-ai/grok-3-beta';
+export var OR_MODEL = 'x-ai/grok-4.5';
 export var OR_FALLBACK_MODEL = 'google/gemma-4-26b-a4b-it:free';
 
 // --- Steel.dev (Browser API com anti-detection + proxy residencial) ---
