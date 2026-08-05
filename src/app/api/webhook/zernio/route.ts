@@ -69,7 +69,7 @@ async function createNotification(eventType: string, platform: string, senderInf
   }
 
   const notification = await db.notification.create({
-    data: { type: eventType, title, message, platform, sourceId: conversationId, metadata: senderInfo ? JSON.stringify(senderInfo) : null },
+    data: { type: eventType, title, message, platform, metadata: JSON.stringify({ conversationId, senderInfo }) },
   });
   return notification;
 }
@@ -85,10 +85,10 @@ async function autoReplyWithAI(platform: string, conversationId: string, senderI
     where: {
       direction: 'outbound',
       platform: platform,
-      createdAt: { gte: new Date(Date.now() - 60000) }, // ultimo minuto
     },
+    orderBy: { sentAt: 'desc' },
   });
-  if (recentReply) return null;
+  if (recentReply && Date.now() - recentReply.sentAt.getTime() < 60000) return null;
 
   try {
     // Gerar resposta IA
@@ -103,22 +103,12 @@ async function autoReplyWithAI(platform: string, conversationId: string, senderI
     var sendResult = await zernioSendDM(conversationId, accountId, aiReply);
 
     if (sendResult.success) {
-      // Guardar no DB
-      await db.message.create({
-        data: {
-          direction: 'outbound',
-          content: aiReply,
-          platform: platform,
-          sourceId: conversationId,
-        },
-      });
-
       // Actualizar prospect no CRM
       var prospect = await db.prospect.findFirst({ where: { platform, username: senderName } });
       if (prospect) {
         await db.prospect.update({
           where: { id: prospect.id },
-          data: { lastContactedAt: new Date(), status: 'responded', messageCount: { increment: 1 } },
+          data: { lastContactedAt: new Date(), status: 'responded' },
         });
       } else {
         await db.prospect.create({
@@ -127,7 +117,6 @@ async function autoReplyWithAI(platform: string, conversationId: string, senderI
             displayName: senderInfo?.name || senderName,
             status: 'responded',
             lastContactedAt: new Date(),
-            source: 'inbound_dm',
           },
         });
       }
@@ -172,14 +161,16 @@ export async function POST(request: Request) {
       var senderName = senderInfo?.username || senderInfo?.name || '';
       if (senderName) {
         var prospect = await db.prospect.findFirst({ where: { platform, username: senderName } });
-        await db.message.create({
-          data: {
-            prospectId: prospect?.id,
-            direction: 'inbound',
-            content: messageText,
-            platform, sourceId: conversationId,
-          },
-        });
+        if (prospect) {
+          await db.message.create({
+            data: {
+              prospectId: prospect.id,
+              direction: 'inbound',
+              content: messageText,
+              platform,
+            },
+          });
+        }
       }
 
       // Responder com IA (async, nao bloqueia a resposta do webhook)

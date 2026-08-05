@@ -46,7 +46,7 @@ async function importSessionCookie(sessionid: string, username: string) {
   ig.state.generateDevice(username);
 
   // Adicionar cookie sessionid ao cookie jar
-  var cookieJar = ig.request.cookieJar;
+  var cookieJar: any = (ig.request as any).cookieJar;
   var tough = await import('tough-cookie');
   var cookie = new tough.Cookie({
     key: 'sessionid',
@@ -99,7 +99,7 @@ async function importSessionCookie(sessionid: string, username: string) {
     step: 'cookie_imported',
     username: user.username,
     userId: user.pk,
-    followers: user.follower_count,
+    followers: (user as any).follower_count || 0,
     message: 'Sessao importada com sucesso! Podes enviar cold DMs agora.',
   };
 }
@@ -163,15 +163,16 @@ export async function POST(request: Request) {
     var username = body.username || IG_USER;
     var password = body.password || IG_PASS;
 
+    var igClient: any = null;
     try {
       var { IgApiClient } = await import('instagram-private-api');
-      var ig = new IgApiClient();
-      ig.state.generateDevice(username);
+      igClient = new IgApiClient();
+      igClient.state.generateDevice(username);
 
-      var user = await ig.account.login(username, password);
+      var user = await igClient.account.login(username, password);
 
-      var state = await ig.state.serialize();
-      var stateJson = JSON.stringify(state);
+      var loginState = await igClient.state.serialize();
+      var stateJson = JSON.stringify(loginState);
       await saveSessionToDB(stateJson);
 
       return NextResponse.json({
@@ -179,7 +180,7 @@ export async function POST(request: Request) {
         step: 'logged_in',
         username: user.username,
         userId: user.pk,
-        followers: user.follower_count,
+        followers: (user as any).follower_count || 0,
         message: 'Login feito! Pode enviar cold DMs agora.',
       });
 
@@ -196,10 +197,11 @@ export async function POST(request: Request) {
 
       if (isChallenge) {
         try {
-          var stateB64 = '';
+          var challengeStateB64 = '';
           try {
-            var state = await ig.state.serialize();
-            stateB64 = Buffer.from(JSON.stringify(state)).toString('base64');
+            if (!igClient) throw new Error('igClient not initialized');
+            var challengeState = await igClient.state.serialize();
+            challengeStateB64 = Buffer.from(JSON.stringify(challengeState)).toString('base64');
           } catch (serErr: any) {
             return NextResponse.json({
               success: false,
@@ -209,7 +211,7 @@ export async function POST(request: Request) {
             });
           }
 
-          await saveChallengeState(stateB64);
+          await saveChallengeState(challengeStateB64);
           return NextResponse.json({
             success: false,
             step: 'needs_code',
@@ -264,8 +266,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Codigo necessario (6 digitos do email)' });
     }
 
-    var stateB64 = await loadChallengeState();
-    if (!stateB64) {
+    var verifyStateB64 = await loadChallengeState();
+    if (!verifyStateB64) {
       return NextResponse.json({ success: false, error: 'Sessao expirou. Faz login novamente (action=login).' });
     }
 
@@ -273,15 +275,15 @@ export async function POST(request: Request) {
       var { IgApiClient } = await import('instagram-private-api');
       var ig = new IgApiClient();
 
-      var stateJson = Buffer.from(stateB64, 'base64').toString('utf-8');
-      var state = JSON.parse(stateJson);
-      await ig.state.deserialize(state);
+      var verifyStateJson = Buffer.from(verifyStateB64, 'base64').toString('utf-8');
+      var verifyState = JSON.parse(verifyStateJson);
+      await ig.state.deserialize(verifyState);
 
       try {
         await ig.challenge.sendSecurityCode(code);
       } catch (challengeErr: any) { /* tenta currentUser direto */ }
 
-      var user = await ig.account.currentUser();
+      var verifiedUser = await ig.account.currentUser();
       var finalState = await ig.state.serialize();
       var finalJson = JSON.stringify(finalState);
       await saveSessionToDB(finalJson);
@@ -295,8 +297,8 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         step: 'verified',
-        username: user.username,
-        userId: user.pk,
+        username: verifiedUser.username,
+        userId: verifiedUser.pk,
         message: 'Sessao IG activa! Podes enviar cold DMs agora.',
       });
     } catch (e: any) {

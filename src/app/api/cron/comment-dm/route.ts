@@ -91,11 +91,10 @@ async function runAutoReply(): Promise<any> {
             where: {
               direction: 'outbound',
               platform: platform,
-              sourceId: convId,
-              createdAt: { gte: new Date(Date.now() - 300000) },
             },
+            orderBy: { sentAt: 'desc' },
           });
-          if (recentOutbound) continue;
+          if (recentOutbound && Date.now() - recentOutbound.sentAt.getTime() < 300000) continue;
 
           // Gerar resposta IA
           var aiReply = await generateDMReply(senderName, platform, lastInbound);
@@ -108,9 +107,15 @@ async function runAutoReply(): Promise<any> {
           var sendResult = await zernioSendDM(convId, accountId, aiReply);
           if (sendResult.success) {
             stats.repliesSent++;
-            await db.message.create({
-              data: { direction: 'outbound', content: aiReply, platform, sourceId: convId },
-            });
+            // Log the reply (no prospectId needed for cron auto-replies)
+            try {
+              var autoProspect = await db.prospect.findFirst({ where: { platform, username: senderName } });
+              if (autoProspect) {
+                await db.message.create({
+                  data: { prospectId: autoProspect.id, direction: 'outbound', content: aiReply, platform },
+                });
+              }
+            } catch(logErr) {}
           } else {
             stats.errors.push('send: ' + (sendResult.error || '').slice(0, 100));
           }
@@ -146,7 +151,6 @@ export async function GET(request: Request) {
         platform: 'multi',
         status: stats.errors.length === 0 ? 'success' : 'partial',
         result: JSON.stringify({ ...stats, duration: duration + 'ms' }),
-        completedAt: new Date(),
       },
     });
 

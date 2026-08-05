@@ -287,9 +287,9 @@ export async function POST(request: Request) {
     // Gera mensagem via AI (tom Grok) e envia DM
     if (action === 'ai_send_ig' || action === 'ai_send_fb') {
       var isIG = action === 'ai_send_ig';
-      var platform = isIG ? 'instagram' : 'facebook';
-      var target = (body.target || body.username || '').trim().replace(/^@/, '');
-      if (!target) {
+      var aiPlatform = isIG ? 'instagram' : 'facebook';
+      var aiTarget = (body.target || body.username || '').trim().replace(/^@/, '');
+      if (!aiTarget) {
         return NextResponse.json({ success: false, error: 'target necessario' });
       }
 
@@ -299,13 +299,13 @@ export async function POST(request: Request) {
       // Generate AI message
       var aiContext: any = {
         platform: isIG ? 'Instagram' : 'Facebook',
-        username: target,
+        username: aiTarget,
       };
       if (body.bio) aiContext.bio = body.bio;
       if (body.category) aiContext.category = body.category;
       if (body.notes) aiContext.notes = body.notes;
 
-      var aiPrompt = '@' + target + ' — ' + (body.context || 'prospecto') + (body.objective ? '. Objectivo: ' + body.objective : '');
+      var aiPrompt = '@' + aiTarget + ' — ' + (body.context || 'prospecto') + (body.objective ? '. Objectivo: ' + body.objective : '');
 
       var aiMessage = await aiModule.generateAIResponse(aiPrompt, {
         systemPrompt: aiModule.getColdDMSystemPrompt(),
@@ -323,35 +323,34 @@ export async function POST(request: Request) {
       // Send the DM
       var sendResult: any;
       if (isIG) {
-        var ig = await getIG();
-        sendResult = await ig.igColdDM(target, aiMessage, {
+        var igAI = await getIG();
+        sendResult = await igAI.igColdDM(aiTarget, aiMessage, {
           igUsername: body.ig_username || undefined,
           igPassword: body.ig_password || undefined,
         });
       } else {
-        var fb = await getFB();
-        sendResult = await fb.fbColdDM(target, aiMessage, {
-          fbEmail: body.fb_email || undefined,
-          fbPassword: body.fb_password || undefined,
+        var fbAI = await getFB();
+        sendResult = await fbAI.fbColdDM(aiTarget, aiMessage, {
+          userId: body.userId || undefined,
         });
       }
 
       return NextResponse.json({
         ...sendResult,
         ai_generated_message: aiMessage,
-        platform,
+        platform: aiPlatform,
       });
     }
 
     // === GENERATE AI MESSAGE ONLY (without sending) ===
     if (action === 'ai_generate' || action === 'ai_debug') {
-      var aiModule: any = await import('@/lib/ai');
-      var target = body.target || body.username || 'prospect';
-      var platform = body.platform || 'instagram';
+      var aiGenModule: any = await import('@/lib/ai');
+      var genTarget = body.target || body.username || 'prospect';
+      var genPlatform = body.platform || 'instagram';
 
       if (action === 'ai_debug') {
         var testModel = body.model || undefined;
-        var rawData = await aiModule.generateAIResponseRaw(
+        var rawData = await aiGenModule.generateAIResponseRaw(
           body.prompt || 'Diga ola',
           { maxTokens: body.max_tokens || 150 },
           testModel
@@ -359,16 +358,16 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true, raw: rawData });
       }
 
-      var aiMessage = await aiModule.generateAIResponse(
-        '@' + target + ' — ' + (body.context || 'prospects') + (body.objective ? '. Objectivo: ' + body.objective : ''),
+      var genAiMessage = await aiGenModule.generateAIResponse(
+        '@' + genTarget + ' — ' + (body.context || 'prospects') + (body.objective ? '. Objectivo: ' + body.objective : ''),
         {
-          systemPrompt: aiModule.getColdDMSystemPrompt(),
+          systemPrompt: aiGenModule.getColdDMSystemPrompt(),
           maxTokens: 150,
           temperature: 0.8,
-          context: { platform, username: target },
+          context: { platform: genPlatform, username: genTarget },
         }
       );
-      return NextResponse.json({ success: true, message: aiMessage, platform, target });
+      return NextResponse.json({ success: true, message: genAiMessage, platform: genPlatform, target: genTarget });
     }
 
     // === COOKIES ===
@@ -405,9 +404,9 @@ export async function POST(request: Request) {
 
     // === IMPORT COOKIES (from user's phone — PERSISTENT) ===
     if (action === 'import_cookies') {
-      var platform = (body.platform || 'instagram').trim();
+      var cookiePlatform = (body.platform || 'instagram').trim();
       var cookies = body.cookies;
-      if (platform !== 'instagram' && platform !== 'facebook') {
+      if (cookiePlatform !== 'instagram' && cookiePlatform !== 'facebook') {
         return NextResponse.json({ success: false, error: 'platform deve ser "instagram" ou "facebook"' });
       }
       if (!cookies) {
@@ -419,20 +418,20 @@ export async function POST(request: Request) {
           return NextResponse.json({ success: false, error: 'cookies string invalido — deve ser JSON array valido' });
         }
       }
-      var bd = await getBD();
-      var result = await bd.importCookies(platform, cookies);
-      return NextResponse.json(result);
+      var bdImport = await getBD();
+      var cookieResult = await bdImport.importCookies(cookiePlatform, cookies);
+      return NextResponse.json(cookieResult);
     }
 
     // === KEEP ALIVE (ping to refresh session) ===
     if (action === 'keep_alive') {
-      var platform = (body.platform || 'instagram').trim();
-      if (platform !== 'instagram' && platform !== 'facebook') {
+      var keepAlivePlatform = (body.platform || 'instagram').trim();
+      if (keepAlivePlatform !== 'instagram' && keepAlivePlatform !== 'facebook') {
         return NextResponse.json({ success: false, error: 'platform deve ser "instagram" ou "facebook"' });
       }
-      var bd = await getBD();
-      var result = await bd.keepAlive(platform);
-      return NextResponse.json({ success: result.alive, ...result });
+      var bdKeep = await getBD();
+      var keepResult = await bdKeep.keepAlive(keepAlivePlatform);
+      return NextResponse.json({ success: keepResult.alive, ...keepResult });
     }
 
     // === SYNC COOKIES TO RAILWAY (persist env vars across restarts) ===
@@ -461,14 +460,14 @@ export async function POST(request: Request) {
         var _a = _entries[_i], key = _a[0], val = _a[1];
         try {
           var mutation = 'mutation($projectId: String!, $environmentId: String!, $name: String!, $value: String!) { variableUpsert(input: {projectId: $projectId, environmentId: $environmentId, name: $name, value: $value}) }';
-          var resp = await fetch('https://backboard.railway.app/graphql/v2', {
+          var syncResp = await fetch('https://backboard.railway.app/graphql/v2', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + RAILWAY_TOKEN, 'Content-Type': 'application/json' },
             body: JSON.stringify({ query: mutation, variables: { projectId: RAILWAY_PROJECT_ID, environmentId: RAILWAY_ENV_ID, name: key, value: val } }),
           });
-          var result = await resp.json();
-          if (result.errors) {
-            errors.push(key + ': ' + result.errors[0].message);
+          var syncResultData = await syncResp.json();
+          if (syncResultData.errors) {
+            errors.push(key + ': ' + syncResultData.errors[0].message);
           } else {
             synced.push(key);
           }

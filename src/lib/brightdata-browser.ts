@@ -7,7 +7,7 @@
 // ============================================================
 
 import puppeteer from 'puppeteer-core';
-import { BRIGHT_DATA_WS_ENDPOINT, BRIGHT_DATA_CUSTOMER_ID, BRIGHT_DATA_ZONE, BRIGHT_DATA_ZONE_PASS } from './config';
+import { BRIGHT_DATA_WS_ENDPOINT, BRIGHT_DATA_CUSTOMER_ID, BRIGHT_DATA_ZONE, BRIGHT_DATA_ZONE_PASS, BRIGHT_DATA_TOKEN } from './config';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -307,7 +307,7 @@ export async function loginInstagram(page: any, username: string, password: stri
       try {
         await page.evaluate(function() {
           var form = document.querySelector('#login_form') || document.querySelector('form[action*="instagram"]');
-          if (form) form.submit();
+          if ((form as any).submit) (form as any).submit();
         });
       } catch (jsErr: any) {
         console.log('[BrightData] JS submit tambem falhou: ' + jsErr.message);
@@ -646,7 +646,7 @@ export async function keepAlive(platform: 'instagram' | 'facebook'): Promise<{ a
 }
 
 // --- Import cookies from user (raw JSON array) ---
-export async function importCookies(platform: 'instagram' | 'facebook', cookiesJson: any[]): Promise<{ success: boolean; count: number; error?: string }> {
+export async function importCookies(platform: 'instagram' | 'facebook', cookiesJson: any[]): Promise<{ success: boolean; count: number; saved?: boolean; error?: string }> {
   if (!Array.isArray(cookiesJson) || cookiesJson.length === 0) {
     return { success: false, count: 0, error: 'Cookies invalidos — esperado array JSON' };
   }
@@ -665,7 +665,7 @@ export async function importCookies(platform: 'instagram' | 'facebook', cookiesJ
   }
   // Just save — verification happens via keep_alive or next send
   // (browser verification here causes issues with BrightData blocked cookies)
-  return { success: true, count: toSave.length, saved: true, message: toSave.length + ' cookies guardados (env + /tmp). Usa keep_alive ou ai_send_ig para verificar.' };
+  return { success: true, count: toSave.length, saved: true };
 }
 
 // --- Status check ---
@@ -687,6 +687,7 @@ export function getStatus(): {
   ensureCookieDir();
   return {
     configured: !!BRIGHT_DATA_WS_ENDPOINT || !!(BRIGHT_DATA_CUSTOMER_ID && BRIGHT_DATA_ZONE_PASS),
+    token_set: !!BRIGHT_DATA_TOKEN,
     ws_endpoint_set: !!BRIGHT_DATA_WS_ENDPOINT,
     customer_id_set: !!BRIGHT_DATA_CUSTOMER_ID,
     zone_set: !!BRIGHT_DATA_ZONE,

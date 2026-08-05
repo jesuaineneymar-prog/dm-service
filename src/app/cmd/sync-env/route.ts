@@ -32,20 +32,21 @@ export async function POST(request: Request) {
     }
 
     if (action === 'get_vars_raw') {
-      return NextResponse.json(await railwayGetEnvVars());
+      var rawVars = await railwayGetEnvVars();
+      return NextResponse.json(rawVars);
     }
 
     if (action === 'set_var') {
       if (!body.name || body.value === undefined) return NextResponse.json({ success: false, error: 'name e value necessarios' });
-      var r = await railwaySetEnvVar(body.name, String(body.value));
-      return NextResponse.json(r);
+      var setVarResult = await railwaySetEnvVar(body.name, String(body.value));
+      return NextResponse.json(setVarResult);
     }
 
     if (action === 'sync') {
-      var updates = body.updates || {};
-      if (Object.keys(updates).length === 0) return NextResponse.json({ success: false, error: 'updates necessario' });
-      var r = await railwaySyncEnvVars(updates);
-      return NextResponse.json(r);
+      var syncUpdates = body.updates || {};
+      if (Object.keys(syncUpdates).length === 0) return NextResponse.json({ success: false, error: 'updates necessario' });
+      var syncResult = await railwaySyncEnvVars(syncUpdates);
+      return NextResponse.json(syncResult);
     }
 
     if (action === 'sync_cookies') {
@@ -55,8 +56,8 @@ export async function POST(request: Request) {
       if (igB64) cookieUpdates.AURA_IG_COOKIES_B64 = igB64;
       if (fbB64) cookieUpdates.AURA_FB_COOKIES_B64 = fbB64;
       if (Object.keys(cookieUpdates).length === 0) return NextResponse.json({ success: false, error: 'Nenhum cookie em memoria' });
-      var r = await railwaySyncEnvVars(cookieUpdates);
-      return NextResponse.json({ success: r.synced.length > 0, message: r.synced.length > 0 ? 'Cookies sincronizados' : 'Falha', synced: r.synced, errors: r.errors });
+      var cookieSyncResult = await railwaySyncEnvVars(cookieUpdates);
+      return NextResponse.json({ success: cookieSyncResult.synced.length > 0, message: cookieSyncResult.synced.length > 0 ? 'Cookies sincronizados' : 'Falha', synced: cookieSyncResult.synced, errors: cookieSyncResult.errors });
     }
 
     if (action === 'deployments') {
