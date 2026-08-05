@@ -9,7 +9,7 @@ import { META_APP_SECRET, META_PAGE_TOKEN } from '@/lib/config';
 import { db, ensureDatabase } from '@/lib/db';
 import crypto from 'crypto';
 
-const VERIFY_TOKEN = process.env.MESSENGER_VERIFY_TOKEN || 'aura_mwango_verify_2024';
+const VERIFY_TOKEN = process.env.MESSENGER_VERIFY_TOKEN || 'aura_verify_token_2024';
 
 // Verify webhook (Facebook requirement)
 export async function GET(request: Request) {
