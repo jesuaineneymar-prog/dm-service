@@ -5,7 +5,7 @@
 // ============================================================
 
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db, ensureDatabase } from '@/lib/db';
 import { requireAuth } from '@/lib/auth';
 import { igSendDMByUsername } from '@/lib/ig-publish';
 import { metaSendDM } from '@/lib/meta-graph';
@@ -99,10 +99,18 @@ async function executeCampaign(id: string, body: any) {
   var failed = 0;
   var results: any[] = [];
   var batchSize = body.batchSize || 10;
-  var delay = body.delay || 45000; // 45s between messages
+  // Human pacing: 10-15 min between actions to avoid platform detection
+  var delay = body.delay || 600000; // 10 min between batches
 
   for (var i = 0; i < targets.length; i++) {
     var t = targets[i];
+
+    // Cross-campaign dedup check
+    var isDup = await db.prospect.findFirst({
+      where: { platform: campaign.platform, username: (t.username || '').toLowerCase(), status: { in: ['contacted', 'responded', 'converted'] } },
+    });
+    if (isDup) { results.push({ target: t.username, success: false, error: 'Duplicado — ja contactado' }); continue; }
+
     var msg = t.message || campaign.baseMessage || '';
 
     // Generate AI message if enabled and no specific message
@@ -139,12 +147,14 @@ async function executeCampaign(id: string, body: any) {
     // Update counters
     await db.campaign.update({ where: { id }, data: { sentCount: sent, failedCount: failed } });
 
-    // Pause between batches
+    // Human pacing: 10-15 min between actions to avoid platform detection
     if (i < targets.length - 1 && (i + 1) % batchSize === 0) {
       console.log('[Campaign] Batch pause: ' + Math.round(delay/60000) + ' min');
       await new Promise(function(resolve) { setTimeout(resolve, delay); });
     } else if (i < targets.length - 1) {
-      await new Promise(function(resolve) { setTimeout(resolve, 15000 + Math.floor(Math.random() * 10000)); });
+      var campaignJitter = 600000 + Math.floor(Math.random() * 300000); // 10-15 min
+      console.log('[Campaign] Human pacing: ' + Math.round(campaignJitter/60000) + ' min');
+      await new Promise(function(resolve) { setTimeout(resolve, campaignJitter); });
     }
   }
 

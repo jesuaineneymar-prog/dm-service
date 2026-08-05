@@ -141,9 +141,9 @@ export async function POST(request: Request) {
 
       sentResults.push(result);
 
-      // Rate limit: 5-7 min between DMs (human pacing to avoid bans)
+      // Human pacing: 10-15 min between actions to avoid platform detection
       if (i < prospects.length - 1) {
-        var delay = Math.floor(Math.random() * 120) + 300; // 300-420s = 5-7 min
+        var delay = Math.floor(Math.random() * 300) + 600; // 600-900s = 10-15 min
         // Report progress before waiting
         sentResults[sentResults.length - 1].nextWait = delay + 's';
         await new Promise(function(r) { setTimeout(r, delay * 1000); });
@@ -211,8 +211,9 @@ export async function POST(request: Request) {
       }
 
       replyResults.push(replyResult);
+      // Human pacing: 10-15 min between actions to avoid platform detection
       if (ri < commentsToReply.length - 1) {
-        var delay2 = Math.floor(Math.random() * 120) + 300; // 300-420s = 5-7 min
+        var delay2 = Math.floor(Math.random() * 300) + 600; // 600-900s = 10-15 min
         replyResults[replyResults.length - 1].nextWait = delay2 + 's';
         await new Promise(function(r) { setTimeout(r, delay2 * 1000); });
       }

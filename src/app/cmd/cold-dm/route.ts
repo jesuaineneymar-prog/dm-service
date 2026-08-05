@@ -7,6 +7,7 @@
 
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
+import { db, ensureDatabase } from '@/lib/db';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -29,6 +30,21 @@ async function getFB() {
 }
 
 export var maxDuration = 300;
+
+// Cross-campaign deduplication check
+async function checkDuplicate(platform: string, username: string): Promise<boolean> {
+  try {
+    await ensureDatabase();
+    var existing = await db.prospect.findFirst({
+      where: {
+        platform,
+        username: username.toLowerCase(),
+        status: { in: ['contacted', 'responded', 'converted'] },
+      },
+    });
+    return !!existing;
+  } catch (e) { return false; }
+}
 
 export async function POST(request: Request) {
   var authError = requireAuth(request);
@@ -206,6 +222,11 @@ export async function POST(request: Request) {
       if (!username || !message) {
         return NextResponse.json({ success: false, error: 'username e mensagem necessarios' });
       }
+      // Dedup check
+      var isDup = await checkDuplicate('instagram', username);
+      if (isDup) {
+        return NextResponse.json({ success: false, error: 'DUPLICADO: @' + username + ' ja foi contactado' });
+      }
       var ig = await getIG();
       var result = await ig.igColdDM(username, message, {
         igUsername: body.ig_username || undefined,
@@ -221,6 +242,11 @@ export async function POST(request: Request) {
       if (!target || !message) {
         return NextResponse.json({ success: false, error: 'target e mensagem necessarios' });
       }
+      // Dedup check
+      var isDupFb = await checkDuplicate('facebook', target);
+      if (isDupFb) {
+        return NextResponse.json({ success: false, error: 'DUPLICADO: ' + target + ' ja foi contactado' });
+      }
       var fb = await getFB();
       var result = await fb.fbColdDM(target, message, {
         fbEmail: body.fb_email || undefined,
@@ -234,7 +260,8 @@ export async function POST(request: Request) {
       var targets = body.targets || [];
       var platform = body.platform || 'instagram';
       var defaultMsg = body.message || body.defaultMessage || '';
-      var delay = (body.delay || 8000);
+      // Human pacing: 10-15 min between actions to avoid platform detection
+      var delay = (body.delay || 600000);
 
       if (!Array.isArray(targets) || !targets.length) {
         return NextResponse.json({ success: false, error: 'targets necessario (array)' });
@@ -250,6 +277,12 @@ export async function POST(request: Request) {
         var msg = t.message || defaultMsg;
         if (!targetUser || !msg) {
           results.push({ target: targetUser, success: false, error: 'target ou mensagem vazio' });
+          continue;
+        }
+        // Dedup check
+        var isDupBatch = await checkDuplicate(platform, targetUser);
+        if (isDupBatch) {
+          results.push({ target: targetUser, success: false, error: 'Duplicado — ja contactado' });
           continue;
         }
         try {
@@ -272,8 +305,8 @@ export async function POST(request: Request) {
           results.push({ target: targetUser, success: false, error: e.message });
         }
         if (i < targets.length - 1) {
-          var jitter = delay + (Math.random() * 3000 - 1500);
-          console.log('[ColdDM] Esperando ' + Math.round(jitter/1000) + 's...');
+          var jitter = delay + (Math.random() * 300000 - 150000);
+          console.log('[ColdDM] Human pacing: esperando ' + Math.round(jitter/1000) + 's...');
           await new Promise(function(res) { setTimeout(res, jitter); });
         }
       }
@@ -319,6 +352,12 @@ export async function POST(request: Request) {
       }
 
       console.log('[cold-dm] AI gerou mensagem: ' + aiMessage);
+
+      // Dedup check
+      var aiDup = await checkDuplicate(aiPlatform, aiTarget);
+      if (aiDup) {
+        return NextResponse.json({ success: false, error: 'DUPLICADO: @' + aiTarget + ' ja foi contactado', ai_generated_message: aiMessage, platform: aiPlatform });
+      }
 
       // Send the DM
       var sendResult: any;

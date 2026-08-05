@@ -202,6 +202,27 @@ async function cycleFollowUps(): Promise<any> {
   return results;
 }
 
+// Multi-touch follow-up sequence creator (1d, 3d, 7d escalating intervals)
+async function createFollowUpSequence(prospectId: string, displayName: string, username: string): Promise<number> {
+  var created = 0;
+  var templates = [
+    { days: 1, msg: 'Ola ' + (displayName || '@' + username) + ', ja pensou em como a Mwango Brain pode ajudar o teu negocio?' },
+    { days: 3, msg: '@' + username + ', temos casos de sucesso em negocios como o teu. Podemos conversar 5 min?' },
+    { days: 7, msg: 'Ultima tentativa — ' + (displayName || '@' + username) + ', se quiseres crescer a tua presenca digital, estamos aqui.' },
+  ];
+  for (var t of templates) {
+    var existing = await db.followUp.findFirst({ where: { prospectId, status: 'pending' } });
+    if (existing) break;
+    var scheduledDate = new Date();
+    scheduledDate.setDate(scheduledDate.getDate() + t.days);
+    await db.followUp.create({
+      data: { prospectId, scheduledAt: scheduledDate, message: t.msg },
+    });
+    created++;
+  }
+  return created;
+}
+
 // Self-contained analytics snapshot + auto follow-up creation
 async function cycleAnalytics(): Promise<any> {
   var results: any = { instagram: null, facebook: null, autoFollowUpsCreated: 0 };
@@ -210,7 +231,7 @@ async function cycleAnalytics(): Promise<any> {
   results.instagram = { error: 'HikerAPI removido' };
 
 
-  // Auto-create follow-ups for cold prospects (3 days without contact)
+  // Auto-create follow-up sequences for cold prospects
   try {
     var threeDaysAgo = new Date(); threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
     var coldProspects = await db.prospect.findMany({
@@ -221,9 +242,8 @@ async function cycleAnalytics(): Promise<any> {
       var p = coldProspects[i];
       var hasPending = p.followUps.some(function(fu: any) { return fu.status === 'pending'; });
       if (hasPending) continue;
-      var nextDate = new Date(); nextDate.setDate(nextDate.getDate() + 1);
-      await db.followUp.create({ data: { prospectId: p.id, scheduledAt: nextDate, message: 'Seguimento: Ola ' + (p.displayName || '@' + p.username) + ', a Mwango Brain quer trabalhar contigo!' } });
-      results.autoFollowUpsCreated++;
+      var seqCreated = await createFollowUpSequence(p.id, p.displayName || '', p.username);
+      results.autoFollowUpsCreated += seqCreated;
     }
   } catch (e) { /* silent */ }
 
