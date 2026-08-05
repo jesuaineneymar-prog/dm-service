@@ -49,12 +49,23 @@ async function runInstagrapi(pythonCode: string): Promise<any> {
   }
 }
 
-// Get IG credentials from env
-function getIGCreds() {
-  return {
-    username: process.env.IG_USERNAME || '',
-    password: process.env.IG_PASSWORD || '',
-  };
+// Get IG credentials from env or DB settings
+var _igCredsCache: { username: string; password: string } | null = null;
+async function getIGCreds() {
+  if (_igCredsCache) return _igCredsCache;
+  var username = process.env.IG_USERNAME || '';
+  var password = process.env.IG_PASSWORD || '';
+  // Fallback: check DB systemSetting
+  if (!username || !password) {
+    try {
+      var setting = await db.systemSetting.findUnique({ where: { key: 'ig_username' } });
+      if (setting?.value) username = setting.value;
+      var setting2 = await db.systemSetting.findUnique({ where: { key: 'ig_password' } });
+      if (setting2?.value) password = setting2.value;
+    } catch(e) {}
+  }
+  _igCredsCache = { username, password };
+  return _igCredsCache;
 }
 
 // === PUBLISH POST ===
@@ -65,7 +76,7 @@ export async function igPublishPost(options: {
   mediaData?: string; // base64
   mediaType?: 'image' | 'video';
 }): Promise<{ success: boolean; postId?: string; error?: string }> {
-  var creds = getIGCreds();
+  var creds = await getIGCreds();
   if (!creds.username || !creds.password) {
     return { success: false, error: 'IG_USERNAME e IG_PASSWORD necessarios nas env vars' };
   }
@@ -142,7 +153,7 @@ export async function igPublishStory(options: {
   caption?: string;
   mediaType?: 'image' | 'video';
 }): Promise<{ success: boolean; storyId?: string; error?: string }> {
-  var creds = getIGCreds();
+  var creds = await getIGCreds();
   if (!creds.username || !creds.password) {
     return { success: false, error: 'IG_USERNAME e IG_PASSWORD necessarios' };
   }
@@ -192,7 +203,7 @@ except Exception as e:
 
 // === GET COMMENTS ===
 export async function igGetComments(mediaId: string, limit?: number) {
-  var creds = getIGCreds();
+  var creds = await getIGCreds();
   if (!creds.username || !creds.password) return { success: false, error: 'Credenciais IG em falta' };
 
   var code = `
@@ -215,7 +226,7 @@ except Exception as e:
 
 // === REPLY TO COMMENT ===
 export async function igReplyComment(mediaId: string, commentId: string, message: string) {
-  var creds = getIGCreds();
+  var creds = await getIGCreds();
   if (!creds.username || !creds.password) return { success: false, error: 'Credenciais IG em falta' };
 
   var safeMsg = message.replace(/"/g, '\\"');
@@ -236,7 +247,7 @@ except Exception as e:
 
 // === SEND DM (for auto-reply and cold DMs) ===
 export async function igSendDM(recipientUserId: string, message: string) {
-  var creds = getIGCreds();
+  var creds = await getIGCreds();
   if (!creds.username || !creds.password) return { success: false, error: 'Credenciais IG em falta' };
 
   var safeMsg = message.replace(/"/g, '\\"');
@@ -257,7 +268,7 @@ except Exception as e:
 
 // === SEND DM BY USERNAME ===
 export async function igSendDMByUsername(username: string, message: string) {
-  var creds = getIGCreds();
+  var creds = await getIGCreds();
   if (!creds.username || !creds.password) return { success: false, error: 'Credenciais IG em falta' };
 
   var safeMsg = message.replace(/"/g, '\\"');
@@ -279,7 +290,7 @@ except Exception as e:
 
 // === GET INBOX (for auto-reply) ===
 export async function igGetInbox(limit?: number) {
-  var creds = getIGCreds();
+  var creds = await getIGCreds();
   if (!creds.username || !creds.password) return { success: false, error: 'Credenciais IG em falta' };
 
   var code = `
@@ -305,7 +316,7 @@ except Exception as e:
 
 // === GET IG USER STATS (analytics) ===
 export async function igGetUserStats() {
-  var creds = getIGCreds();
+  var creds = await getIGCreds();
   if (!creds.username || !creds.password) return { success: false, error: 'Credenciais IG em falta' };
 
   var code = `
@@ -325,7 +336,7 @@ except Exception as e:
 
 // === GET FOLLOWERS LIST ===
 export async function igGetFollowers(amount?: number) {
-  var creds = getIGCreds();
+  var creds = await getIGCreds();
   if (!creds.username || !creds.password) return { success: false, error: 'Credenciais IG em falta' };
 
   var code = `
