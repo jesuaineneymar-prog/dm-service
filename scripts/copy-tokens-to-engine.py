@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Copia OR_KEY e META_PAGE_TOKEN do Next.js para o aura-engine.
-Como o Railway API v2 nao permite ler valores, usamos
-o endpoint do Next.js para obter os tokens e configurar no engine."""
+"""
+Copia OR_KEY e META_PAGE_TOKEN do Next.js para o aura-engine.
+Corre localmente — pede os tokens ao utilizador e configura no Railway.
+"""
 import json
 import urllib.request
 
@@ -10,8 +11,6 @@ GRAPHQL_URL = "https://backboard.railway.app/graphql/v2"
 PROJECT_ID = "17256a66-27b2-41db-bef2-0d7f05c5e26b"
 ENV_ID = "acc6bfb1-9cd7-42ac-a862-fa1e14196a33"
 ENGINE_ID = "5ec1e283-b115-4c29-afef-95de32d3bb6d"
-NEXT_ID = "aa38ee6b-0828-4bc2-9828-7152b23f65c0"
-NEXT_URL = "https://aura-social-engine-production.up.railway.app"
 
 def set_var(name, value):
     payload = {
@@ -32,27 +31,37 @@ def set_var(name, value):
         with urllib.request.urlopen(req, timeout=15) as resp:
             result = json.loads(resp.read().decode())
             ok = "variableUpsert" in result.get("data", {})
-            print(f"  [{'OK' if ok else '!!'}] {name} ({len(value)} chars)")
+            print(f"  [{'OK' if ok else 'FALHA'}] {name} ({len(value)} chars)")
             return ok
     except Exception as e:
-        print(f"  [ERR] {name}: {e}")
+        print(f"  [ERRO] {name}: {e}")
         return False
 
-# Try to get tokens from the Next.js health endpoint
-print("Obtendo tokens do Next.js...")
-try:
-    req = urllib.request.Request(NEXT_URL + "/api/health")
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        health = json.loads(resp.read().decode())
-        print(f"  Health: {health.get('status', 'unknown')}")
-except Exception as e:
-    print(f"  Erro ao aceder health: {e}")
+print("=== Copiar Tokens para Aura Engine ===")
+print("Pega os tokens no dashboard do Railway:")
+print(f"  https://railway.app/project/{PROJECT_ID}/service/{ENGINE_ID}")
+print("")
+print("Variaveis que precisas copiar do servico 'aura-social-engine':")
+print("  1. OR_KEY")
+print("  2. META_PAGE_TOKEN")
+print("  3. AURA_IG_COOKIES_B64 (opcional - se tiver)")
+print("")
 
-print("\nNOTA: Nao e possivel ler tokens do Railway API v2 (seguranca).")
-print("Precisas configurar manualmente no dashboard do Railway:")
-print(f"  Servico: aura-engine ({ENGINE_ID})")
-print("  Variaveis a adicionar:")
-print("    OR_KEY = (copiar do servico aura-social-engine)")
-print("    META_PAGE_TOKEN = (copiar do servico aura-social-engine)")
-print("    AURA_IG_COOKIES_B64 = (copiar do servico aura-social-engine)")
-print("    AURA_FB_COOKIES_B64 = (copiar do servico aura-social-engine)")
+# Obter tokens do input do utilizador
+or_key = input("Cola o OR_KEY: ").strip()
+meta_token = input("Cola o META_PAGE_TOKEN: ").strip()
+ig_cookies = input("Cola o AURA_IG_COOKIES_B64 (Enter para saltar): ").strip()
+
+print("")
+print("Configurando...")
+
+if or_key:
+    set_var("AI_API_KEY", or_key)
+if meta_token:
+    set_var("META_PAGE_TOKEN", meta_token)
+if ig_cookies:
+    set_var("AURA_IG_COOKIES_B64", ig_cookies)
+
+print("")
+print("Feito! Reinicia o engine para aplicar:")
+print(f"  Railway: https://railway.app/project/{PROJECT_ID}/service/{ENGINE_ID}")
